@@ -1,0 +1,51 @@
+version: '3.8'
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: analysis_trend_mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: analysis_trend
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - analysis_trend_net
+
+  redis:
+    image: redis:alpine
+    container_name: analysis_trend_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - analysis_trend_net
+
+  backend:
+    build: ./backend
+    container_name: analysis_trend_backend
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/analysis_trend?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
+      SPRING_DATA_REDIS_HOST: redis
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - analysis_trend_net
+
+  analysis:
+    build: ./analysis
+    container_name: analysis_trend_analysis
+    ports:
+      - "8000:8000"
+    networks:
+      - analysis_trend_net
+
+networks:
+  analysis_trend_net:
+    driver: bridge
+
+volumes:
+  mysql_data:
