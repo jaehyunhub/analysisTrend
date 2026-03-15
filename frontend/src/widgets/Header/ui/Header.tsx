@@ -1,0 +1,186 @@
+'use client';
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import Script from 'next/script';
+import { LoginModal } from '@/features/auth/ui/LoginModal';
+
+const NAV_LINKS = [
+  { href: '/community', label: '커뮤니티' },
+  { href: '/shop', label: '쇼핑' },
+  { href: '#', label: '매거진' },
+  { href: '#', label: '소개' },
+];
+
+export default function Header() {
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
+
+  return (
+    <>
+      <header className="sticky top-0 z-50 w-full bg-white/95 dark:bg-[#1A1A1B]/95 backdrop-blur-sm border-b border-gray-200 dark:border-[#343536] px-4 h-[52px] flex items-center justify-between">
+        {/* Left: Logo */}
+        <div className="flex items-center gap-2 lg:w-[220px]">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-black text-lg shadow-sm group-hover:shadow-md transition-shadow">
+              A
+            </div>
+            <span className="hidden text-lg font-black lg:block tracking-tight text-gray-900 dark:text-white">
+              AnalysisTrend
+            </span>
+          </Link>
+        </div>
+
+        {/* Center: Desktop Navigation */}
+        <nav className="hidden md:flex flex-1 justify-center gap-1 mx-4">
+          {NAV_LINKS.map(({ href, label }) => {
+            const isActive = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                  isActive
+                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                    : 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-[#272729]'
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Right: Actions */}
+        <div className="flex items-center gap-1.5 lg:w-[220px] justify-end">
+          <Link
+            href="/admin"
+            className="hidden md:flex items-center justify-center h-8 px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-[#272729] text-gray-500 dark:text-gray-400 text-sm font-medium transition-colors"
+          >
+            관리자
+          </Link>
+          <Link
+            href="/mypage"
+            className="hidden md:flex items-center justify-center h-8 px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-[#272729] text-gray-500 dark:text-gray-400 text-sm font-medium transition-colors"
+          >
+            마이페이지
+          </Link>
+
+          <button
+            onClick={() => setIsLoginModalOpen(true)}
+            className="hidden md:flex ml-1 items-center justify-center rounded-lg bg-blue-600 hover:bg-blue-700 px-5 h-8 text-sm font-semibold text-white transition-colors shadow-sm"
+          >
+            로그인
+          </button>
+
+          {/* Mobile Hamburger */}
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="md:hidden p-2 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-lg transition-colors"
+            aria-label="메뉴 열기"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      {/* Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Menu Drawer */}
+      <div
+        className={`md:hidden fixed top-0 right-0 h-full w-72 bg-white dark:bg-[#1A1A1B] z-50 shadow-2xl flex flex-col transition-transform duration-300 ${
+          mobileMenuOpen ? 'translate-x-0' : 'translate-x-full'
+        }`}
+      >
+        {/* Drawer Header */}
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-[#343536]">
+          <div className="flex items-center gap-2">
+            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-black text-sm">
+              A
+            </div>
+            <span className="font-black text-gray-900 dark:text-white">AnalysisTrend</span>
+          </div>
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="p-1.5 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-lg transition-colors"
+            aria-label="메뉴 닫기"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Nav Links */}
+        <nav className="flex-1 p-4 space-y-1">
+          {NAV_LINKS.map(({ href, label }) => {
+            const isActive = pathname === href;
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${
+                  isActive
+                    ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729]'
+                }`}
+              >
+                {label}
+              </Link>
+            );
+          })}
+
+          <div className="pt-3 border-t border-gray-100 dark:border-[#343536] mt-3 space-y-1">
+            <Link
+              href="/mypage"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors"
+            >
+              마이페이지
+            </Link>
+            <Link
+              href="/admin"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors"
+            >
+              관리자
+            </Link>
+          </div>
+        </nav>
+
+        {/* Login Button */}
+        <div className="p-4 border-t border-gray-200 dark:border-[#343536]">
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              setIsLoginModalOpen(true);
+            }}
+            className="w-full flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 py-3 text-sm font-semibold text-white transition-colors shadow-sm"
+          >
+            로그인
+          </button>
+        </div>
+      </div>
+
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+      />
+
+      <Script
+        src="https://accounts.google.com/gsi/client"
+        strategy="afterInteractive"
+      />
+    </>
+  );
+}

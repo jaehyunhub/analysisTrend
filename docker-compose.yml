@@ -42,6 +42,25 @@ services:
       - "8000:8000"
     networks:
       - analysis_trend_net
+      # --- 프런트엔드 서비스 추가 ---
+  frontend:
+    build:
+      context: ./frontend # Next.js 프로젝트 폴더 경로
+      dockerfile: Dockerfile
+    container_name: analysis_trend_frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8080 # 브라우저에서 접근하는 백엔드 주소
+    depends_on:
+      - backend
+    networks:
+      - analysis_trend_net
 
 networks:
   analysis_trend_net:
