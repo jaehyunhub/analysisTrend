@@ -1,156 +1,130 @@
 'use client';
 
-import Header from "@/components/Header";
-import { useState } from 'react';
+import Link from 'next/link';
 
-const ANALYSIS_RESULT_MOCK = {
-  thumbnailAnalysis: {
-    score: 85,
-    feedback: "High contrast and clear text. Consider increasing the saturation of the main subject.",
-    keywords: ["Vibrant", "Clear Font", "Face Visible"]
-  },
-  titleAnalysis: {
-    score: 92,
-    feedback: "Strong emotional hook. The use of 'Startling' creates curiosity.",
-    suggestions: ["Try adding a number", "Use a question format"]
-  },
-  trendContext: {
-    currentTrends: ["AI Shorts", "Tech Reviews", "ASMR"],
-    relevance: "High"
-  }
-};
+export default function AdminDashboard() {
+  const sections = [
+    {
+      title: '메인 배너',
+      description: '홈 상단 히어로 배너 이미지, 텍스트, 링크를 관리합니다.',
+      href: '/admin/banner',
+      color: 'from-blue-500 to-indigo-600',
+      icon: (
+        <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      )
+    },
+    {
+      title: '방송 일정 · 공지',
+      description: '방송 일정, 날짜, 주제, 공지사항을 업데이트합니다.',
+      href: '/admin/schedule',
+      color: 'from-purple-500 to-pink-600',
+      icon: (
+        <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      )
+    },
+    {
+      title: '광고 슬롯 관리',
+      description: '사이드바 및 배너 광고 영역을 관리합니다.',
+      href: '/admin/ads',
+      color: 'from-green-500 to-emerald-600',
+      icon: (
+        <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+        </svg>
+      )
+    },
+    {
+      title: '유튜브 영상 관리',
+      description: '홈에 노출할 유튜브 영상 링크, 썸네일, 설명을 관리합니다.',
+      href: '/admin/youtube',
+      color: 'from-red-500 to-orange-600',
+      icon: (
+        <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    },
+    {
+      title: '채널 분석',
+      description: '구독자 증감, 조회수, 최고 퍼포밍 영상 분석 데이터를 확인합니다.',
+      href: '/admin/analysis',
+      color: 'from-purple-600 to-indigo-600',
+      icon: (
+        <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      )
+    },
+    {
+      title: '커뮤니티 관리',
+      description: '회원 관리, 신고 처리, 게시물 강제 삭제를 수행합니다.',
+      href: '/admin/community/members',
+      color: 'from-orange-500 to-red-600',
+      icon: (
+        <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+      )
+    }
+  ];
 
-export default function AdminPage() {
-  const [analysisUrl, setAnalysisUrl] = useState('');
-  const [showResult, setShowResult] = useState(false);
-
-  const handleAnalyze = () => {
-    // Mock analysis delay
-    setTimeout(() => setShowResult(true), 1500);
-  };
+  const STATS = [
+    { label: '오늘 방문자', value: '1,284', trend: '+12%', up: true },
+    { label: '신규 회원', value: '47', trend: '+5명', up: true },
+    { label: '새 게시물', value: '23', trend: '+3', up: true },
+    { label: '미처리 신고', value: '2', trend: '즉시 확인', up: false },
+  ];
 
   return (
-    <div className="bg-white dark:bg-black min-h-screen text-black dark:text-white">
-      <Header />
-      <div className="flex max-w-[1400px] mx-auto mt-6">
-        {/* Admin Sidebar */}
-        <aside className="w-64 p-4 border-r border-gray-200 dark:border-[#343536]">
-            <h2 className="text-xl font-bold mb-6">Admin Panel</h2>
-            <nav className="flex flex-col gap-2">
-                <button className="text-left px-4 py-2 bg-gray-100 dark:bg-[#1A1A1B] rounded font-bold">Dashboard</button>
-                <button className="text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-[#272729] rounded text-gray-600 dark:text-gray-400">User Management</button>
-                <button className="text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-[#272729] rounded text-gray-600 dark:text-gray-400">Content Moderation</button>
-                <button className="text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-[#272729] rounded text-gray-600 dark:text-gray-400">Settings</button>
-            </nav>
-        </aside>
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-black text-gray-900 dark:text-white">대시보드</h2>
+          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">AnalysisTrend 관리자 콘솔에 오신 것을 환영합니다.</p>
+        </div>
+        <span className="text-sm text-gray-400">2026년 3월 15일</span>
+      </div>
 
-        {/* Admin Content */}
-        <main className="flex-1 p-8">
-            <h1 className="text-3xl font-bold mb-8">Dashboard Overview</h1>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                <div className="p-6 rounded-lg bg-blue-50 dark:bg-[#1A1A1B] border border-blue-100 dark:border-blue-900">
-                    <h3 className="text-sm text-gray-500 font-bold uppercase mb-1">Total Users</h3>
-                    <div className="text-4xl font-black text-blue-600">12,450</div>
-                    <div className="text-green-500 text-sm mt-2 flex items-center">▲ 12% from last week</div>
-                </div>
-                <div className="p-6 rounded-lg bg-purple-50 dark:bg-[#1A1A1B] border border-purple-100 dark:border-purple-900">
-                    <h3 className="text-sm text-gray-500 font-bold uppercase mb-1">Active Analysis</h3>
-                    <div className="text-4xl font-black text-purple-600">856</div>
-                    <div className="text-green-500 text-sm mt-2 flex items-center">▲ 5% from yesterday</div>
-                </div>
-                <div className="p-6 rounded-lg bg-pink-50 dark:bg-[#1A1A1B] border border-pink-100 dark:border-pink-900">
-                    <h3 className="text-sm text-gray-500 font-bold uppercase mb-1">Pending Reports</h3>
-                    <div className="text-4xl font-black text-pink-600">24</div>
-                    <div className="text-red-500 text-sm mt-2 flex items-center">Requires attention</div>
-                </div>
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {STATS.map(stat => (
+          <div key={stat.label} className="bg-white dark:bg-[#1A1A1B] p-5 rounded-2xl border border-gray-100 dark:border-[#343536] shadow-sm">
+            <p className="text-xs text-gray-400 mb-1 font-medium">{stat.label}</p>
+            <p className="text-2xl font-black text-gray-900 dark:text-white">{stat.value}</p>
+            <p className={`text-xs font-semibold mt-1 ${stat.up ? 'text-emerald-500' : 'text-red-500'}`}>{stat.trend}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Section Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {sections.map((section) => (
+          <Link
+            key={section.title}
+            href={section.href}
+            className="group flex items-start gap-4 p-5 bg-white dark:bg-[#1A1A1B] rounded-2xl border border-gray-100 dark:border-[#343536] shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5"
+          >
+            <div className={`p-3 rounded-xl bg-gradient-to-br ${section.color} shadow-md shrink-0`}>
+              {section.icon}
             </div>
-
-            {/* AI Trend Analysis Section */}
-            <div className="bg-white dark:bg-[#1A1A1B] rounded-lg border border-gray-200 dark:border-[#343536] p-6 mb-8">
-               <h2 className="text-2xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-600">
-                 AI Trend Analysis
-               </h2>
-               <p className="mb-6 text-gray-600 dark:text-gray-300">
-                 Analyze video implementation for AI-powered insights on thumbnails and titles.
-               </p>
-
-               <div className="flex gap-2 mb-8">
-                 <input 
-                   type="text" 
-                   placeholder="Paste YouTube Video or Channel URL" 
-                   className="flex-1 p-3 rounded-lg border border-gray-300 dark:border-[#343536] bg-white dark:bg-black focus:outline-none focus:ring-2 focus:ring-purple-500"
-                   value={analysisUrl}
-                   onChange={(e) => setAnalysisUrl(e.target.value)}
-                 />
-                 <button 
-                   onClick={handleAnalyze}
-                   className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-lg hover:opacity-90 transition-all"
-                 >
-                   Analyze
-                 </button>
-               </div>
-
-               {showResult && (
-                 <div className="grid grid-cols-2 gap-4 animate-fadeIn">
-                    <div className="bg-white dark:bg-black p-4 rounded-lg border border-purple-200 dark:border-purple-900">
-                       <h3 className="font-bold text-lg mb-2">Thumbnail Score</h3>
-                       <div className="text-4xl font-black text-purple-600 mb-2">{ANALYSIS_RESULT_MOCK.thumbnailAnalysis.score}/100</div>
-                       <p className="text-sm text-gray-600 dark:text-gray-400">{ANALYSIS_RESULT_MOCK.thumbnailAnalysis.feedback}</p>
-                    </div>
-                    <div className="bg-white dark:bg-black p-4 rounded-lg border border-pink-200 dark:border-pink-900">
-                       <h3 className="font-bold text-lg mb-2">Title Impact</h3>
-                       <div className="text-4xl font-black text-pink-600 mb-2">{ANALYSIS_RESULT_MOCK.titleAnalysis.score}/100</div>
-                       <ul className="text-sm list-disc list-inside text-gray-600 dark:text-gray-400">
-                         {ANALYSIS_RESULT_MOCK.titleAnalysis.suggestions.map(s => <li key={s}>{s}</li>)}
-                       </ul>
-                    </div>
-                    <div className="col-span-2 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-[#222] dark:to-[#333] p-4 rounded-lg mt-2">
-                      <h3 className="font-bold mb-2">Weekly Trend Context</h3>
-                      <div className="flex gap-2 flex-wrap">
-                         {ANALYSIS_RESULT_MOCK.trendContext.currentTrends.map(t => (
-                           <span key={t} className="px-3 py-1 bg-white dark:bg-black rounded-full text-xs font-bold border border-gray-300 dark:border-gray-600">#{t}</span>
-                         ))}
-                      </div>
-                    </div>
-                 </div>
-               )}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                {section.title}
+              </h3>
+              <p className="text-gray-500 dark:text-gray-400 mt-0.5 text-sm leading-snug">
+                {section.description}
+              </p>
             </div>
-
-            <div className="bg-white dark:bg-[#1A1A1B] rounded-lg border border-gray-200 dark:border-[#343536] p-6">
-                <h3 className="font-bold text-lg mb-4">Recent Activity</h3>
-                <table className="w-full text-left text-sm">
-                    <thead>
-                        <tr className="border-b border-gray-200 dark:border-[#343536]">
-                            <th className="pb-3 text-gray-500">User</th>
-                            <th className="pb-3 text-gray-500">Action</th>
-                            <th className="pb-3 text-gray-500">Time</th>
-                            <th className="pb-3 text-gray-500">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100 dark:divide-[#343536]">
-                        <tr>
-                            <td className="py-3 font-medium">user_123</td>
-                            <td className="py-3">Ran extensive analysis</td>
-                            <td className="py-3 text-gray-500">2 mins ago</td>
-                            <td className="py-3 text-green-500">Completed</td>
-                        </tr>
-                         <tr>
-                            <td className="py-3 font-medium">admin_jenny</td>
-                            <td className="py-3">Updated community rules</td>
-                            <td className="py-3 text-gray-500">1 hour ago</td>
-                            <td className="py-3 text-blue-500">Logged</td>
-                        </tr>
-                         <tr>
-                            <td className="py-3 font-medium">new_user_99</td>
-                            <td className="py-3">Account verify failed</td>
-                            <td className="py-3 text-gray-500">3 hours ago</td>
-                            <td className="py-3 text-red-500">Error</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </main>
+            <svg className="w-5 h-5 text-gray-300 dark:text-gray-600 group-hover:text-blue-500 transition-colors shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
+        ))}
       </div>
     </div>
   );

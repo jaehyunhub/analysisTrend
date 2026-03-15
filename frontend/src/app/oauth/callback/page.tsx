@@ -1,35 +1,51 @@
 'use client';
 
-import { useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 
-export default function OAuthCallbackPage() {
+function OAuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const tokenProcessed = useRef(false);
 
   useEffect(() => {
-    // 1. URL에서 accessToken 꺼내기
-    const accessToken = searchParams.get('accessToken');
+    if (tokenProcessed.current) return;
 
-    if (accessToken) {
-      // 2. 브라우저 저장소(LocalStorage)에 저장
-      localStorage.setItem('accessToken', accessToken);
-      
-      // (선택) 쿠키에 있는 refreshToken은 브라우저가 알아서 저장했음
+    const token = searchParams.get('token');
+    const error = searchParams.get('error');
 
-      alert('로그인 성공! 토큰이 저장되었습니다.');
+    if (token) {
+      tokenProcessed.current = true;
+      localStorage.setItem('accessToken', token);
+      document.cookie = `accessToken=${token}; path=/; max-age=3600; samesite=strict`;
+      // Dispatch a custom event to notify other components (like LoginModal)
+      window.dispatchEvent(new Event('auth-change'));
       
-      // 3. 메인 페이지로 이동
-      router.push('/'); 
-    } else {
-      alert('로그인 실패: 토큰이 없습니다.');
-      router.push('/login');
+      setTimeout(() => {
+         router.push('/');
+      }, 100);
+    } else if (error) {
+      console.error('OAuth Error:', error);
+      alert('Login failed: ' + error);
+      router.push('/');
     }
   }, [searchParams, router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="text-xl font-bold">로그인 처리 중입니다...</div>
+    <div className="flex h-screen items-center justify-center">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold mb-4">Processing Login...</h2>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+      </div>
     </div>
+  );
+}
+
+export default function OAuthCallbackPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <OAuthCallbackContent />
+    </Suspense>
   );
 }

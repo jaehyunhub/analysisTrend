@@ -1,155 +1,187 @@
 'use client';
 
-import Header from "@/components/Header";
-import Sidebar from "@/components/Sidebar";
-import PostCard from "@/components/PostCard";
-import Image from "next/image";
+import Header from "@/widgets/Header/ui/Header";
+import Sidebar from "@/widgets/Sidebar/ui/Sidebar";
+import PostCard from "@/entities/post/ui/PostCard";
+import Link from "next/link";
+import { useState } from 'react';
 
-export default function Home() {
-  const posts = [
+import CommunitySearch from "@/features/search/ui/CommunitySearch";
+
+const SORT_OPTIONS = [
+  { key: 'hot', label: '인기', icon: 'M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z' },
+  { key: 'best', label: '베스트', icon: 'M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
+  { key: 'new', label: '최신', icon: 'M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z' },
+  { key: 'top', label: '상위', icon: 'M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 00-1-1H3z' },
+];
+
+export default function CommunityPage() {
+  const [activeSort, setActiveSort] = useState('hot');
+  const [posts, setPosts] = useState([
     {
       id: 1,
-      subreddit: "MachineLearning",
-      author: "trend_master",
-      timeAgo: "2 hours ago",
-      title: "Exploring the new specific trend analysis algorithm",
-      content: "I've been working on a new way to analyze YouTube trends using a combination of NLP and time-series forecasting. The results show a significant improvement in predicting viral content before it peaks. I utilized the Youtube Data API to gather dataset...",
+      subreddit: '경제',
+      author: 'trend_master',
+      timeAgo: '2시간 전',
+      title: "미국 관세 인상이 국내 수출 기업에 미치는 실질적 영향 분석",
+      content: "트럼프 행정부의 관세 정책이 본격화되면서 삼성, LG, 현대차 등 주요 수출 기업의 실적에 직접적인 영향이 예상됩니다. 특히 반도체와 자동차 분야에서...",
       upvotes: "1.2k",
       comments: "89"
     },
     {
       id: 2,
-      subreddit: "WebDev",
-      author: "coding_ninja",
-      timeAgo: "4 hours ago",
-      title: "Next.js 15 is a game changer for server actions",
-      content: "The new stability improvements and the caching strategies are simply amazing. I've migrated a large scale e-commerce app and the performance boost is real. The developer experience with Server Components is becoming...",
+      subreddit: '방송',
+      author: 'broadcast_fan',
+      timeAgo: '4시간 전',
+      title: "이번 주 금요일 라이브 방송 주제 미리 예고해드립니다",
+      content: "이번 주 금요일 오후 8시 라이브 방송에서는 2분기 경제 전망과 부동산 시장 분석을 다룰 예정입니다. 채팅으로 질문 주시면 실시간으로 답변 드리겠습니다...",
       upvotes: "3.4k",
       comments: "256"
     },
     {
-       id: 3,
-       subreddit: "KoreaTrends",
-       author: "seoul_vibe",
-       timeAgo: "5 hours ago",
-       title: "Top 10 rising keywords in Korean search engines today",
-       content: "Looking at the data from Naver and Google, there is a massive spike in interest for 'Zero Sugar' products again. This seems to be correlated with the new summer season marketing campaigns starting early...",
-       upvotes: "856",
-       comments: "42"
+      id: 3,
+      subreddit: '경제',
+      author: 'seoul_investor',
+      timeAgo: '5시간 전',
+      title: "네이버·카카오 검색 기준 오늘의 급상승 키워드 분석",
+      content: "'제로금리', 'ETF', '리츠' 등 투자 관련 키워드가 급상승 중입니다. 최근 금리 인하 기대감이 높아지면서 관련 투자 상품에 대한 관심이 폭발적으로 증가...",
+      upvotes: "856",
+      comments: "42"
     }
+  ]);
+
+  const [filteredPosts, setFilteredPosts] = useState(posts);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const handleSearch = (query: string) => {
+      if (!query.trim()) {
+          setIsSearching(false);
+          setFilteredPosts(posts);
+          return;
+      }
+      setIsSearching(true);
+      const lowerQuery = query.toLowerCase();
+      const filtered = posts.filter(post =>
+          post.title.toLowerCase().includes(lowerQuery) ||
+          post.content.toLowerCase().includes(lowerQuery) ||
+          post.subreddit.toLowerCase().includes(lowerQuery)
+      );
+      setFilteredPosts(filtered);
+  };
+
+  const POPULAR_COMMUNITIES = [
+      { rank: 1, name: '경제', slug: '경제', members: '12만', color: 'bg-blue-500', isJoined: true },
+      { rank: 2, name: '방송', slug: '방송', members: '8.5만', color: 'bg-red-500', isJoined: true },
+      { rank: 3, name: '쇼핑', slug: '쇼핑', members: '6만', color: 'bg-orange-500', isJoined: false },
+      { rank: 4, name: '자유게시판', slug: '자유게시판', members: '4.5만', color: 'bg-green-500', isJoined: false },
+      { rank: 5, name: 'KoreaIT', slug: 'KoreaIT', members: '3만', color: 'bg-indigo-500', isJoined: false },
   ];
 
   return (
-    <div className="bg-[#DAE0E6] dark:bg-[#030303] min-h-screen">
+    <div className="bg-[#F6F7F8] dark:bg-[#030303] min-h-screen">
       <Header />
-      
+
       <div className="flex justify-center">
-        {/* Max Width Container */}
         <div className="flex w-full max-w-[1200px] gap-6">
-             
-             {/* Left Sidebar - Sticky */}
+
+             {/* Left Sidebar */}
              <Sidebar />
 
              {/* Main Content Area */}
-             <div className="flex-1 py-5 flex gap-6">
+             <div className="flex-1 py-5 flex gap-5">
                  {/* Feed Container */}
                  <div className="flex-1 max-w-[640px]">
-                    {/* Create Post Input */}
-                    <div className="flex items-center gap-2 bg-white dark:bg-[#1A1A1B] p-2 rounded-[4px] border border-[#CCCCCC] dark:border-[#343536] mb-4">
-                        <div className="h-[38px] w-[38px] bg-gray-200 rounded-full overflow-hidden relative">
-                             <Image src="/next.svg" alt="User" fill className="object-cover opacity-50 p-1" />
+                    {/* Search */}
+                    <CommunitySearch onSearch={handleSearch} />
+
+                    {/* Sort Filter */}
+                    {!isSearching && (
+                        <div className="flex items-center gap-1 bg-white dark:bg-[#1A1A1B] p-2.5 mb-3 rounded-xl border border-gray-200 dark:border-[#343536]">
+                            {SORT_OPTIONS.map(option => (
+                              <button
+                                key={option.key}
+                                onClick={() => setActiveSort(option.key)}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-[13px] transition-colors ${
+                                  activeSort === option.key
+                                    ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#272729] hover:text-gray-700 dark:hover:text-gray-200'
+                                }`}
+                              >
+                                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d={option.icon} clipRule="evenodd"/>
+                                </svg>
+                                {option.label}
+                              </button>
+                            ))}
                         </div>
-                        <input 
-                            type="text" 
-                            placeholder="Create Post" 
-                            className="flex-1 bg-[#F6F7F8] dark:bg-[#272729] border border-[#EDEFF1] dark:border-[#343536] hover:bg-white hover:border-[#0079D3] rounded-[4px] h-[38px] px-4 text-sm focus:outline-none"
-                        />
-                        <button className="p-2 text-gray-400 hover:bg-gray-100 dark:hover:bg-[#272729] rounded">
-                            <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd"/></svg>
-                        </button>
-                    </div>
+                    )}
 
-                    {/* Filter Bar */}
-                    <div className="flex items-center gap-4 bg-white dark:bg-[#1A1A1B] p-3 mb-4 rounded-[4px] border border-[#CCCCCC] dark:border-[#343536]">
-                        <button className="flex items-center gap-1 text-[#0079D3] font-bold text-[14px] bg-[#F6F7F8] dark:bg-[#272729] px-3 py-1 rounded-full">
-                            <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
-                            Best
-                        </button>
-                        <button className="flex items-center gap-1 text-[#878A8C] font-bold text-[14px] px-2 py-1 hover:bg-[#F6F7F8] dark:hover:bg-[#272729] rounded-full">
-                             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd"/></svg>
-                             Hot
-                        </button>
-                        <button className="flex items-center gap-1 text-[#878A8C] font-bold text-[14px] px-2 py-1 hover:bg-[#F6F7F8] dark:hover:bg-[#272729] rounded-full">
-                             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd"/></svg>
-                             New
-                        </button>
-                         <button className="flex items-center gap-1 text-[#878A8C] font-bold text-[14px] px-2 py-1 hover:bg-[#F6F7F8] dark:hover:bg-[#272729] rounded-full">
-                             <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 00-1-1H3zm6 3.5a1 1 0 11-2 0 1 1 0 012 0zm0 5a1 1 0 11-2 0 1 1 0 012 0zm6-5a1 1 0 11-2 0 1 1 0 012 0zm0 5a1 1 0 11-2 0 1 1 0 012 0z" clipRule="evenodd"/></svg>
-                             Top
-                        </button>
-                    </div>
-
-                    {/* Posts */}
-                    {posts.map(post => (
-                    <PostCard 
-                        key={post.id}
-                        {...post}
-                    />
-                    ))}
+                    {/* Posts List */}
+                    {isSearching && filteredPosts.length === 0 ? (
+                        <div className="text-center py-14 bg-white dark:bg-[#1A1A1B] rounded-xl border border-gray-200 dark:border-[#343536]">
+                            <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            <p className="text-gray-500 font-semibold">검색 결과가 없습니다.</p>
+                            <p className="text-gray-400 text-sm mt-1">다른 키워드로 검색해보세요.</p>
+                        </div>
+                    ) : (
+                        (isSearching ? filteredPosts : posts).map(post => (
+                          <PostCard key={post.id} {...post} />
+                        ))
+                    )}
                  </div>
 
-                 {/* Right Sidebar - Hidden on typical mobile */}
-                 <div className="hidden lg:block w-[312px]">
-                    {/* Community Details */}
-                    <div className="bg-white dark:bg-[#1A1A1B] rounded-[4px] border border-[#ccc] dark:border-[#343536] mb-4">
-                        <div className="h-8 bg-[#33A8FF] rounded-t-[4px]"></div>
-                        <div className="px-3 pb-3">
-                             <div className="flex items-end gap-2 -mt-4 mb-2">
-                                <div className="h-[54px] w-[54px] rounded-full border-4 border-white dark:border-[#1A1A1B] bg-white flex items-center justify-center overflow-hidden">
-                                     <div className="h-full w-full bg-[#FF4500] flex items-center justify-center text-white text-3xl font-bold">r/</div>
-                                </div>
-                                <h1 className="text-[16px] font-bold text-[#1C1C1C] dark:text-[#D7DADC] pb-1">r/AnalysisTrend</h1>
+                 {/* Right Sidebar - Popular Communities */}
+                 <div className="hidden lg:block w-[300px] shrink-0">
+                    <div className="bg-white dark:bg-[#1A1A1B] rounded-xl border border-gray-200 dark:border-[#343536] sticky top-[65px] overflow-hidden">
+                        <div className="h-[72px] bg-gradient-to-r from-blue-600 to-purple-600 relative flex items-end p-4">
+                             <h2 className="text-white font-bold text-base drop-shadow">인기 커뮤니티</h2>
+                        </div>
+                        <div className="p-4">
+                             <ul className="space-y-3">
+                                 {POPULAR_COMMUNITIES.map((comm) => (
+                                     <li key={comm.rank} className="flex items-center justify-between">
+                                         <div className="flex items-center gap-3 overflow-hidden">
+                                             <span className="text-sm font-bold text-gray-400 w-4 text-center shrink-0">{comm.rank}</span>
+                                             <div className={`w-7 h-7 rounded-full ${comm.color} flex items-center justify-center text-white text-xs font-bold shrink-0`}>
+                                               {comm.name[0]}
+                                             </div>
+                                             <div className="flex flex-col min-w-0">
+                                                 <Link href={`/community/board/${comm.slug}`} className="font-bold text-sm hover:underline truncate text-gray-800 dark:text-gray-200">{comm.name}</Link>
+                                                 <span className="text-xs text-gray-400">{comm.members}명</span>
+                                             </div>
+                                         </div>
+                                         <button className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors shrink-0 ${
+                                             comm.isJoined
+                                             ? 'border-blue-500 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                                             : 'bg-blue-600 text-white border-transparent hover:bg-blue-700'
+                                         }`}>
+                                             {comm.isJoined ? '가입됨' : '가입'}
+                                         </button>
+                                     </li>
+                                 ))}
+                             </ul>
+                             <button className="w-full mt-5 py-2 bg-gray-50 dark:bg-[#272729] rounded-lg text-sm font-bold text-blue-600 hover:bg-gray-100 dark:hover:bg-[#343536] transition-colors">
+                                 전체 커뮤니티 보기
+                             </button>
+                        </div>
+
+                        {/* Footer Links */}
+                        <div className="border-t border-gray-100 dark:border-[#343536] p-4">
+                             <div className="flex flex-wrap gap-x-3 gap-y-2 text-[11px] text-gray-400">
+                                 <a href="#" className="hover:underline">이용약관</a>
+                                 <a href="#" className="hover:underline">개인정보처리방침</a>
+                                 <a href="#" className="hover:underline">운영 정책</a>
+                                 <a href="#" className="hover:underline">운영자 가이드</a>
                              </div>
-                             <p className="text-[14px] text-[#1C1C1C] dark:text-[#D7DADC] mb-3">
-                                Your go-to place for analyzing the latest trends across the web. Join us to discuss data, insights, and predictions.
-                             </p>
-                             <div className="flex gap-10 mb-3 border-b border-[#EDEFF1] dark:border-[#343536] pb-3">
-                                 <div>
-                                     <div className="text-[16px] font-bold text-[#1C1C1C] dark:text-[#D7DADC]">1.2m</div>
-                                     <div className="text-[12px] font-bold text-[#7C878A] dark:text-[#818384]">Members</div>
-                                 </div>
-                                 <div>
-                                     <div className="flex items-center gap-1">
-                                        <span className="h-2 w-2 rounded-full bg-[#46D160]"></span>
-                                        <div className="text-[16px] font-bold text-[#1C1C1C] dark:text-[#D7DADC]">450</div>
-                                     </div>
-                                     <div className="text-[12px] font-bold text-[#7C878A] dark:text-[#818384]">Online</div>
-                                 </div>
-                             </div>
-                             <button className="w-full bg-[#0079D3] hover:bg-[#006CBB] text-white font-bold h-[32px] rounded-full text-sm mb-3">Create Post</button>
-                             
-                             <div className="h-[1px] bg-[#EDEFF1] dark:border-[#343536] mb-3"></div>
-                             
-                             <div className="flex justify-between items-center mb-1">
-                                 <span className="text-[10px] font-bold uppercase text-[#7C878A]">Community Options</span>
-                                 <svg className="h-4 w-4 text-[#7C878A]" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd"/></svg>
+                             <div className="mt-3 text-[11px] text-gray-400">
+                                 AnalysisTrend © 2026. All rights reserved.
                              </div>
                         </div>
                     </div>
-
-                    {/* Footer / Rules / Premium Ad */}
-                    <div className="bg-white dark:bg-[#1A1A1B] p-3 rounded-[4px] border border-[#ccc] dark:border-[#343536] sticky top-[65px]">
-                          <div className="flex gap-2 mb-2">
-                               <div className="flex-1 text-[12px] text-[#7C878A]">
-                                   User Agreement
-                               </div>
-                               <div className="flex-1 text-[12px] text-[#7C878A]">
-                                   Privacy Policy
-                               </div>
-                          </div>
-                          <div className="text-[12px] text-[#7C878A] text-center">Trendit © 2025. All rights reserved.</div>
-                    </div>
                  </div>
+
              </div>
         </div>
       </div>
