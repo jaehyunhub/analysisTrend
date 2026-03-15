@@ -7,66 +7,41 @@ import Link from "next/link";
 import { useState } from 'react';
 
 import CommunitySearch from "@/features/search/ui/CommunitySearch";
+import { useCommunityStore } from "@/shared/model/communityStore";
 
 const SORT_OPTIONS = [
   { key: 'hot', label: '인기', icon: 'M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z' },
   { key: 'best', label: '베스트', icon: 'M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
   { key: 'new', label: '최신', icon: 'M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z' },
   { key: 'top', label: '상위', icon: 'M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 00-1-1H3z' },
-];
+] as const;
+
+type SortKey = typeof SORT_OPTIONS[number]['key'];
 
 export default function CommunityPage() {
-  const [activeSort, setActiveSort] = useState('hot');
-  const [posts, setPosts] = useState([
-    {
-      id: 1,
-      subreddit: '경제',
-      author: 'trend_master',
-      timeAgo: '2시간 전',
-      title: "미국 관세 인상이 국내 수출 기업에 미치는 실질적 영향 분석",
-      content: "트럼프 행정부의 관세 정책이 본격화되면서 삼성, LG, 현대차 등 주요 수출 기업의 실적에 직접적인 영향이 예상됩니다. 특히 반도체와 자동차 분야에서...",
-      upvotes: "1.2k",
-      comments: "89"
-    },
-    {
-      id: 2,
-      subreddit: '방송',
-      author: 'broadcast_fan',
-      timeAgo: '4시간 전',
-      title: "이번 주 금요일 라이브 방송 주제 미리 예고해드립니다",
-      content: "이번 주 금요일 오후 8시 라이브 방송에서는 2분기 경제 전망과 부동산 시장 분석을 다룰 예정입니다. 채팅으로 질문 주시면 실시간으로 답변 드리겠습니다...",
-      upvotes: "3.4k",
-      comments: "256"
-    },
-    {
-      id: 3,
-      subreddit: '경제',
-      author: 'seoul_investor',
-      timeAgo: '5시간 전',
-      title: "네이버·카카오 검색 기준 오늘의 급상승 키워드 분석",
-      content: "'제로금리', 'ETF', '리츠' 등 투자 관련 키워드가 급상승 중입니다. 최근 금리 인하 기대감이 높아지면서 관련 투자 상품에 대한 관심이 폭발적으로 증가...",
-      upvotes: "856",
-      comments: "42"
-    }
-  ]);
+  const { getSortedPosts, setFilter, selectedFilter } = useCommunityStore();
+  const sortedPosts = getSortedPosts();
 
-  const [filteredPosts, setFilteredPosts] = useState(posts);
-  const [isSearching, setIsSearching] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const isSearching = searchQuery.trim().length > 0;
+
+  const displayPosts = isSearching
+    ? sortedPosts.filter((post) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          post.title.toLowerCase().includes(q) ||
+          post.content.toLowerCase().includes(q) ||
+          post.community.toLowerCase().includes(q)
+        );
+      })
+    : sortedPosts;
 
   const handleSearch = (query: string) => {
-      if (!query.trim()) {
-          setIsSearching(false);
-          setFilteredPosts(posts);
-          return;
-      }
-      setIsSearching(true);
-      const lowerQuery = query.toLowerCase();
-      const filtered = posts.filter(post =>
-          post.title.toLowerCase().includes(lowerQuery) ||
-          post.content.toLowerCase().includes(lowerQuery) ||
-          post.subreddit.toLowerCase().includes(lowerQuery)
-      );
-      setFilteredPosts(filtered);
+    setSearchQuery(query);
+  };
+
+  const handleFilterClick = (key: SortKey) => {
+    setFilter(key);
   };
 
   const POPULAR_COMMUNITIES = [
@@ -100,9 +75,9 @@ export default function CommunityPage() {
                             {SORT_OPTIONS.map(option => (
                               <button
                                 key={option.key}
-                                onClick={() => setActiveSort(option.key)}
+                                onClick={() => handleFilterClick(option.key)}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold text-[13px] transition-colors ${
-                                  activeSort === option.key
+                                  selectedFilter === option.key
                                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
                                     : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#272729] hover:text-gray-700 dark:hover:text-gray-200'
                                 }`}
@@ -117,7 +92,7 @@ export default function CommunityPage() {
                     )}
 
                     {/* Posts List */}
-                    {isSearching && filteredPosts.length === 0 ? (
+                    {isSearching && displayPosts.length === 0 ? (
                         <div className="text-center py-14 bg-white dark:bg-[#1A1A1B] rounded-xl border border-gray-200 dark:border-[#343536]">
                             <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -126,8 +101,18 @@ export default function CommunityPage() {
                             <p className="text-gray-400 text-sm mt-1">다른 키워드로 검색해보세요.</p>
                         </div>
                     ) : (
-                        (isSearching ? filteredPosts : posts).map(post => (
-                          <PostCard key={post.id} {...post} />
+                        displayPosts.map(post => (
+                          <PostCard
+                            key={post.id}
+                            id={post.id}
+                            subreddit={post.community}
+                            author={post.author}
+                            timeAgo={new Date(post.createdAt).toLocaleDateString('ko-KR')}
+                            title={post.title}
+                            content={post.content}
+                            upvotes={post.upvotes}
+                            comments={post.commentCount}
+                          />
                         ))
                     )}
                  </div>

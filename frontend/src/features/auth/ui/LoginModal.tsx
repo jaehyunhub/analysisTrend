@@ -1,6 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { apiPost } from '@/shared/api/client';
+import { AUTH } from '@/shared/api/endpoints';
+import { useAuthStore } from '@/shared/model/authStore';
+import type { User } from '@/shared/types';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -16,11 +20,11 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const BACKEND_URL = "http://localhost:8080";
+  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
   const LOGIN_URLS = {
-     google: `${BACKEND_URL}/oauth2/authorization/google`,
-     kakao:  `${BACKEND_URL}/oauth2/authorization/kakao`,
-     naver:  `${BACKEND_URL}/oauth2/authorization/naver`
+    google: `${API_BASE_URL}/oauth2/authorization/google`,
+    kakao:  `${API_BASE_URL}/oauth2/authorization/kakao`,
+    naver:  `${API_BASE_URL}/oauth2/authorization/naver`,
   };
 
   if (!isOpen) return null;
@@ -50,22 +54,12 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       if (!validateSignup()) return;
 
       try {
-          const res = await fetch(`${BACKEND_URL}/api/v1/auth/signup`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email, password, nickname: username })
-          });
-
-          if (res.ok) {
-              setSuccess("회원가입이 완료되었습니다! 로그인 해주세요.");
-              setAuthView('login');
-              setPassword('');
-          } else {
-              const text = await res.text();
-              setError(text || "회원가입에 실패했습니다.");
-          }
-      } catch {
-          setError("네트워크 오류가 발생했습니다.");
+          await apiPost(AUTH.SIGNUP, { email, password, nickname: username }, true);
+          setSuccess("회원가입이 완료되었습니다! 로그인 해주세요.");
+          setAuthView('login');
+          setPassword('');
+      } catch (err) {
+          setError(err instanceof Error ? err.message : "회원가입에 실패했습니다.");
       }
   };
 
@@ -74,22 +68,15 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       setError('');
 
       try {
-          const res = await fetch(`${BACKEND_URL}/api/v1/auth/login`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email, password })
-          });
-
-          if (res.ok) {
-              const token = await res.text();
-              localStorage.setItem('accessToken', token);
-              window.location.reload();
-              onClose();
-          } else {
-              setError("이메일 또는 비밀번호가 올바르지 않습니다.");
-          }
-      } catch {
-          setError("로그인에 실패했습니다. 다시 시도해주세요.");
+          const result = await apiPost<{ accessToken: string; user: User }>(
+              AUTH.LOGIN,
+              { email, password },
+              true
+          );
+          useAuthStore.getState().login(result.user, result.accessToken);
+          onClose();
+      } catch (err) {
+          setError(err instanceof Error ? err.message : "로그인에 실패했습니다. 다시 시도해주세요.");
       }
   };
 

@@ -1,11 +1,8 @@
 from fastapi import FastAPI
+from routers import health, chat, trends
 
-app = FastAPI()
+app = FastAPI(title="AnalysisTrend Analysis Service")
 
-@app.get("/")
-def read_root():
-    return {"message": "Hello from Analysis Service"}
-
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
+app.include_router(health.router)
+app.include_router(chat.router, prefix="/analyze")
+app.include_router(trends.router, prefix="/trends")

@@ -1,5 +1,7 @@
 package backend.global.config;
 
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -8,6 +10,9 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import backend.global.auth.JwtAuthenticationFilter;
 import backend.global.auth.OAuth2SuccessHandler;
@@ -32,7 +37,7 @@ public class SecurityConfig {
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
                 http
                                 .csrf(AbstractHttpConfigurer::disable)
-                                // .cors(AbstractHttpConfigurer::disable) // 프런트 연동 시 CORS 설정 필요(일단 disable)
+                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                                 // 기본 로그인 창(Form Login) 끄기 JWT를 쓸 거라 아이디/비번 입력 창이 필요없어서 설정 끔
                                 .formLogin(AbstractHttpConfigurer::disable)
 
@@ -46,6 +51,12 @@ public class SecurityConfig {
                                                 .requestMatchers("/oauth2/**", "/login/**",
                                                                 "/api/v1/auth/**")
                                                 .permitAll()
+                                                .requestMatchers(org.springframework.http.HttpMethod.GET,
+                                                                "/api/v1/communities/**",
+                                                                "/api/v1/posts/**",
+                                                                "/api/v1/products/**",
+                                                                "/swagger-ui/**", "/v3/api-docs/**")
+                                                .permitAll()
                                                 .anyRequest().authenticated())
 
                                 // 이 필터가 카카오/구글/네이버 로그인을 처리한다.
@@ -58,5 +69,18 @@ public class SecurityConfig {
                                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();
+        }
+
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration config = new CorsConfiguration();
+                config.setAllowedOrigins(List.of("http://localhost:3000"));
+                config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+                config.setAllowedHeaders(List.of("*"));
+                config.setAllowCredentials(true);
+
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", config);
+                return source;
         }
 }

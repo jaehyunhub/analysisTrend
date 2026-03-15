@@ -3,7 +3,7 @@ package backend.global.baseEntity;
 import java.time.LocalDateTime;
 
 import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedBy;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import jakarta.persistence.Column;
@@ -20,7 +20,7 @@ public class BaseTimeEntity {
     @Column(updatable = false) // 생성 시간은 수정되면 안됨
     private LocalDateTime createdAt;
 
-    @LastModifiedBy // 수정될 때 시간 자동 업데이트
+    @LastModifiedDate // 수정될 때 시간 자동 업데이트
     private LocalDateTime updatedAt;
 
 }

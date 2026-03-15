@@ -1,70 +1,104 @@
 version: '3.8'
+
 services:
+  nginx:
+    image: nginx:alpine
+    container_name: analysis_trend_nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - frontend
+      - backend
+      - analysis
+    networks:
+      - app-network
+
   mysql:
     image: mysql:8.0
     container_name: analysis_trend_mysql
-    ports:
-      - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: password
-      MYSQL_DATABASE: analysis_trend
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-analysis_trend}
+      MYSQL_USER: ${MYSQL_USER:-user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-password}
+    expose:
+      - "3306"
+    # 개발 편의용: 로컬에서 직접 접근이 필요하면 아래 주석 해제
+    # ports:
+    #   - "3306:3306"
     volumes:
-      - mysql_data:/var/lib/mysql
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
     networks:
-      - analysis_trend_net
+      - app-network
 
   redis:
-    image: redis:alpine
+    image: redis:7-alpine
     container_name: analysis_trend_redis
-    ports:
-      - "6379:6379"
+    expose:
+      - "6379"
+    # 개발 편의용: 로컬에서 직접 접근이 필요하면 아래 주석 해제
+    # ports:
+    #   - "6379:6379"
+    volumes:
+      - redis-data:/data
     networks:
-      - analysis_trend_net
+      - app-network
 
   backend:
     build: ./backend
     container_name: analysis_trend_backend
-    ports:
-      - "8080:8080"
+    expose:
+      - "8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/analysis_trend?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
-      SPRING_DATA_REDIS_HOST: redis
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-analysis_trend}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+      - SPRING_DATASOURCE_USERNAME=${MYSQL_USER:-user}
+      - SPRING_DATASOURCE_PASSWORD=${MYSQL_PASSWORD:-password}
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+    env_file:
+      - ./backend/.env
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
-      - analysis_trend_net
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: analysis_trend_frontend
+    expose:
+      - "3000"
+    env_file:
+      - ./frontend/.env.local
+    networks:
+      - app-network
 
   analysis:
     build: ./analysis
     container_name: analysis_trend_analysis
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
+    env_file:
+      - ./analysis/.env
     networks:
-      - analysis_trend_net
-      # --- 프런트엔드 서비스 추가 ---
-  frontend:
-    build:
-      context: ./frontend # Next.js 프로젝트 폴더 경로
-      dockerfile: Dockerfile
-    container_name: analysis_trend_frontend
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-    command: npm run dev
-    environment:
-      - NODE_ENV=development
-      - NEXT_PUBLIC_API_URL=http://localhost:8080 # 브라우저에서 접근하는 백엔드 주소
-    depends_on:
-      - backend
-    networks:
-      - analysis_trend_net
-
-networks:
-  analysis_trend_net:
-    driver: bridge
+      - app-network
 
 volumes:
-  mysql_data:
+  mysql-data:
+  redis-data:
+
+networks:
+  app-network:
+    driver: bridge
