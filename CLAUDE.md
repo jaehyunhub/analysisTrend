@@ -32,7 +32,7 @@ npm run lint     # ESLint 실행
 
 ### 인프라
 ```bash
-docker-compose up -d          # 전체 서비스 시작 (MySQL :3306, Redis :6379, backend :8080, frontend :3000, analysis :8000)
+docker-compose up -d          # 전체 서비스 시작 (Nginx :80, MySQL, Redis, backend :8080, frontend :3000, analysis :8000)
 docker-compose up -d mysql redis  # DB만 실행 (로컬 백엔드 개발 시)
 ```
 
@@ -40,8 +40,12 @@ docker-compose up -d mysql redis  # DB만 실행 (로컬 백엔드 개발 시)
 
 ### 프론트엔드 — FSD (Feature-Sliced Design)
 프론트엔드는 Feature-Sliced Design 패턴을 따릅니다:
-- `shared/` — 재사용 가능한 UI 컴포넌트(`Button`), 유틸리티(`utils.ts`), 전역 상태(`modalStore.ts`, Zustand)
-- `entities/` — 도메인 모델과 UI (예: `post/ui/PostCard`)
+- `shared/api/` — fetch wrapper(`client.ts`), 엔드포인트 상수(`endpoints.ts`), mock API(`mock/`)
+- `shared/types/` — 도메인 타입 (Post, User, Community, Product, Schedule, Video, Magazine)
+- `shared/mocks/` — mock 데이터 (posts, communities, products, videos, schedules, users, magazines)
+- `shared/model/` — Zustand 스토어 (`modalStore`, `authStore`, `communityStore`, `cartStore`, `toastStore`)
+- `shared/ui/` — 재사용 가능한 UI 컴포넌트 (`Button`, `Skeleton`, `Spinner`, `Toast`, `ErrorMessage`)
+- `entities/` — 도메인 모델과 UI (예: `post/ui/PostCard`, `post/api/postApi.ts`)
 - `features/` — 사용자 기능 (`auth/ui/LoginModal`, `post/ui/CreatePostModal`, `search/`, `community/`)
 - `widgets/` — 조합형 레이아웃 블록 (`Header`, `Footer`, `Sidebar`)
 - `app/` — Next.js App Router 페이지 및 레이아웃
@@ -57,18 +61,28 @@ Header(`widgets/Header/ui/Header.tsx`)는 데스크탑 네비게이션과 모바
 
 ### 백엔드 — 레이어드 아키텍처
 `backend/` 패키지 구조:
-- `global/config/` — SecurityConfig (무상태 JWT + OAuth2), RedisConfig
+- `global/config/` — SecurityConfig (무상태 JWT + OAuth2), RedisConfig, WebMvcConfig, JpaAuditingConfig
 - `global/auth/` — JwtTokenProvider, JwtAuthenticationFilter, OAuth2SuccessHandler
 - `global/controller/` — HealthController
-- `global/baseEntity/` — BaseTimeEntity (JPA 감사)
+- `global/baseEntity/` — BaseTimeEntity (JPA 감사: createdAt, updatedAt)
+- `global/exception/` — GlobalExceptionHandler, ErrorCode, ErrorResponse, BusinessException
+- `global/common/` — ApiResponse (success, data, message, timestamp)
 - `user/` — domain (User, Role, AuthProvider), repository, service, controller, DTO
+- `community/` — Community 도메인 (CRUD, `/api/v1/communities`)
+- `post/` — Post·Comment·Vote 도메인 (투표, 댓글 중첩, `/api/v1/posts`)
+- `product/` — Product 도메인 (카테고리 필터, `/api/v1/products`)
 
 인증 흐름: OAuth2 로그인 (Google, Kakao, Naver) → `CustomOAuth2UserService` → `OAuth2SuccessHandler`가 JWT 발급 → 프론트엔드가 토큰 저장 후 `JwtAuthenticationFilter`를 통해 전송.
 
 API 접두사: `/api/v1/`
 
 ### 분석 서비스
-`analysis/main.py`의 FastAPI 앱으로, 헬스체크 엔드포인트를 제공합니다. 포트 8000에서 실행됩니다.
+`analysis/main.py`의 FastAPI 앱. 포트 8000에서 실행됩니다.
+- `config.py` — pydantic-settings 환경 변수
+- `routers/` — `health.py`, `chat.py`(`/analyze`), `trends.py`(`/trends`)
+- `services/` — `chat_analyzer.py`, `news_collector.py`, `youtube_collector.py`, `cache.py`
+- `parsers/` — Strategy 패턴 (`csv_parser`, `json_parser`, `txt_parser`)
+- `models/` — `chat.py`, `trend.py` (Pydantic 모델)
 
 ## 주요 기술 사항
 - 백엔드는 무상태 세션 사용 (`SessionCreationPolicy.STATELESS`) — 서버 측 세션 없음
@@ -76,3 +90,17 @@ API 접두사: `/api/v1/`
 - 테스트 DB: H2 인메모리 (운영: MySQL 8.0)
 - 프론트엔드 상태 관리: Zustand (Redux 아님)
 - UI 컴포넌트 라이브러리: Radix UI + CVA (class-variance-authority) + tailwind-merge
+- mock/실제 API 전환: `frontend/.env.local`의 `NEXT_PUBLIC_USE_MOCK` 플래그
+- API 표준 응답: `ApiResponse<T>` (`{ success, data, message, timestamp }`)
+- 인프라: Nginx 리버스 프록시 (포트 80 단일 진입점) + MySQL healthcheck
+
+## MCP 서버 (`.mcp.json`)
+
+프로젝트 루트 `.mcp.json`에 Claude Code용 MCP 서버가 구성되어 있습니다:
+
+| 서버 | 패키지 | 연결 |
+|---|---|---|
+| `mysql` | `@benborla29/mcp-server-mysql` | `127.0.0.1:3306 / analysis_trend` |
+| `redis` | `@modelcontextprotocol/server-redis` | `redis://localhost:6379` |
+| `postgres` | `@modelcontextprotocol/server-postgres` | `POSTGRES_URL` env 참조 |
+| `docker` | `mcp-server-docker` | `/var/run/docker.sock` |

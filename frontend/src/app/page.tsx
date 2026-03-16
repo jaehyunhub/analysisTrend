@@ -3,68 +3,49 @@
 import Header from "@/widgets/Header/ui/Header";
 import Footer from "@/widgets/Footer/ui/Footer";
 import Link from "next/link";
+import { SCHEDULE_DAYS, MOCK_BROADCAST_NEWS, BROADCAST_DATES } from "@/shared/mocks/schedules";
+import { MOCK_VIDEOS } from "@/shared/mocks/videos";
+import { SHOP_PREVIEW_ITEMS } from "@/shared/mocks/products";
+
+const POPULAR_POSTS = {
+  '경제': [
+    { rank: 1, title: '비트코인 신고가 돌파! 투자 전략은?', comments: 124 },
+    { rank: 2, title: '금리 인하 가능성 재점화 분석', comments: 85 },
+    { rank: 3, title: '2026 베스트 적금 상품 추천', comments: 42 },
+    { rank: 4, title: '부동산 거품 논쟁, 어떻게 봐야 하나', comments: 38 },
+    { rank: 5, title: '내 포트폴리오 공개합니다 (피드백 환영)', comments: 22 },
+  ],
+  '자유게시판': [
+    { rank: 1, title: '오늘 방송 진짜 감동이었다...', comments: 512 },
+    { rank: 2, title: '주말 여행 추천해주세요', comments: 230 },
+    { rank: 3, title: '오늘 퇴사했습니다 ㅋㅋ', comments: 189 },
+    { rank: 4, title: '어제 경기 보신 분?', comments: 150 },
+    { rank: 5, title: '근처 맛집 추천 부탁드려요', comments: 98 },
+  ],
+  '쇼핑': [
+    { rank: 1, title: 'RTX 6090 재고 떴습니다!', comments: 445 },
+    { rank: 2, title: '키보드 공동구매 진행 중', comments: 120 },
+    { rank: 3, title: '이 자켓 가격 대비 괜찮나요?', comments: 88 },
+    { rank: 4, title: '모니터 50% 할인 특가', comments: 76 },
+    { rank: 5, title: '신발 드랍 정보 공유', comments: 54 },
+  ],
+  '방송': [
+    { rank: 1, title: '이번 방송 클립 진짜 레전드였다', comments: 890 },
+    { rank: 2, title: '어젯밤 라이브 하이라이트 모음', comments: 432 },
+    { rank: 3, title: '방송 일정 변경 관련 문의', comments: 210 },
+    { rank: 4, title: '팬아트 공모전 참여 후기', comments: 150 },
+    { rank: 5, title: '방송용 마이크 추천해주세요', comments: 90 },
+  ],
+};
+
+const CATEGORY_COLORS: Record<string, string> = {
+  '경제': 'bg-blue-500',
+  '자유게시판': 'bg-green-500',
+  '쇼핑': 'bg-orange-500',
+  '방송': 'bg-red-500',
+};
 
 export default function Home() {
-  const SCHEDULE_DAYS = ['일', '월', '화', '수', '목', '금', '토'];
-  const BOARD_ITEMS = [
-      { id: 1, title: "[공지] 3월 방송 일정 안내", date: "03.14" },
-      { id: 2, title: "이번 주 금요일 라이브 방송 예정", date: "03.13" },
-      { id: 3, title: "트렌드 분석 기능 업데이트 안내", date: "03.12" },
-      { id: 4, title: "커뮤니티 이용 규칙 개정 안내", date: "03.11" },
-      { id: 5, title: "2월 이벤트 당첨자 발표", date: "03.10" },
-  ];
-
-  const RECENT_VIDEOS = [
-      { id: 1, title: "2026년 AI 기술 트렌드 완전 분석", views: "12만", time: "2일 전", color: "bg-red-900" },
-      { id: 2, title: "미국 관세 전쟁이 한국 경제에 미치는 영향", views: "8.5만", time: "5일 전", color: "bg-blue-900" },
-      { id: 3, title: "금리 인하 시대, 재테크 전략 총정리", views: "3.2만", time: "1주 전", color: "bg-green-900" },
-      { id: 4, title: "주간 경제 리포트 — 3월 2주차", views: "1.5만", time: "2주 전", color: "bg-purple-900" },
-  ];
-
-  const POPULAR_POSTS = {
-      '경제': [
-          { rank: 1, title: "비트코인 신고가 돌파! 투자 전략은?", comments: 124 },
-          { rank: 2, title: "금리 인하 가능성 재점화 분석", comments: 85 },
-          { rank: 3, title: "2026 베스트 적금 상품 추천", comments: 42 },
-          { rank: 4, title: "부동산 거품 논쟁, 어떻게 봐야 하나", comments: 38 },
-          { rank: 5, title: "내 포트폴리오 공개합니다 (피드백 환영)", comments: 22 },
-      ],
-      '자유게시판': [
-          { rank: 1, title: "오늘 방송 진짜 감동이었다...", comments: 512 },
-          { rank: 2, title: "주말 여행 추천해주세요", comments: 230 },
-          { rank: 3, title: "오늘 퇴사했습니다 ㅋㅋ", comments: 189 },
-          { rank: 4, title: "어제 경기 보신 분?", comments: 150 },
-          { rank: 5, title: "근처 맛집 추천 부탁드려요", comments: 98 },
-      ],
-      '쇼핑': [
-          { rank: 1, title: "RTX 6090 재고 떴습니다!", comments: 445 },
-          { rank: 2, title: "키보드 공동구매 진행 중", comments: 120 },
-          { rank: 3, title: "이 자켓 가격 대비 괜찮나요?", comments: 88 },
-          { rank: 4, title: "모니터 50% 할인 특가", comments: 76 },
-          { rank: 5, title: "신발 드랍 정보 공유", comments: 54 },
-      ],
-      '방송': [
-          { rank: 1, title: "이번 방송 클립 진짜 레전드였다", comments: 890 },
-          { rank: 2, title: "어젯밤 라이브 하이라이트 모음", comments: 432 },
-          { rank: 3, title: "방송 일정 변경 관련 문의", comments: 210 },
-          { rank: 4, title: "팬아트 공모전 참여 후기", comments: 150 },
-          { rank: 5, title: "방송용 마이크 추천해주세요", comments: 90 },
-      ]
-  };
-
-  const SHOP_ITEMS = [
-      { id: 1, title: "공식 후드티 (블랙/화이트)", price: "55,000원", badge: "20% 할인", image: "bg-gray-200" },
-      { id: 2, title: "트렌드 분석 구독권 (월 1회)", price: "29,000원", badge: "HOT", image: "bg-purple-200" },
-      { id: 3, title: "스트리머 입문 세트", price: "199,000원", badge: "NEW", image: "bg-blue-200" },
-      { id: 4, title: "AnalysisTrend 커스텀 키캡", price: "39,000원", badge: "", image: "bg-pink-200" },
-  ];
-
-  const CATEGORY_COLORS: Record<string, string> = {
-    '경제': 'bg-blue-500',
-    '자유게시판': 'bg-green-500',
-    '쇼핑': 'bg-orange-500',
-    '방송': 'bg-red-500',
-  };
 
   return (
     <div className="bg-white dark:bg-black min-h-screen text-black dark:text-white">
@@ -132,7 +113,7 @@ export default function Home() {
                     </div>
                     <div className="grid grid-cols-7 gap-1">
                         {[...Array(31)].map((_, i) => {
-                          const isBroadcast = [3, 10, 14, 17, 24, 28].includes(i);
+                          const isBroadcast = BROADCAST_DATES.includes(i);
                           const isToday = i === 14;
                           return (
                             <div key={i} className={`aspect-square flex items-center justify-center text-sm rounded-lg relative ${
@@ -164,7 +145,7 @@ export default function Home() {
                         <Link href="/community" className="text-xs text-gray-400 hover:text-blue-500 font-medium transition-colors">더 보기 +</Link>
                     </div>
                     <ul className="flex flex-col divide-y divide-gray-100 dark:divide-[#343536]">
-                        {BOARD_ITEMS.map(item => (
+                        {MOCK_BROADCAST_NEWS.map(item => (
                             <li key={item.id} className="py-3 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-[#1A1A1B] px-2 rounded-lg cursor-pointer transition-colors group">
                                 <span className="text-sm truncate pr-4 text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{item.title}</span>
                                 <span className="text-xs text-gray-400 font-mono shrink-0">{item.date}</span>
@@ -184,9 +165,9 @@ export default function Home() {
                   <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-red-500 font-medium transition-colors">유튜브에서 더 보기 →</a>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                    {RECENT_VIDEOS.map(video => (
+                    {MOCK_VIDEOS.map(video => (
                         <div key={video.id} className="group cursor-pointer">
-                            <div className={`aspect-video rounded-xl mb-3 ${video.color} relative overflow-hidden shadow-sm`}>
+                            <div className={`aspect-video rounded-xl mb-3 ${video.thumbnail} relative overflow-hidden shadow-sm`}>
                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
                                     <div className="w-14 h-14 bg-white/90 rounded-full flex items-center justify-center">
                                       <svg className="w-6 h-6 text-gray-900 ml-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
@@ -198,7 +179,7 @@ export default function Home() {
                             <div className="text-xs text-gray-400 flex items-center gap-1">
                                 <span>조회수 {video.views}</span>
                                 <span>•</span>
-                                <span>{video.time}</span>
+                                <span>{video.duration}</span>
                             </div>
                         </div>
                     ))}
@@ -252,7 +233,7 @@ export default function Home() {
                     <Link href="/shop" className="text-sm text-gray-400 hover:text-purple-500 font-medium transition-colors">전체 상품 보기 →</Link>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-x-5 gap-y-8">
-                    {SHOP_ITEMS.map(product => (
+                    {SHOP_PREVIEW_ITEMS.map(product => (
                         <Link href={`/shop/${product.id}`} key={product.id} className="group cursor-pointer block">
                             <div className={`aspect-square rounded-2xl mb-3 overflow-hidden ${product.image} relative shadow-sm`}>
                                {product.badge && (

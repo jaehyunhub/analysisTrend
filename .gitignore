@@ -14,3 +14,11 @@ test-*.png
 
 # OS
 .DS_Store
+
+# Secrets
+.env
+*.env
+backend/.env
+analysis/.env
+frontend/.env.local
+application-secrets.yml

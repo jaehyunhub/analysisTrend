@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useModalStore } from '@/shared/model/modalStore';
+import { useCommunityStore } from '@/shared/model/communityStore';
+import { useToastStore } from '@/shared/model/toastStore';
 
 const TABS = [
   { key: 'post', label: '글' },
@@ -19,12 +21,36 @@ const COMMUNITIES = [
 
 export default function CreatePostModal() {
   const { isCreatePostOpen, closeCreatePost } = useModalStore();
+  const addPost = useCommunityStore((state) => state.addPost);
+  const toastSuccess = useToastStore((state) => state.success);
   const [selectedTab, setSelectedTab] = useState('post');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [selectedCommunity, setSelectedCommunity] = useState('경제');
 
   if (!isCreatePostOpen) return null;
+
+  const handleSubmit = () => {
+    if (!title.trim()) return;
+    const newPost = {
+      id: Date.now(),
+      title: title.trim(),
+      content: content.trim(),
+      author: 'me',
+      community: selectedCommunity,
+      upvotes: 0,
+      downvotes: 0,
+      commentCount: 0,
+      createdAt: new Date().toISOString(),
+    };
+    addPost(newPost);
+    toastSuccess('글이 작성되었습니다.');
+    setTitle('');
+    setContent('');
+    setSelectedCommunity('경제');
+    setSelectedTab('post');
+    closeCreatePost();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -110,6 +136,7 @@ export default function CreatePostModal() {
               취소
             </button>
             <button
+                onClick={handleSubmit}
                 disabled={!title}
                 className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors text-sm shadow-sm"
             >
