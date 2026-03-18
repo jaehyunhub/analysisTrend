@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useModalStore } from '@/shared/model/modalStore';
 
 interface CommunitySearchProps {
@@ -10,6 +10,17 @@ interface CommunitySearchProps {
 export default function CommunitySearch({ onSearch }: CommunitySearchProps) {
   const [query, setQuery] = useState('');
   const { openCreatePost } = useModalStore();
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      onSearch(query);
+    }, 300);
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [query, onSearch]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

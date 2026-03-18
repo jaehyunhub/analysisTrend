@@ -9,11 +9,8 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-postgres",
-        "${POSTGRES_URL}"
-      ],
-      "env": {
-        "POSTGRES_URL": "postgresql://user:password@localhost:5432/analysis_trend"
-      }
+        "postgresql://user:password@localhost:5432/analysis_trend"
+      ]
     },
     "docker": {
       "command": "npx",

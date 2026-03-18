@@ -77,6 +77,10 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost
+        - NEXT_PUBLIC_ANALYSIS_URL=http://localhost
+        - NEXT_PUBLIC_USE_MOCK=false
     container_name: analysis_trend_frontend
     expose:
       - "3000"
@@ -90,8 +94,13 @@ services:
     container_name: analysis_trend_analysis
     expose:
       - "8000"
+    environment:
+      - REDIS_URL=redis://redis:6379
     env_file:
       - ./analysis/.env
+    depends_on:
+      redis:
+        condition: service_started
     networks:
       - app-network
 

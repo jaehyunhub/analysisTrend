@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useModalStore } from '@/shared/model/modalStore';
 import { useCommunityStore } from '@/shared/model/communityStore';
 import { useToastStore } from '@/shared/model/toastStore';
@@ -28,6 +28,43 @@ export default function CreatePostModal() {
   const [content, setContent] = useState('');
   const [selectedCommunity, setSelectedCommunity] = useState('경제');
 
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isCreatePostOpen) return;
+
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const focusable = dialog.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    first?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      if (focusable.length === 0) { e.preventDefault(); return; }
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+
+    dialog.addEventListener('keydown', handleKeyDown);
+    return () => dialog.removeEventListener('keydown', handleKeyDown);
+  }, [isCreatePostOpen]);
+
   if (!isCreatePostOpen) return null;
 
   const handleSubmit = () => {
@@ -53,13 +90,22 @@ export default function CreatePostModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-[#1A1A1B] w-full max-w-[680px] rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      onKeyDown={(e) => e.key === 'Escape' && closeCreatePost()}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-post-title"
+        className="bg-white dark:bg-[#1A1A1B] w-full max-w-[680px] rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col"
+        ref={dialogRef}
+      >
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-gray-100 dark:border-[#343536]">
-          <h2 className="text-lg font-black text-gray-900 dark:text-white">새 게시물 작성</h2>
-          <button onClick={closeCreatePost} className="p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-lg transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+          <h2 id="create-post-title" className="text-lg font-black text-gray-900 dark:text-white">새 게시물 작성</h2>
+          <button onClick={closeCreatePost} aria-label="모달 닫기" className="p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-lg transition-colors">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
           </button>
         </div>
 

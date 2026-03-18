@@ -1,123 +1,186 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { apiGet, apiPost, apiPut, apiDelete } from '@/shared/api/client';
+import { SCHEDULES } from '@/shared/api/endpoints';
+
+interface Schedule {
+  id: number;
+  title: string;
+  scheduleDate: string;
+  type: 'REGULAR' | 'SPECIAL' | 'NOTICE';
+  description?: string;
+}
+
+const TYPE_LABELS = { REGULAR: '정규', SPECIAL: '특별', NOTICE: '공지' };
+const TYPE_COLORS = {
+  REGULAR: 'bg-blue-100 text-blue-600 dark:bg-blue-900/30',
+  SPECIAL: 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400',
+  NOTICE: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30',
+};
+
+const EMPTY_FORM = { title: '', scheduleDate: '', type: 'REGULAR' as Schedule['type'], description: '' };
 
 export default function ScheduleManagement() {
-  const [activeTab, setActiveTab] = useState('schedule'); // 'schedule' | 'news'
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Schedule | null>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock Data
-  const [schedules, setSchedules] = useState([
-    { id: 1, date: '2026-01-15', title: 'Grand Opening Special', type: 'Special' },
-    { id: 2, date: '2026-01-20', title: 'Developer Q&A', type: 'Regular' },
-  ]);
+  const load = async () => {
+    try {
+      const data = await apiGet<Schedule[]>(SCHEDULES.ADMIN_LIST);
+      setSchedules(data);
+    } catch {
+      // fallback: 기존 mock 데이터 유지
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  const [news, setNews] = useState([
-    { id: 1, date: '01.25', title: '[Notice] Server Maintenance 2024.01.28' },
-    { id: 2, date: '01.24', title: 'Broadcast Schedule Changes' },
-  ]);
+  useEffect(() => { load(); }, []);
+
+  const openCreate = () => {
+    setEditTarget(null);
+    setForm(EMPTY_FORM);
+    setIsFormOpen(true);
+  };
+
+  const openEdit = (s: Schedule) => {
+    setEditTarget(s);
+    setForm({ title: s.title, scheduleDate: s.scheduleDate, type: s.type, description: s.description ?? '' });
+    setIsFormOpen(true);
+  };
+
+  const handleSave = async () => {
+    try {
+      if (editTarget) {
+        const updated = await apiPut<Schedule>(SCHEDULES.ADMIN_DETAIL(editTarget.id), form);
+        setSchedules(prev => prev.map(s => s.id === editTarget.id ? updated : s));
+      } else {
+        const created = await apiPost<Schedule>(SCHEDULES.ADMIN_LIST, form);
+        setSchedules(prev => [...prev, created].sort((a, b) => a.scheduleDate.localeCompare(b.scheduleDate)));
+      }
+      setIsFormOpen(false);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!confirm('일정을 삭제하시겠습니까?')) return;
+    try {
+      await apiDelete(SCHEDULES.ADMIN_DETAIL(id));
+      setSchedules(prev => prev.filter(s => s.id !== id));
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-           <h2 className="text-2xl font-bold dark:text-white">Schedule & News Management</h2>
-           <p className="text-gray-500 dark:text-gray-400 text-sm">Manage the monthly calendar events and community news ticker.</p>
+          <h2 className="text-2xl font-bold dark:text-white">방송 일정 관리</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">월별 일정 및 이벤트를 관리합니다.</p>
         </div>
-        <div className="flex bg-gray-100 dark:bg-[#272729] p-1 rounded-lg">
-           <button 
-             onClick={() => setActiveTab('schedule')}
-             className={`px-4 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'schedule' ? 'bg-white dark:bg-[#1A1A1B] text-blue-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
-           >
-             Calendar Events
-           </button>
-           <button 
-             onClick={() => setActiveTab('news')}
-             className={`px-4 py-2 text-sm font-bold rounded-md transition-all ${activeTab === 'news' ? 'bg-white dark:bg-[#1A1A1B] text-purple-600 shadow-sm' : 'text-gray-500 dark:text-gray-400'}`}
-           >
-             Broadcast News
-           </button>
-        </div>
+        <button
+          onClick={openCreate}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-blue-500/20"
+        >
+          + 일정 추가
+        </button>
       </div>
 
-      <div className="bg-white dark:bg-[#1A1A1B] p-6 rounded-2xl border border-gray-200 dark:border-[#343536] shadow-sm min-h-[400px]">
-        
-        {/* SCHEDULE TAB */}
-        {activeTab === 'schedule' && (
-          <div className="animate-fade-in">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-lg dark:text-white">Monthly Schedule Items</h3>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-blue-500/20">
-                  + Add Event
-                </button>
+      {isFormOpen && (
+        <div className="bg-white dark:bg-[#1A1A1B] p-6 rounded-2xl border border-gray-200 dark:border-[#343536] shadow-sm">
+          <h3 className="font-bold mb-4 dark:text-white">{editTarget ? '일정 수정' : '일정 추가'}</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">제목 *</label>
+              <input
+                type="text"
+                value={form.title}
+                onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              />
             </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">날짜 *</label>
+              <input
+                type="date"
+                value={form.scheduleDate}
+                onChange={e => setForm(f => ({ ...f, scheduleDate: e.target.value }))}
+                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">유형</label>
+              <select
+                value={form.type}
+                onChange={e => setForm(f => ({ ...f, type: e.target.value as Schedule['type'] }))}
+                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              >
+                {Object.entries(TYPE_LABELS).map(([k, v]) => (
+                  <option key={k} value={k}>{v}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-400 mb-1">설명</label>
+              <input
+                type="text"
+                value={form.description}
+                onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setIsFormOpen(false)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-900 dark:hover:text-white">취소</button>
+            <button onClick={handleSave} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-bold">저장</button>
+          </div>
+        </div>
+      )}
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 dark:border-[#343536] text-gray-400">
-                    <th className="pb-3 pl-2">Date</th>
-                    <th className="pb-3">Event Title</th>
-                    <th className="pb-3">Type</th>
-                    <th className="pb-3 text-right pr-2">Actions</th>
+      <div className="bg-white dark:bg-[#1A1A1B] p-6 rounded-2xl border border-gray-200 dark:border-[#343536] shadow-sm min-h-[300px]">
+        {isLoading ? (
+          <div className="text-center py-8 text-gray-400">불러오는 중...</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 dark:border-[#343536] text-gray-400">
+                  <th className="pb-3 pl-2">날짜</th>
+                  <th className="pb-3">제목</th>
+                  <th className="pb-3">유형</th>
+                  <th className="pb-3 text-right pr-2">관리</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100 dark:divide-[#343536]">
+                {schedules.map(item => (
+                  <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
+                    <td className="py-3 pl-2 font-mono text-gray-600 dark:text-gray-300">{item.scheduleDate}</td>
+                    <td className="py-3 font-medium dark:text-white">{item.title}</td>
+                    <td className="py-3">
+                      <span className={`px-2 py-1 rounded text-xs font-bold ${TYPE_COLORS[item.type]}`}>
+                        {TYPE_LABELS[item.type]}
+                      </span>
+                    </td>
+                    <td className="py-3 text-right pr-2">
+                      <button onClick={() => openEdit(item)} className="text-gray-400 hover:text-blue-500 mr-3 text-sm">수정</button>
+                      <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 text-sm">삭제</button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100 dark:divide-[#343536]">
-                  {schedules.map(item => (
-                    <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors rounded-lg group">
-                      <td className="py-3 pl-2 font-mono text-gray-600 dark:text-gray-300">{item.date}</td>
-                      <td className="py-3 font-medium dark:text-white">{item.title}</td>
-                      <td className="py-3">
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${item.type === 'Special' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30'}`}>
-                          {item.type}
-                        </span>
-                      </td>
-                      <td className="py-3 text-right pr-2">
-                        <button className="text-gray-400 hover:text-blue-500 mr-3">Edit</button>
-                        <button className="text-gray-400 hover:text-red-500">Delete</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+                {schedules.length === 0 && (
+                  <tr><td colSpan={4} className="py-8 text-center text-gray-400">등록된 일정이 없습니다.</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         )}
-
-        {/* NEWS TAB */}
-        {activeTab === 'news' && (
-          <div className="animate-fade-in">
-             <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-lg dark:text-white">Broadcast News Ticker</h3>
-                <button className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-purple-500/20">
-                  + Add News
-                </button>
-            </div>
-
-            <div className="space-y-3">
-              {news.map(item => (
-                <div key={item.id} className="flex items-center justify-between p-4 border border-gray-100 dark:border-[#343536] rounded-xl hover:bg-gray-50 dark:hover:bg-[#212124] transition-all">
-                   <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 flex flex-col items-center justify-center bg-gray-100 dark:bg-[#343536] rounded-lg text-xs font-bold text-gray-500">
-                          <span>{item.date.split('.')[0]}</span>
-                          <span>{item.date.split('.')[1]}</span>
-                      </div>
-                      <span className="font-medium dark:text-white">{item.title}</span>
-                   </div>
-                   <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      {/* Using always visible buttons for now for better UX on mobile/touch */}
-                      <button className="p-2 bg-white dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg text-gray-500 hover:text-blue-500">
-                        Edit
-                      </button>
-                      <button className="p-2 bg-white dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg text-gray-500 hover:text-red-500">
-                        Del
-                      </button>
-                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
       </div>
     </div>
   );

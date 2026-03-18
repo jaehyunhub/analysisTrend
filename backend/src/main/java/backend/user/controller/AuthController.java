@@ -1,5 +1,8 @@
 package backend.user.controller;
 
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,10 +15,12 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import backend.global.auth.JwtTokenProvider;
+import backend.global.common.ApiResponse;
 import backend.user.domain.AuthProvider;
 import backend.user.domain.Role;
 import backend.user.domain.User;
 import backend.user.dto.LoginRequestDto;
+import backend.user.dto.RefreshTokenRequest;
 import backend.user.dto.SignupRequestDto;
 import backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,9 +36,9 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/signup")
-    public ResponseEntity<String> signup(@RequestBody SignupRequestDto request) {
+    public ResponseEntity<ApiResponse<String>> signup(@RequestBody SignupRequestDto request) {
         if (userRepository.existsByEmail(request.getEmail())) {
-            return ResponseEntity.badRequest().body("Email already exists");
+            return ResponseEntity.badRequest().body(ApiResponse.error("이미 사용 중인 이메일입니다."));
         }
 
         User user = User.builder()
@@ -45,41 +50,86 @@ public class AuthController {
                 .build();
 
         userRepository.save(user);
-        return ResponseEntity.ok("Signup successful");
+        return ResponseEntity.ok(ApiResponse.success("회원가입 성공"));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody LoginRequestDto request) {
+    public ResponseEntity<ApiResponse<Map<String, String>>> login(@RequestBody LoginRequestDto request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
+                .orElse(null);
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid email or password");
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("이메일 또는 비밀번호가 올바르지 않습니다."));
         }
 
         String accessToken = tokenProvider.createAccessToken(user.getEmail(), user.getRoleKey());
-        return ResponseEntity.ok(accessToken);
+        String refreshToken = tokenProvider.createRefreshToken(user.getEmail());
+
+        // Redis에 refreshToken 저장 (7일)
+        redisTemplate.opsForValue().set(user.getEmail(), refreshToken, 7, TimeUnit.DAYS);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                Map.of(
+                        "accessToken", accessToken,
+                        "refreshToken", refreshToken,
+                        "nickname", user.getNickname(),
+                        "email", user.getEmail()
+                )
+        ));
     }
 
-    @PostMapping("/reissue")
-    public ResponseEntity<String> reissue(@CookieValue(name = "refresh_token", required = false) String refreshToken) {
+    // JSON body 기반 토큰 재발급 (프론트엔드 fetch용)
+    @PostMapping("/refresh")
+    public ResponseEntity<ApiResponse<Map<String, String>>> refresh(
+            @RequestBody RefreshTokenRequest request) {
+
+        String refreshToken = request.getRefreshToken();
 
         if (refreshToken == null || !tokenProvider.validiteToken(refreshToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid Refresh Token");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("유효하지 않은 Refresh Token입니다."));
         }
 
-        // 토큰에서 이메일 추출
         Authentication authentication = tokenProvider.getAuthentication(refreshToken);
         String email = authentication.getName();
 
-        // Redis에 저장된 토큰과 비교(로그아웃된 토큰인지, 탈취된 토큰인지 확인)
         String savedToken = redisTemplate.opsForValue().get(email);
         if (!refreshToken.equals(savedToken)) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Refresh Token mismatch");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Refresh Token이 일치하지 않습니다."));
         }
 
-        // 새 Access Token 발급
         String newAccessToken = tokenProvider.createAccessToken(email, "ROLE_USER");
-        return ResponseEntity.ok(newAccessToken);
+        String newRefreshToken = tokenProvider.createRefreshToken(email);
+
+        redisTemplate.opsForValue().set(email, newRefreshToken, 7, TimeUnit.DAYS);
+
+        return ResponseEntity.ok(ApiResponse.success(
+                Map.of("accessToken", newAccessToken, "refreshToken", newRefreshToken)
+        ));
+    }
+
+    // 쿠키 기반 토큰 재발급 (레거시 — OAuth2 흐름 호환)
+    @PostMapping("/reissue")
+    public ResponseEntity<ApiResponse<Map<String, String>>> reissue(
+            @CookieValue(name = "refresh_token", required = false) String refreshToken) {
+
+        if (refreshToken == null || !tokenProvider.validiteToken(refreshToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("유효하지 않은 Refresh Token입니다."));
+        }
+
+        Authentication authentication = tokenProvider.getAuthentication(refreshToken);
+        String email = authentication.getName();
+
+        String savedToken = redisTemplate.opsForValue().get(email);
+        if (!refreshToken.equals(savedToken)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("Refresh Token이 일치하지 않습니다."));
+        }
+
+        String newAccessToken = tokenProvider.createAccessToken(email, "ROLE_USER");
+        return ResponseEntity.ok(ApiResponse.success(Map.of("accessToken", newAccessToken)));
     }
 }

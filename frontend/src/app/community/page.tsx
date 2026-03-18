@@ -4,7 +4,7 @@ import Header from "@/widgets/Header/ui/Header";
 import Sidebar from "@/widgets/Sidebar/ui/Sidebar";
 import PostCard from "@/entities/post/ui/PostCard";
 import Link from "next/link";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import CommunitySearch from "@/features/search/ui/CommunitySearch";
 import { useCommunityStore } from "@/shared/model/communityStore";
@@ -19,10 +19,14 @@ const SORT_OPTIONS = [
 type SortKey = typeof SORT_OPTIONS[number]['key'];
 
 export default function CommunityPage() {
-  const { getSortedPosts, setFilter, selectedFilter } = useCommunityStore();
+  const { getSortedPosts, setFilter, selectedFilter, fetchPosts, isLoading } = useCommunityStore();
   const sortedPosts = getSortedPosts();
 
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
   const isSearching = searchQuery.trim().length > 0;
 
   const displayPosts = isSearching
@@ -92,7 +96,12 @@ export default function CommunityPage() {
                     )}
 
                     {/* Posts List */}
-                    {isSearching && displayPosts.length === 0 ? (
+                    {isLoading ? (
+                        <div className="text-center py-14 bg-white dark:bg-[#1A1A1B] rounded-xl border border-gray-200 dark:border-[#343536]">
+                            <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                            <p className="text-gray-500 text-sm">게시글을 불러오는 중...</p>
+                        </div>
+                    ) : isSearching && displayPosts.length === 0 ? (
                         <div className="text-center py-14 bg-white dark:bg-[#1A1A1B] rounded-xl border border-gray-200 dark:border-[#343536]">
                             <svg className="w-12 h-12 text-gray-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
