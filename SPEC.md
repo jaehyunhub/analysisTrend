@@ -174,7 +174,7 @@ Phase 6 (관리자/폴리싱)    ⇄  Phase 7 (인프라) + Phase 8 (분석 서�
   - [x] `app/page.tsx` — SCHEDULE_DAYS, MOCK_VIDEOS, SHOP_PREVIEW_ITEMS
   - [x] `app/community/page.tsx` — posts, POPULAR_COMMUNITIES
   - [x] `app/shop/page.tsx` — PRODUCTS, CATEGORIES
-  - [ ] `app/mypage/page.tsx` — 주문/활동 데이터
+  - [x] `app/mypage/page.tsx` — 주문/활동 데이터 (`shared/mocks/mypage.ts`로 분리)
   - [ ] 관리자 페이지들 — 배너, 스케줄, 광고, YouTube, 멤버 데이터
 - [x] PostCard Props를 `shared/types/post.ts`의 Post 타입으로 통일
 - [x] 영어 mock 데이터를 한국어로 번역
@@ -214,19 +214,19 @@ Phase 6 (관리자/폴리싱)    ⇄  Phase 7 (인프라) + Phase 8 (분석 서�
   - [x] 상태: user, accessToken, isAuthenticated, isLoading
   - [x] 액션: login, logout, checkAuth
   - [x] localStorage persist
-- [ ] Header 컴포넌트 인증 상태 반영
-  - [ ] 로그인 시: 사용자 닉네임/아바타 + 로그아웃 버튼
-  - [ ] 비로그인 시: 기존 Log In 버튼
+- [x] Header 컴포넌트 인증 상태 반영
+  - [x] 로그인 시: 사용자 닉네임/아바타 이니셜 + 로그아웃 버튼 (데스크탑/모바일)
+  - [x] 비로그인 시: 기존 Log In 버튼
 - [x] LoginModal을 authStore 사용으로 리팩토링 (직접 fetch 제거)
 - [x] 커뮤니티/상품 도메인 API 서비스 함수 정의
   - [x] `entities/post/api/postApi.ts` — getPosts, getPostById, createPost, votePost
-  - [ ] `entities/product/api/productApi.ts` — getProducts, getProductById
+  - [x] `entities/product/api/productApi.ts` — getProducts, getProductById
 - [ ] 로그인 모달 열기를 Zustand 모달 스토어에서 통합 관리
 
 ### 검증 항목
 
 - [x] 로그인/회원가입이 mock API로 정상 동작
-- [ ] 로그인 후 Header에 사용자 정보 표시, 로그아웃 시 로그인 버튼 복귀
+- [x] 로그인 후 Header에 사용자 정보 표시, 로그아웃 시 로그인 버튼 복귀
 - [x] 페이지 새로고침 시 인증 상태 유지 (localStorage persist)
 - [x] `USE_MOCK_API` 플래그 전환 시 mock/실제 API 정상 전환
 - [x] TypeScript 타입 검사 통과
@@ -257,7 +257,7 @@ Phase 6 (관리자/폴리싱)    ⇄  Phase 7 (인프라) + Phase 8 (분석 서�
 
 - [x] Magazine 페이지 구현
   - [x] `app/magazine/page.tsx` — 매거진 카드 그리드, 카테고리 필터
-  - [ ] `app/magazine/[id]/page.tsx` — 매거진 상세
+  - [x] `app/magazine/[id]/page.tsx` — 매거진 상세
   - [x] `shared/mocks/magazines.ts` — mock 데이터
   - [x] `shared/types/magazine.ts` — Magazine 타입
 - [x] About 페이지 구현
@@ -320,7 +320,7 @@ Phase 6 (관리자/폴리싱)    ⇄  Phase 7 (인프라) + Phase 8 (분석 서�
 - [x] 쇼핑 페이지네이션 동작 (`PAGE_SIZE=6`, 동적 totalPages)
 - [x] 검색 기능 강화
   - [x] CommunitySearch 디바운스 적용 (300ms `useRef` 타이머)
-  - [ ] `/shop` 페이지에 검색바 추가
+  - [x] `/shop` 페이지에 검색바 추가 (300ms 디바운스, 카테고리 AND 조건)
 - [x] 마이페이지 인터랙션
   - [x] 프로필 수정 (닉네임, 자기소개) → authStore에 저장
   - [x] 주문 필터 탭 동작 (상태별 필터링)
@@ -356,7 +356,7 @@ Phase 6 (관리자/폴리싱)    ⇄  Phase 7 (인프라) + Phase 8 (분석 서�
 ### 작업 목록
 
 - [x] CORS 설정 활성화 — SecurityConfig에서 주석 해제 및 설정
-  - [x] 허용 origin: `http://localhost:3000`
+  - [x] 허용 origin: `http://localhost:3000`, `http://localhost` (Nginx 포트 80 환경)
   - [x] 허용 메서드: GET, POST, PUT, DELETE, OPTIONS
 - [x] Community 도메인 — `backend/src/main/java/backend/community/`
   - [x] `domain/Community.java` — id, name, description, memberCount, createdAt
@@ -389,12 +389,12 @@ Phase 6 (관리자/폴리싱)    ⇄  Phase 7 (인프라) + Phase 8 (분석 서�
 ### 검증 항목
 
 - [x] `./gradlew compileJava` 성공
-- [ ] `./gradlew test` 전체 통과
-- [ ] API 엔드포인트 테스트 (curl, docker-compose 기동 후)
-  - [ ] GET `/api/v1/communities` → 200
-  - [ ] POST `/api/v1/posts` (with JWT) → 201
-  - [ ] GET `/api/v1/products` → 200
-  - [ ] GET `/api/v1/products?category=FOOD` → 필터된 결과
+- [x] `./gradlew test` 전체 통과 (JUnit 19개)
+- [x] API 엔드포인트 테스트 (docker-compose 기동 후 E2E 확인)
+  - [x] GET `/api/v1/communities` → 200
+  - [x] POST `/api/v1/posts` (with JWT) → 201
+  - [x] GET `/api/v1/products` → 200
+  - [x] GET `/api/v1/products?category=FOOD` → 필터된 결과
 - [x] CORS 헤더 확인 (`Access-Control-Allow-Origin: http://localhost:3000`)
 
 ---
@@ -429,8 +429,8 @@ Phase 2의 API 추상화 레이어에서 mock 플래그를 끄고 실제 백엔�
   - [x] 글 작성/수정/삭제 API 호출
   - [x] 투표/댓글 API 호출
 - [x] 상품 연동 — productApi mock을 실제 API로 전환
-- [ ] Sidebar 커뮤니티 목록 API 연동
-- [ ] 에러 핸들링 통합 — API 에러 시 Toast 표시, 네트워크 에러 시 재시도
+- [x] Sidebar 커뮤니티 목록 API 연동 (`USE_MOCK_API` 플래그 분기, 실패 시 mock fallback)
+- [x] 에러 핸들링 통합 — 네트워크 에러·5xx 에러 시 Toast 표시 (`client.ts`에 통합)
 
 ### 검증 항목
 
@@ -485,9 +485,9 @@ Phase 2의 API 추상화 레이어에서 mock 플래그를 끄고 실제 백엔�
   - [x] `layout.tsx` 루트 metadata (title, description, keywords, openGraph)
   - [x] `frontend/public/robots.txt` — 크롤러 허용/차단, sitemap 경로 지정
   - [x] `frontend/src/app/sitemap.ts` — Next.js 동적 사이트맵 (5개 정적 라우트)
-  - [ ] 각 페이지별 추가 metadata
-- [~] 성능 최적화
-  - [ ] Next.js Image 컴포넌트 활용
+  - [x] 각 페이지별 추가 metadata — `community/layout.tsx`, `shop/layout.tsx`, `mypage/layout.tsx` 신규 생성
+- [x] 성능 최적화
+  - [x] Next.js Image 컴포넌트 활용 — `next.config.ts` Unsplash `remotePatterns` 추가, `magazine/page.tsx` Image 적용
   - [x] 관리자 페이지 dynamic import (`next/dynamic`, `ssr: false`)
     - [x] `admin/chat/page.tsx` → `_content.tsx` 분리 + lazy load (파일 업로드 브라우저 전용 API)
     - [x] `admin/trends/page.tsx` → `_content.tsx` 분리 + lazy load (useEffect/API 호출)

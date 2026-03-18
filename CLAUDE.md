@@ -52,8 +52,9 @@ docker-compose build --no-cache   # 전체 이미지 재빌드 (환경변수 변
 - `shared/api/` — fetch wrapper(`client.ts`), 엔드포인트 상수(`endpoints.ts`), mock API(`mock/`)
   - `client.ts`의 주요 함수: `apiGet`, `apiPost`, `apiPut`, `apiPatch`, `apiDelete` (백엔드), `analysisGet`, `analysisPostForm` (분석 서비스 multipart)
   - 환경변수: `NEXT_PUBLIC_API_URL`(백엔드), `NEXT_PUBLIC_ANALYSIS_URL`(분석 서비스)
+  - 에러 처리: 네트워크 에러·5xx 응답 시 `toastStore`를 통해 전역 Toast 알림 자동 표시. 401은 기존 토큰 재발급 로직 유지(Toast 없음)
 - `shared/types/` — 도메인 타입 (Post, Comment, User, Community, Product, Schedule, Video, Magazine)
-- `shared/mocks/` — mock 데이터 (posts, communities, products, videos, schedules, users, magazines)
+- `shared/mocks/` — mock 데이터 (posts, communities, products, videos, schedules, users, magazines, mypage)
 - `shared/model/` — Zustand 스토어
   - `modalStore` — 전역 모달 제어
   - `authStore` — 인증 (login/logout/checkAuth, localStorage persist)
@@ -75,7 +76,11 @@ docker-compose build --no-cache   # 전체 이미지 재빌드 (환경변수 변
 - **분석 도구**: `analysis/` (채널분석·Persona C), `trends/` (실시간 뉴스·YouTube 트렌딩 API 연동), `chat/` (채팅 파일 업로드 → 실제 분석 API 연동)
 - **운영**: `ads/`, `community/members`, `community/posts`
 
-Header(`widgets/Header/ui/Header.tsx`)는 데스크탑 네비게이션, 모바일 오른쪽 슬라이드 드로어 메뉴, 다크모드 토글 버튼을 지원합니다.
+Header(`widgets/Header/ui/Header.tsx`)는 데스크탑 네비게이션, 모바일 오른쪽 슬라이드 드로어 메뉴, 다크모드 토글 버튼, 인증 상태 UI(로그인 시 avatar 이니셜·닉네임·로그아웃 버튼)를 지원합니다.
+
+Sidebar(`widgets/Sidebar/ui/Sidebar.tsx`)는 마운트 시 `USE_MOCK_API` 플래그에 따라 커뮤니티 목록을 실제 API(`GET /api/v1/communities`) 또는 mock 데이터에서 로드합니다. API 실패 시 mock으로 fallback합니다.
+
+SEO: `community/`, `shop/`, `mypage/` 라우트에 각각 `layout.tsx`를 통해 페이지별 `Metadata`를 설정합니다(`"use client"` 페이지는 metadata export 불가이므로 layout으로 분리).
 
 ### 백엔드 — 레이어드 아키텍처
 `backend/` 패키지 구조:
@@ -129,6 +134,9 @@ API 접두사: `/api/v1/`
 - `tsconfig.json`에서 `src/__tests__/`와 `jest.config.ts` 제외 처리됨 (Jest 타입과 충돌 방지)
 - **테스트**: analysis/ pytest 33개, backend JUnit 19개 (H2 인메모리, 테스트용 JWT_SECRET 별도 설정)
 - **Spring Security 6.x 주의**: `permitAll()` 경로에 `/api/v1/communities/**` 외에 `/api/v1/communities` (루트 경로)도 명시 필요 — `/**`가 루트 자체를 매칭하지 않음
+- **CORS**: `allowedOrigins`에 `http://localhost:3000`(로컬 개발)과 `http://localhost`(Nginx 포트 80) 모두 포함
+- **Next.js Image**: 외부 이미지 허용 도메인은 `next.config.ts`의 `images.remotePatterns`에 추가. 현재 `images.unsplash.com` 허용 설정됨
+- **SEO**: `"use client"` 페이지는 `metadata` export 불가 — 해당 라우트에 `layout.tsx`를 별도 생성해 `Metadata` 적용
 
 ## MCP 서버 (`.mcp.json`)
 
