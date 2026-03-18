@@ -45,6 +45,18 @@ docker-compose up -d mysql redis  # DB만 실행 (로컬 백엔드 개발 시)
 docker-compose build --no-cache   # 전체 이미지 재빌드 (환경변수 변경 시)
 ```
 
+### E2E 테스트 (`e2e/`)
+```bash
+cd e2e
+npm test                          # 전체 실행 (docker-compose up -d 선행 필요)
+npm test -- tests/auth/           # 특정 디렉토리만
+npm test -- --grep "로그인"        # 테스트명 필터
+npm run test:ui                   # Playwright UI 모드 (권장)
+npm run test:headed               # 브라우저 보이며 실행
+npm run test:report               # HTML 리포트 열기
+npm run codegen                   # 셀렉터 자동 생성 도구
+```
+
 ## 아키텍처
 
 ### 프론트엔드 — FSD (Feature-Sliced Design)
@@ -132,7 +144,12 @@ API 접두사: `/api/v1/`
 - 인프라: Nginx 리버스 프록시 (포트 80 단일 진입점) + MySQL healthcheck
 - **빌드 주의**: `npm run build`는 Turbopack이 한글 경로(`포트폴리오`)에서 패닉 — `npx tsc --noEmit`으로 타입 검사 대체. Docker 내부(경로 ASCII)에서는 정상 빌드 가능.
 - `tsconfig.json`에서 `src/__tests__/`와 `jest.config.ts` 제외 처리됨 (Jest 타입과 충돌 방지)
-- **테스트**: analysis/ pytest 33개, backend JUnit 19개 (H2 인메모리, 테스트용 JWT_SECRET 별도 설정)
+- **테스트 3계층**:
+  - **Unit** (`frontend/src/__tests__/`): Jest — Zustand 스토어 5개 (authStore, communityStore, cartStore, toastStore, themeStore)
+  - **Integration** (`backend/src/test/`): JUnit 19개 — H2 인메모리, 테스트용 JWT_SECRET 별도 설정
+  - **E2E** (`e2e/`): Playwright — 71개 테스트 케이스, 17개 스펙 파일. 진행 현황은 `e2e/TEST_PLAN.md` 참고
+- **E2E 구조**: Page Object Model (POM) + fixtures(auth/community) + helpers(ApiHelper/DbHelper). `storageState`로 로그인 반복 제거
+- **E2E 전제**: `docker-compose up -d` 후 `http://localhost` 응답 확인 → `cd e2e && npm test`
 - **Spring Security 6.x 주의**: `permitAll()` 경로에 `/api/v1/communities/**` 외에 `/api/v1/communities` (루트 경로)도 명시 필요 — `/**`가 루트 자체를 매칭하지 않음
 - **CORS**: `allowedOrigins`에 `http://localhost:3000`(로컬 개발)과 `http://localhost`(Nginx 포트 80) 모두 포함
 - **Next.js Image**: 외부 이미지 허용 도메인은 `next.config.ts`의 `images.remotePatterns`에 추가. 현재 `images.unsplash.com` 허용 설정됨
