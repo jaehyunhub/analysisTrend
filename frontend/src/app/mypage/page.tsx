@@ -2,6 +2,14 @@
 
 import { useState } from 'react';
 import Header from "@/widgets/Header/ui/Header";
+import { useAuthStore } from '@/shared/model/authStore';
+import {
+  MOCK_ORDER_STATS,
+  MOCK_RECENT_ORDERS,
+  MOCK_COMMUNITY_ACTIVITIES,
+  MOCK_ORDERS,
+  MOCK_MY_POSTS,
+} from '@/shared/mocks/mypage';
 
 export default function MyPage() {
   const [activeTab, setActiveTab] = useState('overview');
@@ -101,12 +109,7 @@ function OverviewSection({ setActiveTab }: { setActiveTab: (tab: string) => void
 
             {/* Order Status */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                {[
-                    { label: '결제 대기', count: 0, icon: '💳' },
-                    { label: '처리 중', count: 1, icon: '📦' },
-                    { label: '배송 중', count: 2, icon: '🚚' },
-                    { label: '후기 필요', count: 5, icon: '✍️' },
-                ].map((stat) => (
+                {MOCK_ORDER_STATS.map((stat) => (
                     <div key={stat.label} className="bg-white dark:bg-[#1A1A1B] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-[#343536] text-center cursor-pointer hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
                         <div className="text-2xl mb-1">{stat.icon}</div>
                         <div className="text-2xl font-black text-gray-900 dark:text-white">{stat.count}</div>
@@ -122,16 +125,16 @@ function OverviewSection({ setActiveTab }: { setActiveTab: (tab: string) => void
                     <button onClick={() => setActiveTab('orders')} className="text-sm text-blue-600 hover:underline font-semibold">전체 보기</button>
                 </div>
                 <div className="space-y-3">
-                     {[1, 2].map((i) => (
-                         <div key={i} className="flex gap-3 items-center border-b border-gray-50 dark:border-[#343536] last:border-0 pb-3 last:pb-0">
+                     {MOCK_RECENT_ORDERS.map((order) => (
+                         <div key={order.id} className="flex gap-3 items-center border-b border-gray-50 dark:border-[#343536] last:border-0 pb-3 last:pb-0">
                              <div className="w-14 h-14 bg-gray-100 dark:bg-[#272729] rounded-xl flex-shrink-0"></div>
                              <div className="flex-1 min-w-0">
-                                 <p className="font-bold text-sm text-gray-900 dark:text-white truncate">프리미엄 기계식 키보드 키캡 세트</p>
-                                 <p className="text-xs text-gray-400">2026년 2월 {i + 7}일 주문</p>
+                                 <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{order.productName}</p>
+                                 <p className="text-xs text-gray-400">{order.orderedAt} 주문</p>
                              </div>
                              <div className="text-right shrink-0">
-                                 <p className="text-sm font-black text-gray-900 dark:text-white">45,000원</p>
-                                 <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full font-bold">배송 중</span>
+                                 <p className="text-sm font-black text-gray-900 dark:text-white">{order.price}</p>
+                                 <span className="text-xs px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full font-bold">{order.status}</span>
                              </div>
                          </div>
                      ))}
@@ -145,11 +148,7 @@ function OverviewSection({ setActiveTab }: { setActiveTab: (tab: string) => void
                     <button onClick={() => setActiveTab('community')} className="text-sm text-blue-600 hover:underline font-semibold">전체 보기</button>
                 </div>
                 <div className="space-y-2.5">
-                    {[
-                        { type: '게시물', title: '2026년 AI 투자 트렌드 어떻게 보시나요?', time: '2시간 전', karma: 12, color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400' },
-                        { type: '댓글', title: '금리 인하 시대의 부동산 전략 게시물에 댓글', time: '5시간 전', karma: 3, color: 'bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400' },
-                        { type: '저장', title: 'React Server Components 완벽 가이드', time: '1일 전', karma: 0, color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400' },
-                    ].map((activity, i) => (
+                    {MOCK_COMMUNITY_ACTIVITIES.map((activity, i) => (
                         <div key={i} className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-[#272729] rounded-xl">
                             <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase w-14 text-center shrink-0 ${activity.color}`}>
                                 {activity.type}
@@ -170,38 +169,45 @@ function OverviewSection({ setActiveTab }: { setActiveTab: (tab: string) => void
 }
 
 function OrdersSection() {
+    const ORDER_STATUSES = ['전체', '처리 중', '배송 중', '배송 완료', '취소됨'];
+    const [activeStatus, setActiveStatus] = useState('전체');
+
     return (
         <div className="space-y-5">
             <h1 className="text-2xl font-black text-gray-900 dark:text-white">주문 내역</h1>
 
             <div className="flex gap-2 overflow-x-auto pb-1">
-                {['전체', '처리 중', '배송 중', '배송 완료', '취소됨'].map((status, i) => (
-                    <button key={status} className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
-                        i === 0
-                          ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                          : 'bg-white dark:bg-[#1A1A1B] text-gray-500 border border-gray-200 dark:border-[#343536] hover:bg-gray-50 dark:hover:bg-[#272729]'
-                    }`}>
+                {ORDER_STATUSES.map((status) => (
+                    <button
+                        key={status}
+                        onClick={() => setActiveStatus(status)}
+                        className={`px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
+                            activeStatus === status
+                              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                              : 'bg-white dark:bg-[#1A1A1B] text-gray-500 border border-gray-200 dark:border-[#343536] hover:bg-gray-50 dark:hover:bg-[#272729]'
+                        }`}
+                    >
                         {status}
                     </button>
                 ))}
             </div>
 
             <div className="bg-white dark:bg-[#1A1A1B] rounded-2xl shadow-sm border border-gray-100 dark:border-[#343536] overflow-hidden">
-                {[1, 2, 3].map((order) => (
-                    <div key={order} className="p-5 border-b border-gray-100 dark:border-[#343536] last:border-0 hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
+                {MOCK_ORDERS.map((order) => (
+                    <div key={order.id} className="p-5 border-b border-gray-100 dark:border-[#343536] last:border-0 hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
                         <div className="flex justify-between mb-3">
                             <div>
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">주문번호 #ORD-2026-00{order}</span>
-                                <p className="text-xs text-gray-400">2026년 2월 0{order}일 주문</p>
+                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">주문번호 #{order.orderNo}</span>
+                                <p className="text-xs text-gray-400">{order.orderedAt} 주문</p>
                             </div>
-                            <span className="text-sm font-bold text-blue-600">배송 중</span>
+                            <span className="text-sm font-bold text-blue-600">{order.status}</span>
                         </div>
                         <div className="flex gap-4">
                             <div className="w-18 h-18 w-[72px] h-[72px] bg-gray-100 dark:bg-[#272729] rounded-xl flex-shrink-0"></div>
                             <div className="flex-1 min-w-0">
-                                <h3 className="font-black text-sm text-gray-900 dark:text-white">무선 노이즈캔슬링 헤드폰</h3>
-                                <p className="text-sm text-gray-400 mt-0.5">색상: 블랙, 수량: 1</p>
-                                <p className="font-black text-sm mt-1 text-gray-900 dark:text-white">299,000원</p>
+                                <h3 className="font-black text-sm text-gray-900 dark:text-white">{order.productName}</h3>
+                                <p className="text-sm text-gray-400 mt-0.5">{order.option}</p>
+                                <p className="font-black text-sm mt-1 text-gray-900 dark:text-white">{order.price}</p>
                             </div>
                         </div>
                         <div className="mt-4 flex gap-2 justify-end">
@@ -234,21 +240,21 @@ function CommunitySection() {
                 </div>
 
                 <div>
-                    {[1, 2, 3, 4].map((post) => (
-                        <div key={post} className="p-4 border-b border-gray-50 dark:border-[#343536] last:border-0 hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
+                    {MOCK_MY_POSTS.map((post) => (
+                        <div key={post.id} className="p-4 border-b border-gray-50 dark:border-[#343536] last:border-0 hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
                             <p className="text-xs text-gray-400 mb-1">
-                              <span className="font-bold text-gray-600 dark:text-gray-300">경제</span> 게시판 •{' '}
-                              <span>2일 전</span>
+                              <span className="font-bold text-gray-600 dark:text-gray-300">{post.board}</span> 게시판 •{' '}
+                              <span>{post.postedAt}</span>
                             </p>
-                            <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-2 leading-snug">2026년 AI 트렌드 분석 및 2027년 전망</h3>
+                            <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-2 leading-snug">{post.title}</h3>
                             <div className="flex items-center gap-4 text-xs text-gray-400 font-bold">
                                 <span className="flex items-center gap-1">
                                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6z"/></svg>
-                                  152
+                                  {post.upvotes}
                                 </span>
                                 <span className="flex items-center gap-1">
                                   <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7z" clipRule="evenodd"/></svg>
-                                  45
+                                  {post.comments}
                                 </span>
                             </div>
                         </div>
@@ -260,6 +266,18 @@ function CommunitySection() {
 }
 
 function ProfileSection() {
+    const { user, login, accessToken } = useAuthStore();
+    const [nickname, setNickname] = useState(user?.nickname ?? '');
+    const [bio, setBio] = useState('');
+    const [saved, setSaved] = useState(false);
+
+    const handleSave = () => {
+        if (!user || !accessToken) return;
+        login({ ...user, nickname }, accessToken);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+    };
+
     return (
         <div className="space-y-5">
             <h1 className="text-2xl font-black text-gray-900 dark:text-white">계정 설정</h1>
@@ -269,7 +287,7 @@ function ProfileSection() {
                 <div className="flex items-start gap-6">
                     <div className="relative group shrink-0">
                         <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-4xl text-white font-black shadow-md">
-                          김
+                          {nickname.charAt(0) || '?'}
                         </div>
                         <button className="absolute -bottom-1 -right-1 p-1.5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-colors">
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
@@ -280,22 +298,42 @@ function ProfileSection() {
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5">닉네임</label>
-                                <input type="text" defaultValue="김재현" className="w-full p-3 bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-gray-900 dark:text-white" />
+                                <input
+                                    type="text"
+                                    value={nickname}
+                                    onChange={(e) => setNickname(e.target.value)}
+                                    className="w-full p-3 bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-gray-900 dark:text-white"
+                                />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5">이메일</label>
-                                <input type="email" defaultValue="jaehyun@example.com" disabled className="w-full p-3 bg-gray-100 dark:bg-[#343536] border border-gray-200 dark:border-[#343536] rounded-xl outline-none text-gray-400 cursor-not-allowed text-sm" />
+                                <input type="email" value={user?.email ?? ''} disabled className="w-full p-3 bg-gray-100 dark:bg-[#343536] border border-gray-200 dark:border-[#343536] rounded-xl outline-none text-gray-400 cursor-not-allowed text-sm" />
                             </div>
                         </div>
 
                         <div>
                             <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5">자기소개</label>
-                            <textarea className="w-full p-3 bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all h-20 resize-none text-sm text-gray-900 dark:text-white placeholder-gray-400" placeholder="간단한 자기소개를 작성해주세요..."></textarea>
+                            <textarea
+                                value={bio}
+                                onChange={(e) => setBio(e.target.value)}
+                                className="w-full p-3 bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all h-20 resize-none text-sm text-gray-900 dark:text-white placeholder-gray-400"
+                                placeholder="간단한 자기소개를 작성해주세요..."
+                            />
                         </div>
 
                         <div className="flex gap-3 pt-2">
-                             <button className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors text-sm shadow-sm">변경 저장</button>
-                             <button className="px-5 py-2.5 border border-gray-200 dark:border-[#343536] hover:bg-gray-50 dark:hover:bg-[#343536] font-bold rounded-xl transition-colors text-sm text-gray-700 dark:text-gray-300">취소</button>
+                             <button
+                                 onClick={handleSave}
+                                 className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors text-sm shadow-sm"
+                             >
+                                 {saved ? '저장됨!' : '변경 저장'}
+                             </button>
+                             <button
+                                 onClick={() => { setNickname(user?.nickname ?? ''); setBio(''); }}
+                                 className="px-5 py-2.5 border border-gray-200 dark:border-[#343536] hover:bg-gray-50 dark:hover:bg-[#343536] font-bold rounded-xl transition-colors text-sm text-gray-700 dark:text-gray-300"
+                             >
+                                 취소
+                             </button>
                         </div>
                     </div>
                 </div>

@@ -4,18 +4,25 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Script from 'next/script';
 import { LoginModal } from '@/features/auth/ui/LoginModal';
+import { useThemeStore } from '@/shared/model/themeStore';
+import { useAuthStore } from '@/shared/model/authStore';
 
 const NAV_LINKS = [
   { href: '/community', label: '커뮤니티' },
   { href: '/shop', label: '쇼핑' },
-  { href: '#', label: '매거진' },
-  { href: '#', label: '소개' },
+  { href: '/magazine', label: '매거진' },
+  { href: '/about', label: '소개' },
 ];
 
 export default function Header() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const { theme, toggleTheme } = useThemeStore();
+  const { user, isAuthenticated, logout } = useAuthStore();
+
+  const avatarInitial = user?.nickname?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? '?';
+  const displayName = user?.nickname ?? user?.email ?? '';
 
   return (
     <>
@@ -67,12 +74,41 @@ export default function Header() {
             마이페이지
           </Link>
 
+          {/* 다크모드 토글 */}
           <button
-            onClick={() => setIsLoginModalOpen(true)}
-            className="hidden md:flex ml-1 items-center justify-center rounded-lg bg-blue-600 hover:bg-blue-700 px-5 h-8 text-sm font-semibold text-white transition-colors shadow-sm"
+            onClick={toggleTheme}
+            className="hidden md:flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-[#272729] text-gray-500 dark:text-gray-400 transition-colors"
+            aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
           >
-            로그인
+            {theme === 'dark' ? '☀️' : '🌙'}
           </button>
+
+          {isAuthenticated ? (
+            <div className="hidden md:flex items-center gap-2 ml-1">
+              <div
+                className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-white text-sm font-bold select-none"
+                title={displayName}
+              >
+                {avatarInitial}
+              </div>
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200 max-w-[80px] truncate">
+                {displayName}
+              </span>
+              <button
+                onClick={logout}
+                className="flex items-center justify-center rounded-lg border border-gray-300 dark:border-[#343536] hover:bg-gray-100 dark:hover:bg-[#272729] px-3 h-8 text-sm font-semibold text-gray-600 dark:text-gray-300 transition-colors"
+              >
+                로그아웃
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsLoginModalOpen(true)}
+              className="hidden md:flex ml-1 items-center justify-center rounded-lg bg-blue-600 hover:bg-blue-700 px-5 h-8 text-sm font-semibold text-white transition-colors shadow-sm"
+            >
+              로그인
+            </button>
+          )}
 
           {/* Mobile Hamburger */}
           <button
@@ -158,17 +194,39 @@ export default function Header() {
           </div>
         </nav>
 
-        {/* Login Button */}
+        {/* Login / User Button */}
         <div className="p-4 border-t border-gray-200 dark:border-[#343536]">
-          <button
-            onClick={() => {
-              setMobileMenuOpen(false);
-              setIsLoginModalOpen(true);
-            }}
-            className="w-full flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 py-3 text-sm font-semibold text-white transition-colors shadow-sm"
-          >
-            로그인
-          </button>
+          {isAuthenticated ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3 px-2">
+                <div className="flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-white text-sm font-bold shrink-0">
+                  {avatarInitial}
+                </div>
+                <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
+                  {displayName}
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  logout();
+                }}
+                className="w-full flex items-center justify-center rounded-xl border border-gray-300 dark:border-[#343536] hover:bg-gray-100 dark:hover:bg-[#272729] py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 transition-colors"
+              >
+                로그아웃
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setMobileMenuOpen(false);
+                setIsLoginModalOpen(true);
+              }}
+              className="w-full flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 py-3 text-sm font-semibold text-white transition-colors shadow-sm"
+            >
+              로그인
+            </button>
+          )}
         </div>
       </div>
 

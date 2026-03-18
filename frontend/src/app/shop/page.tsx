@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Header from "@/widgets/Header/ui/Header";
 import Footer from "@/widgets/Footer/ui/Footer";
@@ -94,12 +94,39 @@ const BADGE_COLORS: Record<string, string> = {
   'HOT': 'bg-orange-500',
 };
 
+const PAGE_SIZE = 6;
+
 export default function ShopPage() {
   const [activeCategory, setActiveCategory] = useState('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchInput, setSearchInput] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const filteredProducts = activeCategory === 'ALL'
-    ? ALL_PRODUCTS
-    : ALL_PRODUCTS.filter(p => p.category === activeCategory);
+  useEffect(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = setTimeout(() => {
+      setSearchQuery(searchInput);
+      setCurrentPage(1);
+    }, 300);
+    return () => {
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    };
+  }, [searchInput]);
+
+  const filteredProducts = ALL_PRODUCTS.filter((p) => {
+    const matchesCategory = activeCategory === 'ALL' || p.category === activeCategory;
+    const matchesSearch = searchQuery === '' || p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
+  const pagedProducts = filteredProducts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  const handleCategoryChange = (category: string) => {
+    setActiveCategory(category);
+    setCurrentPage(1);
+  };
 
   return (
     <div className="bg-white dark:bg-black min-h-screen">
@@ -118,12 +145,33 @@ export default function ShopPage() {
 
             <div className="max-w-[1200px] mx-auto px-6 mt-10">
 
+                {/* Search Bar */}
+                <div className="flex justify-center mb-6">
+                    <div className="relative w-full max-w-md">
+                        <svg
+                            className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                        >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+                        </svg>
+                        <input
+                            type="text"
+                            placeholder="상품 검색..."
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-[#1A1A1B] border border-gray-200 dark:border-[#343536] rounded-full text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-gray-400 dark:focus:border-gray-500 focus:ring-2 focus:ring-gray-400/20 transition-all"
+                        />
+                    </div>
+                </div>
+
                 {/* Category Filter */}
                 <div className="flex justify-center gap-2 mb-10">
                     {CATEGORIES.map((cat) => (
                         <button
                           key={cat.key}
-                          onClick={() => setActiveCategory(cat.key)}
+                          onClick={() => handleCategoryChange(cat.key)}
                           className={`px-5 py-2 rounded-full text-sm font-bold transition-colors ${
                             activeCategory === cat.key
                               ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
@@ -137,7 +185,7 @@ export default function ShopPage() {
 
                 {/* Product Grid */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-10">
-                    {filteredProducts.map(product => (
+                    {pagedProducts.map(product => (
                         <Link href={`/shop/${product.id}`} key={product.id} className="group block cursor-pointer">
                             <div className="relative aspect-[3/4] bg-gray-100 dark:bg-[#1A1A1B] mb-4 overflow-hidden rounded-xl">
                                 <div className={`w-full h-full ${product.image} flex items-center justify-center text-gray-400 group-hover:scale-105 transition-transform duration-500`}>
@@ -181,17 +229,23 @@ export default function ShopPage() {
                 </div>
 
                 {/* Pagination */}
-                <div className="flex justify-center mt-16 gap-1">
-                    {[1, 2, 3].map(page => (
-                        <button key={page} className={`w-9 h-9 flex items-center justify-center text-sm font-bold rounded-lg transition-colors ${
-                          page === 1
-                            ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                            : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#1A1A1B]'
-                        }`}>
+                {totalPages > 1 && (
+                  <div className="flex justify-center mt-16 gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={`w-9 h-9 flex items-center justify-center text-sm font-bold rounded-lg transition-colors ${
+                            page === currentPage
+                              ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                              : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#1A1A1B]'
+                          }`}
+                        >
                             {page}
                         </button>
                     ))}
-                </div>
+                  </div>
+                )}
             </div>
         </main>
         <Footer />
