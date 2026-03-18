@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -21,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -52,11 +54,16 @@ public class SecurityConfig {
                                                                 "/api/v1/auth/**")
                                                 .permitAll()
                                                 .requestMatchers(org.springframework.http.HttpMethod.GET,
-                                                                "/api/v1/communities/**",
-                                                                "/api/v1/posts/**",
-                                                                "/api/v1/products/**",
+                                                                "/api/v1/communities", "/api/v1/communities/**",
+                                                                "/api/v1/posts", "/api/v1/posts/**",
+                                                                "/api/v1/products", "/api/v1/products/**",
+                                                                "/api/v1/banners", "/api/v1/banners/**",
+                                                                "/api/v1/schedules", "/api/v1/schedules/**",
+                                                                "/api/v1/youtube", "/api/v1/youtube/**",
                                                                 "/swagger-ui/**", "/v3/api-docs/**")
                                                 .permitAll()
+                                                .requestMatchers("/api/v1/admin/**")
+                                                .hasRole("ADMIN")
                                                 .anyRequest().authenticated())
 
                                 // 이 필터가 카카오/구글/네이버 로그인을 처리한다.
@@ -74,7 +81,7 @@ public class SecurityConfig {
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration config = new CorsConfiguration();
-                config.setAllowedOrigins(List.of("http://localhost:3000"));
+                config.setAllowedOrigins(List.of("http://localhost", "http://localhost:3000"));
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                 config.setAllowedHeaders(List.of("*"));
                 config.setAllowCredentials(true);

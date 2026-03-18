@@ -1,7 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import type { Community } from '@/shared/types/community';
+import { MOCK_COMMUNITIES } from '@/shared/mocks/communities';
+import { USE_MOCK_API } from '@/shared/api/mock/config';
+import { apiGet } from '@/shared/api/client';
+import { COMMUNITIES } from '@/shared/api/endpoints';
 
 const TOPIC_ICONS = {
   경제: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
@@ -10,19 +15,38 @@ const TOPIC_ICONS = {
   자유게시판: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.013 8.013 0 01-5.5-2.2L3 19l1.2-4.5A8.012 8.012 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z',
 };
 
-const MY_COMMUNITIES = [
-  { name: '경제', slug: '경제', icon: 'bg-blue-500' },
-  { name: '방송', slug: '방송', icon: 'bg-red-500' },
-  { name: '쇼핑', slug: '쇼핑', icon: 'bg-orange-500' },
-  { name: '자유게시판', slug: '자유게시판', icon: 'bg-green-500' },
-  { name: 'KoreaIT', slug: 'KoreaIT', icon: 'bg-indigo-500' },
-  { name: 'StartupKR', slug: 'StartupKR', icon: 'bg-purple-500' },
-  { name: 'DataScience', slug: 'DataScience', icon: 'bg-cyan-500' },
+const COMMUNITY_COLORS = [
+  'bg-blue-500', 'bg-red-500', 'bg-orange-500', 'bg-green-500',
+  'bg-indigo-500', 'bg-purple-500', 'bg-cyan-500', 'bg-pink-500',
 ];
 
 export default function Sidebar() {
   const [isMyCommunitiesExpanded, setIsMyCommunitiesExpanded] = useState(false);
-  const visibleCommunities = isMyCommunitiesExpanded ? MY_COMMUNITIES : MY_COMMUNITIES.slice(0, 4);
+  const [communities, setCommunities] = useState<Community[]>(MOCK_COMMUNITIES);
+
+  useEffect(() => {
+    if (USE_MOCK_API) {
+      setCommunities(MOCK_COMMUNITIES);
+      return;
+    }
+    apiGet<Community[]>(COMMUNITIES.LIST)
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) setCommunities(data);
+      })
+      .catch(() => {
+        setCommunities(MOCK_COMMUNITIES);
+      });
+  }, []);
+
+  const communitiesWithColor = communities.map((c, i) => ({
+    name: c.name,
+    slug: c.name,
+    icon: c.color ?? COMMUNITY_COLORS[i % COMMUNITY_COLORS.length],
+  }));
+
+  const visibleCommunities = isMyCommunitiesExpanded
+    ? communitiesWithColor
+    : communitiesWithColor.slice(0, 4);
 
   return (
     <div className="hidden lg:block w-[240px] shrink-0 h-[calc(100vh-52px)] overflow-y-auto sticky top-[52px] py-4 pr-3 bg-white dark:bg-[#1A1A1B] border-r border-[#EDEFF1] dark:border-[#343536]">
@@ -63,7 +87,7 @@ export default function Sidebar() {
                </Link>
              </li>
            ))}
-           {MY_COMMUNITIES.length > 4 && (
+           {communities.length > 4 && (
              <li>
                <button
                  onClick={() => setIsMyCommunitiesExpanded(!isMyCommunitiesExpanded)}

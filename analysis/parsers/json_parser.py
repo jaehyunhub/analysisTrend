@@ -2,45 +2,51 @@ import json
 from typing import Any
 from parsers.base import BaseParser
 
+_TIMESTAMP_KEYS = {"timestamp", "time", "date", "datetime"}
+_USER_KEYS = {"user", "username", "author", "nickname", "name"}
+_MESSAGE_KEYS = {"message", "content", "text", "msg", "chat"}
+
+
+def _normalize_record(record: dict) -> dict[str, Any] | None:
+    """JSON 레코드를 표준 {timestamp, user, message} 형태로 정규화."""
+    lower_map = {k.lower(): v for k, v in record.items()}
+
+    ts = next((lower_map[k] for k in _TIMESTAMP_KEYS if k in lower_map), "")
+    user = next((lower_map[k] for k in _USER_KEYS if k in lower_map), "")
+    msg = next((lower_map[k] for k in _MESSAGE_KEYS if k in lower_map), "")
+
+    if not msg:
+        return None
+
+    return {"timestamp": str(ts), "user": str(user), "message": str(msg)}
+
 
 class JSONParser(BaseParser):
-    """
-    JSON 형식 채팅 파일 파서.
-
-    지원 구조:
-    - 리스트: [{"timestamp": ..., "user": ..., "message": ...}, ...]
-    - 딕셔너리: {"messages": [...]} 또는 {"data": [...]}
-    """
+    """JSON 형식 채팅 파일 파서 (배열형 / 래핑 객체형 모두 지원)."""
 
     async def parse(self, content: bytes) -> list[dict[str, Any]]:
-        """
-        JSON 파일을 파싱하여 채팅 레코드 리스트를 반환합니다.
-
-        Args:
-            content: JSON 파일의 raw 바이트
-
-        Returns:
-            채팅 레코드 리스트
-
-        Raises:
-            ValueError: JSON 형식이 올바르지 않거나 구조가 예상과 다를 때
-        """
         encoding = self.detect_encoding(content)
-        text = content.decode(encoding)
+        try:
+            text = content.decode(encoding)
+        except UnicodeDecodeError:
+            text = content.decode("utf-8", errors="replace")
 
         try:
             data = json.loads(text)
         except json.JSONDecodeError as e:
-            raise ValueError(f"JSON 파싱 실패: {e}") from e
+            raise ValueError(f"올바른 JSON 형식이 아닙니다: {e}") from e
 
-        # TODO: 최상위 구조 분기 (list vs dict)
-        # TODO: dict인 경우 "messages" / "data" / "chats" 키 탐색
-        # TODO: 각 레코드의 키 정규화
-        # TODO: 빈 메시지 및 timestamp 없는 레코드 필터링
         if isinstance(data, list):
-            return data
-        if isinstance(data, dict):
-            for key in ("messages", "data", "chats"):
-                if key in data:
-                    return data[key]
-        raise ValueError("지원하지 않는 JSON 구조입니다.")
+            raw_list = data
+        elif isinstance(data, dict):
+            for key in ("messages", "data", "chats", "records", "items"):
+                if key in data and isinstance(data[key], list):
+                    raw_list = data[key]
+                    break
+            else:
+                raise ValueError("JSON에서 채팅 배열을 찾을 수 없습니다.")
+        else:
+            raise ValueError("지원하지 않는 JSON 구조입니다.")
+
+        records = [_normalize_record(item) for item in raw_list if isinstance(item, dict)]
+        return [r for r in records if r is not None]

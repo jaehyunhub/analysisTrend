@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { apiPost } from '@/shared/api/client';
 import { AUTH } from '@/shared/api/endpoints';
 import { useAuthStore } from '@/shared/model/authStore';
@@ -19,6 +19,43 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [username, setUsername] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+
+    const focusable = dialog.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    first?.focus();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      if (focusable.length === 0) { e.preventDefault(); return; }
+
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+
+    dialog.addEventListener('keydown', handleKeyDown);
+    return () => dialog.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
   const LOGIN_URLS = {
@@ -90,16 +127,27 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-        <div className="relative w-full max-w-[400px] rounded-2xl bg-white shadow-2xl dark:bg-[#1A1A1B] mx-4" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+      onClick={onClose}
+      onKeyDown={(e) => e.key === 'Escape' && onClose()}
+    >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={authView === 'login' ? '로그인' : '회원가입'}
+          className="relative w-full max-w-[400px] rounded-2xl bg-white shadow-2xl dark:bg-[#1A1A1B] mx-4"
+          onClick={(e) => e.stopPropagation()}
+          ref={dialogRef}
+        >
                 {/* Header */}
                 <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-[#343536]">
                   <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-black text-sm">A</div>
+                    <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-black text-sm" aria-hidden="true">A</div>
                     <span className="font-black text-gray-900 dark:text-white">AnalysisTrend</span>
                   </div>
-                  <button onClick={onClose} className="p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-lg transition-colors">
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                  <button onClick={onClose} aria-label="모달 닫기" className="p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-lg transition-colors">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
                   </button>
                 </div>
 

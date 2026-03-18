@@ -52,9 +52,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 refreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
                 response.addCookie(refreshCookie);
 
-                // 4. Access Token은 프론트엔드로 리다이렉트 (쿼리 파라미터)
+                // 4. Access Token + Refresh Token을 프론트엔드로 리다이렉트 (쿼리 파라미터)
                 String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:3000/oauth/callback")
                                 .queryParam("accessToken", accessToken)
+                                .queryParam("refreshToken", refreshToken)
                                 .build().toUriString();
 
                 getRedirectStrategy().sendRedirect(request, response, targetUrl);

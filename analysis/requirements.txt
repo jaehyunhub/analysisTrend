@@ -8,3 +8,6 @@ pydantic-settings>=2.0.0
 numpy>=1.26.0
 scikit-learn>=1.4.0
 soynlp>=0.0.493
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+chardet>=5.2.0

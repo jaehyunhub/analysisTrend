@@ -2,58 +2,51 @@ import re
 from typing import Any
 from parsers.base import BaseParser
 
-
-# 카카오톡 채팅 내보내기 기본 패턴 예시:
-# [닉네임] [오전/오후 HH:MM] 메시지
-KAKAO_PATTERN = re.compile(
-    r"\[(?P<user>.+?)\]\s+\[(?:오전|오후)\s+(?P<time>\d{1,2}:\d{2})\]\s+(?P<message>.+)"
+# YouTube 채팅 형식: [HH:MM:SS] username: message  또는  HH:MM:SS username: message
+_YT_PATTERN = re.compile(
+    r"^\[?(\d{1,2}:\d{2}:\d{2})\]?\s+(.+?):\s+(.+)$"
 )
 
-# 일반 텍스트 타임스탬프 패턴 예시:
-# 2024-01-01 12:00:00 [닉네임] 메시지
-GENERIC_PATTERN = re.compile(
-    r"(?P<timestamp>\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(?::\d{2})?)\s+\[?(?P<user>[^\]]+)\]?\s+(?P<message>.+)"
+# 카카오톡 형식: YYYY. MM. DD. HH:MM  username : message
+_KAKAO_PATTERN = re.compile(
+    r"^(\d{4}\.\s*\d{1,2}\.\s*\d{1,2}\.\s*\d{1,2}:\d{2})\s+(.+?)\s*:\s+(.+)$"
 )
+
+# 날짜 구분선 (카카오톡 2024년 1월 1일 화요일 등)
+_DATE_HEADER = re.compile(r"^-+\s*\d{4}년")
+
+
+def _detect_format(lines: list[str]) -> str:
+    """처음 20줄을 샘플링해서 형식 감지."""
+    sample = [l for l in lines if l.strip() and not _DATE_HEADER.match(l.strip())][:20]
+    yt_hits = sum(1 for l in sample if _YT_PATTERN.match(l.strip()))
+    kakao_hits = sum(1 for l in sample if _KAKAO_PATTERN.match(l.strip()))
+    return "youtube" if yt_hits >= kakao_hits else "kakao"
 
 
 class TXTParser(BaseParser):
-    """
-    TXT 형식 채팅 파일 파서.
-
-    카카오톡 채팅 내보내기 형식과 일반 타임스탬프 형식을 지원합니다.
-    """
+    """TXT 형식 채팅 파일 파서 (YouTube / 카카오톡 형식 자동 감지)."""
 
     async def parse(self, content: bytes) -> list[dict[str, Any]]:
-        """
-        TXT 파일을 파싱하여 채팅 레코드 리스트를 반환합니다.
-
-        Args:
-            content: TXT 파일의 raw 바이트
-
-        Returns:
-            채팅 레코드 리스트
-
-        Raises:
-            ValueError: 인식 가능한 패턴이 없을 때
-        """
         encoding = self.detect_encoding(content)
-        text = content.decode(encoding)
+        try:
+            text = content.decode(encoding)
+        except UnicodeDecodeError:
+            text = content.decode("utf-8", errors="replace")
+
         lines = text.splitlines()
+        fmt = _detect_format(lines)
+        pattern = _YT_PATTERN if fmt == "youtube" else _KAKAO_PATTERN
 
         records: list[dict[str, Any]] = []
         for line in lines:
             line = line.strip()
-            if not line:
+            if not line or _DATE_HEADER.match(line):
                 continue
+            m = pattern.match(line)
+            if m:
+                ts, user, msg = m.group(1), m.group(2).strip(), m.group(3).strip()
+                if msg:
+                    records.append({"timestamp": ts, "user": user, "message": msg})
 
-            # TODO: KAKAO_PATTERN 매칭 시도
-            # TODO: 실패하면 GENERIC_PATTERN 시도
-            # TODO: 날짜 헤더 라인 (예: "----------- 2024년 1월 1일 -----------") 건너뛰기
-            # TODO: 타임스탬프 ISO 8601 변환
-            match = GENERIC_PATTERN.match(line) or KAKAO_PATTERN.match(line)
-            if match:
-                records.append(match.groupdict())
-
-        if not records:
-            raise ValueError("파싱 가능한 채팅 레코드를 찾지 못했습니다.")
         return records

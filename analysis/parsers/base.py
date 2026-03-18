@@ -33,15 +33,26 @@ class BaseParser(ABC):
 
     @staticmethod
     def detect_encoding(content: bytes) -> str:
-        """
-        바이트 스트림의 인코딩을 감지합니다.
+        """바이트 스트림의 인코딩을 감지합니다. BOM 우선, 이후 chardet 사용."""
+        # BOM 체크
+        if content.startswith(b"\xef\xbb\xbf"):
+            return "utf-8-sig"
+        if content.startswith(b"\xff\xfe"):
+            return "utf-16-le"
+        if content.startswith(b"\xfe\xff"):
+            return "utf-16-be"
 
-        Args:
-            content: raw 바이트
+        try:
+            import chardet  # type: ignore
+            result = chardet.detect(content[:4096])
+            encoding = result.get("encoding") or "utf-8"
+            return encoding
+        except ImportError:
+            pass
 
-        Returns:
-            인코딩 이름 (예: "utf-8", "cp949")
-        """
-        # TODO: chardet 또는 BOM 기반 인코딩 감지
-        # TODO: 감지 실패 시 "utf-8" 기본값 반환
-        return "utf-8"
+        # 단순 UTF-8 검증
+        try:
+            content.decode("utf-8")
+            return "utf-8"
+        except UnicodeDecodeError:
+            return "cp949"
