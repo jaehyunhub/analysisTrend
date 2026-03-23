@@ -8,6 +8,7 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests',
+  globalSetup: './global-setup',  // storageState 생성 (user.json, admin.json)
   fullyParallel: false,       // docker-compose 환경에서 DB 충돌 방지
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -27,17 +28,10 @@ export default defineConfig({
   },
 
   projects: [
-    // --- 인증 상태 준비 (다른 프로젝트보다 먼저 실행) ---
-    {
-      name: 'setup',
-      testMatch: /global\.setup\.ts/,
-    },
-
     // --- 비로그인 테스트 ---
     {
       name: 'chromium:guest',
       use: { ...devices['Desktop Chrome'] },
-      dependencies: ['setup'],
       testMatch: /tests\/(home|auth)\/.+\.spec\.ts/,
     },
 
@@ -46,9 +40,8 @@ export default defineConfig({
       name: 'chromium:user',
       use: {
         ...devices['Desktop Chrome'],
-        storageState: '.auth/user.json',   // global-setup에서 저장
+        storageState: '.auth/user.json',   // globalSetup에서 저장
       },
-      dependencies: ['setup'],
       testMatch: /tests\/(community|shop|mypage)\/.+\.spec\.ts/,
     },
 
@@ -57,21 +50,9 @@ export default defineConfig({
       name: 'chromium:admin',
       use: {
         ...devices['Desktop Chrome'],
-        storageState: '.auth/admin.json',  // global-setup에서 저장
+        storageState: '.auth/admin.json',  // globalSetup에서 저장
       },
-      dependencies: ['setup'],
       testMatch: /tests\/admin\/.+\.spec\.ts/,
-    },
-
-    // --- 모바일 (선택) ---
-    {
-      name: 'mobile:user',
-      use: {
-        ...devices['iPhone 13'],
-        storageState: '.auth/user.json',
-      },
-      dependencies: ['setup'],
-      testMatch: /tests\/(community|home)\/.+\.spec\.ts/,
     },
   ],
 

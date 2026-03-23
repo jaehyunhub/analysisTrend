@@ -147,7 +147,7 @@ API 접두사: `/api/v1/`
 - **테스트 3계층**:
   - **Unit** (`frontend/src/__tests__/`): Jest — Zustand 스토어 5개 (authStore, communityStore, cartStore, toastStore, themeStore)
   - **Integration** (`backend/src/test/`): JUnit 19개 — H2 인메모리, 테스트용 JWT_SECRET 별도 설정
-  - **E2E** (`e2e/`): Playwright — 71개 테스트 케이스, 17개 스펙 파일. 진행 현황은 `e2e/TEST_PLAN.md` 참고
+  - **E2E** (`e2e/`): Playwright — 73개 테스트 케이스, 17개 스펙 파일. **최종 결과: 64 passed / 9 skipped / 0 failed** (2026-03-19). 진행 현황은 `e2e/TEST_PLAN.md` 참고
 - **E2E 구조**: Page Object Model (POM) + fixtures(auth/community) + helpers(ApiHelper/DbHelper). `storageState`로 로그인 반복 제거
 - **E2E 전제**: `docker-compose up -d` 후 `http://localhost` 응답 확인 → `cd e2e && npm test`
 - **Spring Security 6.x 주의**: `permitAll()` 경로에 `/api/v1/communities/**` 외에 `/api/v1/communities` (루트 경로)도 명시 필요 — `/**`가 루트 자체를 매칭하지 않음

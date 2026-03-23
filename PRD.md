@@ -232,9 +232,9 @@ US-O-04 (P0) — 관리자 셀프 서비스
 
 | ID | 기능 | 우선순위 | 현황 |
 |----|------|---------|------|
-| SHOP-01 | 상품 목록 + 카테고리 필터 (GOODS / FOOD / FASHION / DIGITAL) | P0 | UI 있음, 필터 미동작 |
-| SHOP-02 | 상품 상세 페이지 (썸네일, 설명, 가격, 구매 버튼) | P0 | 라우트만 존재 |
-| SHOP-03 | 장바구니 추가/삭제/수량 변경 | P1 | UI만 존재 |
+| SHOP-01 | 상품 목록 + 카테고리 필터 (GOODS / FOOD / FASHION / DIGITAL) | P0 | 구현 완료 (카테고리 필터, 검색바, 페이지네이션 동작) |
+| SHOP-02 | 상품 상세 페이지 (썸네일, 설명, 가격, 구매 버튼) | P0 | 구현 완료 (이미지 슬라이더, 장바구니 담기, Toast 연동) |
+| SHOP-03 | 장바구니 추가/삭제/수량 변경 | P1 | 구현 완료 (/shop/cart 페이지, cartStore 연동) |
 | SHOP-04 | 주문 및 결제 플로우 (PG 연동) | P2 | 미구현 |
 | SHOP-05 | 주문 내역 조회 (마이페이지) | P2 | UI만, 하드코딩 |
 
@@ -273,8 +273,8 @@ US-O-04 (P0) — 관리자 셀프 서비스
 
 | ID | 기능 | 우선순위 | 현황 |
 |----|------|---------|------|
-| TRD-01 | YouTube 실시간 급상승 동영상 (국가·카테고리 필터) | P0 | 구현 완료 (FastAPI YouTube API + Redis 캐시 연동) |
-| TRD-02 | 실시간 뉴스 키워드 클라우드 (30분 주기 갱신) | P0 | 구현 완료 (FastAPI Naver News API + Redis 캐시 30분 주기) |
+| TRD-01 | YouTube 실시간 급상승 동영상 (국가·카테고리 필터) | P0 | 구현 완료 + E2E 검증 완료 (API 키 없으면 mock 데이터 반환) |
+| TRD-02 | 실시간 뉴스 키워드 클라우드 (30분 주기 갱신) | P0 | 구현 완료 + E2E 검증 완료 (API 키 없으면 mock 데이터 반환) |
 | TRD-03 | 뉴스 기사 원문 링크 + 3줄 요약 | P1 | 미구현 |
 | TRD-04 | 트렌드 키워드 시계열 추이 차트 | P1 | 미구현 |
 | TRD-05 | 관심 키워드 북마크 및 다음 로그인 시 변화 알림 | P2 | 미구현 |
@@ -284,7 +284,7 @@ US-O-04 (P0) — 관리자 셀프 서비스
 
 | ID | 기능 | 우선순위 | 현황 |
 |----|------|---------|------|
-| CHAT-01 | 라이브 채팅 로그 파일 업로드 (CSV / JSON / TXT) | P1 | 구현 완료 (CSV/JSON/TXT 파일 업로드) |
+| CHAT-01 | 라이브 채팅 로그 파일 업로드 (CSV / JSON / TXT) | P1 | 구현 완료 + E2E 검증 완료 |
 | CHAT-02 | 특정 키워드 반복 시간대 목록 추출 | P1 | 구현 완료 (TF-IDF 키워드 추출) |
 | CHAT-03 | 채팅 밀도 타임라인 히트맵 시각화 | P1 | 구현 완료 (시간 버킷 히트맵 시각화) |
 | CHAT-04 | 피크 구간 자동 추출 및 편집 포인트 추천 | P1 | 구현 완료 (평균+2σ 피크 감지) |
@@ -427,7 +427,8 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | YouTube Analytics API | `reports.query` | 채널 성과 분석 | 무료 (OAuth2 필요) | FastAPI |
 | Naver News API | 뉴스 검색 | 한국 뉴스 키워드 | 무료 (25,000 call/일) | FastAPI |
 | NewsAPI.org | everything | 글로벌 뉴스 | 무료 (100 req/일) | FastAPI |
-| OpenAI / Claude API | chat completion | AI 콘텐츠 제안 (Phase 2) | 유료 | FastAPI |
+| Claude API (`claude-sonnet-4-6`) | messages.create | 뉴스 3줄 요약(TRD-03), AI 콘텐츠 제안(TRD-06) | 유료 (input $3/M, output $15/M tokens) | FastAPI |
+| OpenAI Vision API (GPT-4o) | chat.completions | 썸네일 이미지 분석(ANA-04) — 대안: Google Cloud Vision | 유료 ($0.005/이미지) | FastAPI |
 | 토스페이먼츠 / KG이니시스 | 결제 SDK | 쇼핑 결제 (Phase 2) | 거래 수수료 | Backend |
 
 ### 7.2 Redis 캐시 전략
@@ -436,8 +437,10 @@ US-O-04 (P0) — 관리자 셀프 서비스
 |--------|---------|-----|
 | YouTube 급상승 영상 | `trending_{regionCode}_{categoryId}` | 30분 |
 | 뉴스 키워드 | `news_keywords` | 30분 |
+| 뉴스 기사 3줄 요약 (Phase 2) | `news_summary:{article_hash}` | 24시간 (LLM 비용 절감) |
 | 채널 통계 | `channel_stats` | 1시간 |
 | 최신 영상 목록 | `channel_videos` | 10분 |
+| AI 콘텐츠 제안 (Phase 2) | `ai_suggestions:{keyword_hash}` | 1시간 |
 
 ### 7.3 YouTube API 할당량 관리
 
@@ -485,28 +488,30 @@ US-O-04 (P0) — 관리자 셀프 서비스
 
 ## 9. MVP vs Phase 2
 
-### MVP (SPEC.md Phase 1~7 완료 기준)
+### MVP ✅ 완료 (2026-03-19 기준)
 
-| 영역 | 포함 기능 |
-|------|---------|
-| 인증 | AUTH-01, AUTH-02, AUTH-03 |
-| 홈 | HOME-01, HOME-02, HOME-03 |
-| 커뮤니티 | COMM-01, COMM-02, COMM-03, COMM-04, COMM-05 |
-| 쇼핑 | SHOP-01, SHOP-02, SHOP-03 |
-| 관리자 콘텐츠 | ADM-01, ADM-02, ADM-03 |
-| 채널 분석 | ANA-01, ANA-02, ANA-03 |
-| 트렌드 분석 | TRD-01, TRD-02 |
+| 영역 | 포함 기능 | 상태 |
+|------|---------|------|
+| 인증 | AUTH-01, AUTH-02, AUTH-03 | ✅ E2E 검증 완료 |
+| 홈 | HOME-01, HOME-02, HOME-03 | ✅ E2E 검증 완료 |
+| 커뮤니티 | COMM-01~05 | ✅ E2E 검증 완료 |
+| 쇼핑 | SHOP-01, SHOP-02, SHOP-03 | ✅ E2E 검증 완료 |
+| 관리자 콘텐츠 | ADM-01, ADM-02, ADM-03 | ✅ E2E 검증 완료 |
+| 채널 분석 | ANA-01, ANA-02, ANA-03 | ✅ Mock 데이터 UI (YouTube Analytics API 연동 예정) |
+| 트렌드 분석 | TRD-01, TRD-02 | ✅ E2E 검증 완료 (API 키 없으면 mock 반환) |
+| 채팅 분석 | CHAT-01~05 | ✅ E2E 검증 완료 (당초 Phase 2였으나 MVP에 포함 구현) |
 
-### Phase 2 (MVP 출시 후 우선순위 순)
+### Phase 2 (남은 작업 — 우선순위 순)
 
-| 우선순위 | 기능 | 이유 |
-|---------|------|------|
-| 1 | **CHAT-01~05** (채팅 분석 전체) | 영상 편집 효율화 핵심, 편집자 요구 높음 |
-| 2 | **TRD-03~04** (뉴스 원문 + 시계열) | 자료조사 도구 완성도 향상 |
-| 3 | **ANA-04** (썸네일 CTR 분석) | 콘텐츠 전략 데이터화 |
-| 4 | **SHOP-04~05** (결제 + 주문 내역) | 수익 모델 완성 |
-| 5 | **TRD-06** (AI 콘텐츠 제안) | LLM 연동으로 차별화 |
-| 6 | **COMM-06** (전문가 플레어) | 커뮤니티 품질 향상 |
+| 우선순위 | 기능 | AI 도구 | 이유 |
+|---------|------|---------|------|
+| 1 | **TRD-03** (뉴스 원문 3줄 요약) | **Claude API** | 자료조사 도구 완성도 — LLM 비용 최소 (기사당 ~$0.0001) |
+| 2 | **TRD-04** (키워드 시계열 차트) | 없음 (Recharts) | Redis 30분 스냅샷 → LineChart 시각화 |
+| 3 | **TRD-06** (AI 콘텐츠 제안) | **Claude API** | 트렌딩 키워드 + 채널 히스토리 → 영상 주제 추천 |
+| 4 | **ANA-04** (썸네일 CTR 분석) | **GPT-4o Vision** | 썸네일 이미지 분석 + YouTube Analytics CTR 상관관계 |
+| 5 | **ANA-05** (최적 업로드 시간) | 없음 (scikit-learn) | YouTube Analytics 시청자 활동 패턴 → 통계 분석 |
+| 6 | **SHOP-04~05** (결제 + 주문 내역) | 없음 (PG 연동) | 수익 모델 완성 |
+| 7 | **COMM-06** (전문가 플레어) | 없음 | 커뮤니티 품질 향상 |
 
 ---
 
@@ -549,4 +554,7 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | Phase 5 (백엔드 도메인) | COMM-01, SHOP-01~02 백엔드 |
 | Phase 6 (프론트-백엔드 연동) | 전체 API 연동 |
 | Phase 7 (관리자/폴리싱) | ADM-01~06, ANA-01~03, TRD-01~02 |
-| **Phase 8 (v2)** | CHAT-01~06, ANA-04~05, TRD-03~06, SHOP-04~05 |
+| Phase 8 (인프라) | Nginx 리버스 프록시, docker-compose 운영 수준 개선 |
+| Phase 9 (분석 서비스) | CHAT-01~05 (완료), TRD-01~02 (완료) |
+| Phase 10 (E2E 테스트) | 73개 테스트 케이스 — 64 통과 / 9 skip / 0 실패 |
+| **Phase 11 (v2 — 미구현)** | TRD-03~06, ANA-04~05, SHOP-04~05, COMM-06~07, CHAT-06 |

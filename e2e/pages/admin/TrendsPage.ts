@@ -25,6 +25,11 @@ export class TrendsPage {
     await this.page.waitForLoadState('networkidle');
   }
 
+  async switchToVideosTab(): Promise<void> {
+    await this.page.getByRole('tab', { name: /YouTube 트렌딩/ }).click();
+    await this.page.waitForTimeout(500);
+  }
+
   async refresh(): Promise<void> {
     await this.refreshButton.click();
     await this.page.waitForLoadState('networkidle');

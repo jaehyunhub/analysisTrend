@@ -6,6 +6,7 @@ import Script from 'next/script';
 import { LoginModal } from '@/features/auth/ui/LoginModal';
 import { useThemeStore } from '@/shared/model/themeStore';
 import { useAuthStore } from '@/shared/model/authStore';
+import { useCartStore } from '@/shared/model/cartStore';
 
 const NAV_LINKS = [
   { href: '/community', label: '커뮤니티' },
@@ -20,6 +21,7 @@ export default function Header() {
   const pathname = usePathname();
   const { theme, toggleTheme } = useThemeStore();
   const { user, isAuthenticated, logout } = useAuthStore();
+  const { items } = useCartStore();
 
   const avatarInitial = user?.nickname?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? '?';
   const displayName = user?.nickname ?? user?.email ?? '';
@@ -72,6 +74,22 @@ export default function Header() {
             className="hidden md:flex items-center justify-center h-8 px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-[#272729] text-gray-500 dark:text-gray-400 text-sm font-medium transition-colors"
           >
             마이페이지
+          </Link>
+
+          {/* Cart link */}
+          <Link
+            href="/shop/cart"
+            aria-label="장바구니"
+            className="relative w-9 h-9 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+            </svg>
+            {items.length > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-blue-600 text-white text-[10px] font-black rounded-full flex items-center justify-center">
+                {items.length > 9 ? '9+' : items.length}
+              </span>
+            )}
           </Link>
 
           {/* 다크모드 토글 */}

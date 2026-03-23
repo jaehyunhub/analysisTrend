@@ -202,19 +202,28 @@ export default function ChatContent() {
 
         {/* Quick stats row when analyzed */}
         {result && (
-          <div className="mt-4 grid grid-cols-4 gap-3">
-            {[
-              { label: '총 채팅 수', value: result.total_messages.toLocaleString(), color: 'text-purple-600 dark:text-purple-400' },
-              { label: '피크 구간', value: `${result.peaks.length}개`, color: 'text-red-600 dark:text-red-400' },
-              { label: '분석 버킷', value: `${result.heatmap.length}개`, color: 'text-blue-600 dark:text-blue-400' },
-              { label: '주요 키워드', value: `${result.top_keywords.length}개`, color: 'text-green-600 dark:text-green-400' },
-            ].map((stat) => (
-              <div key={stat.label} className="p-3 bg-gray-50 dark:bg-[#272729] rounded-xl text-center border border-gray-200 dark:border-[#343536]">
-                <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{stat.label}</p>
+          <>
+            <div className="mt-4 grid grid-cols-4 gap-3">
+              {[
+                { label: '총 채팅 수', value: result.total_messages.toLocaleString(), color: 'text-purple-600 dark:text-purple-400' },
+                { label: '피크 구간', value: `${result.peaks.length}개`, color: 'text-red-600 dark:text-red-400' },
+                { label: '분석 버킷', value: `${result.heatmap.length}개`, color: 'text-blue-600 dark:text-blue-400' },
+                { label: '주요 키워드', value: `${result.top_keywords.length}개`, color: 'text-green-600 dark:text-green-400' },
+              ].map((stat) => (
+                <div key={stat.label} className="p-3 bg-gray-50 dark:bg-[#272729] rounded-xl text-center border border-gray-200 dark:border-[#343536]">
+                  <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+            {result.top_keywords.length > 0 && (
+              <div data-testid="keyword-list" className="mt-3 flex flex-wrap gap-1.5">
+                {result.top_keywords.map((kw) => (
+                  <span key={kw} className="px-2 py-0.5 text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 rounded-full font-medium">{kw}</span>
+                ))}
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </div>
 
@@ -255,7 +264,7 @@ export default function ChatContent() {
                   </div>
 
                   {/* Bar Chart */}
-                  <div className="flex items-end gap-0.5 h-40 w-full" role="img" aria-label="채팅 밀도 막대 그래프">
+                  <div className="flex items-end gap-0.5 h-40 w-full" role="img" aria-label="채팅 밀도 막대 그래프" data-testid="heatmap">
                     {result.heatmap.map((d, idx) => (
                       <div
                         key={idx}
@@ -274,9 +283,9 @@ export default function ChatContent() {
                   </div>
 
                   {/* Peak markers */}
-                  <div className="mt-4 flex gap-2 flex-wrap">
+                  <div className="mt-4 flex gap-2 flex-wrap" data-testid="peak-list">
                     {result.peaks.map((p, i) => (
-                      <div key={i} className="flex items-center gap-1.5 px-3 py-1 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-full text-xs font-medium text-red-700 dark:text-red-400">
+                      <div key={i} data-testid="peak-item" className="flex items-center gap-1.5 px-3 py-1 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-full text-xs font-medium text-red-700 dark:text-red-400">
                         <span className="w-1.5 h-1.5 rounded-full bg-red-500" aria-hidden="true" />
                         {p.start} – {p.end} · {p.peak_count}개
                       </div>

@@ -19,7 +19,7 @@ export class ChatAnalysisPage {
   constructor(page: Page) {
     this.page = page;
     this.fileInput = page.locator('input[type="file"]');
-    this.uploadButton = page.getByRole('button', { name: /업로드|분석/ });
+    this.uploadButton = page.getByRole('button', { name: /분석 시작|업로드 시작/ });
     this.progressBar = page.getByRole('progressbar');
     this.heatmap = page.locator('[data-testid="heatmap"]');
     this.peakList = page.locator('[data-testid="peak-list"]');

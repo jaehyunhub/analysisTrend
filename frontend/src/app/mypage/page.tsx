@@ -13,6 +13,7 @@ import {
 
 export default function MyPage() {
   const [activeTab, setActiveTab] = useState('overview');
+  const { user } = useAuthStore();
 
   const renderContent = () => {
     switch(activeTab) {
@@ -40,7 +41,7 @@ export default function MyPage() {
       )
     },
     {
-      id: 'profile', label: '계정 설정', icon: (
+      id: 'profile', label: '프로필 수정', icon: (
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
       )
     },
@@ -57,9 +58,9 @@ export default function MyPage() {
             <div className="bg-white dark:bg-[#1A1A1B] rounded-2xl shadow-sm border border-gray-100 dark:border-[#343536] overflow-hidden sticky top-20">
                 <div className="p-6 border-b border-gray-100 dark:border-[#343536] text-center">
                     <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mx-auto mb-3 flex items-center justify-center text-2xl text-white font-black shadow-md">
-                        김
+                        {user?.nickname?.charAt(0) ?? '김'}
                     </div>
-                    <h2 className="text-base font-black text-gray-900 dark:text-white">김재현</h2>
+                    <h2 className="text-base font-black text-gray-900 dark:text-white">{user?.nickname ?? '김재현'}</h2>
                     <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-0.5">골드 멤버</p>
                     <div className="mt-4 flex justify-center gap-5">
                         <div className="text-center">
@@ -108,7 +109,7 @@ function OverviewSection({ setActiveTab }: { setActiveTab: (tab: string) => void
             <h1 className="text-2xl font-black text-gray-900 dark:text-white">대시보드</h1>
 
             {/* Order Status */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <div data-testid="order-stats" className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {MOCK_ORDER_STATS.map((stat) => (
                     <div key={stat.label} className="bg-white dark:bg-[#1A1A1B] p-4 rounded-2xl shadow-sm border border-gray-100 dark:border-[#343536] text-center cursor-pointer hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
                         <div className="text-2xl mb-1">{stat.icon}</div>
@@ -169,7 +170,7 @@ function OverviewSection({ setActiveTab }: { setActiveTab: (tab: string) => void
 }
 
 function OrdersSection() {
-    const ORDER_STATUSES = ['전체', '처리 중', '배송 중', '배송 완료', '취소됨'];
+    const ORDER_STATUSES = ['전체', '준비중', '배송 중', '배송 완료', '취소됨'];
     const [activeStatus, setActiveStatus] = useState('전체');
 
     return (
@@ -285,10 +286,11 @@ function ProfileSection() {
             <div className="bg-white dark:bg-[#1A1A1B] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-[#343536]">
                 <h3 className="font-black text-base text-gray-900 dark:text-white mb-5">프로필 수정</h3>
                 <div className="flex items-start gap-6">
-                    <div className="relative group shrink-0">
+                    <div className="relative group shrink-0 text-center">
                         <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-4xl text-white font-black shadow-md">
                           {nickname.charAt(0) || '?'}
                         </div>
+                        <p className="text-sm font-bold text-gray-800 dark:text-gray-200 mt-2">{nickname}</p>
                         <button className="absolute -bottom-1 -right-1 p-1.5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-colors">
                             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
                         </button>
@@ -302,6 +304,7 @@ function ProfileSection() {
                                     type="text"
                                     value={nickname}
                                     onChange={(e) => setNickname(e.target.value)}
+                                    aria-label="닉네임"
                                     className="w-full p-3 bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-gray-900 dark:text-white"
                                 />
                             </div>

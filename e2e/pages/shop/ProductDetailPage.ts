@@ -12,6 +12,7 @@ export class ProductDetailPage {
   readonly prevButton: Locator;
   readonly nextButton: Locator;
   readonly imageCounter: Locator;
+  /** 구버전: "ADD TO CART", 신버전: "장바구니 담기" */
   readonly addToCartButton: Locator;
   readonly cartToast: Locator;
 
@@ -21,16 +22,27 @@ export class ProductDetailPage {
     this.prevButton = page.getByRole('button', { name: /이전|prev/i });
     this.nextButton = page.getByRole('button', { name: /다음|next/i });
     this.imageCounter = page.locator('[data-testid="image-counter"]');
-    this.addToCartButton = page.getByRole('button', { name: /장바구니|담기/ });
-    this.cartToast = page.getByRole('status').or(page.locator('[data-testid="toast"]'));
+    // 구버전: "ADD TO CART", 신버전: "장바구니 담기"
+    this.addToCartButton = page.getByRole('button', { name: /ADD TO CART|장바구니|담기/i });
+    this.cartToast = page.getByRole('status').or(page.getByRole('alert')).or(
+      page.locator('[data-testid="toast"]')
+    );
   }
 
   async goto(productId: number): Promise<void> {
     await this.page.goto(`/shop/${productId}`);
-    await this.page.waitForLoadState('networkidle');
+    await this.page.waitForLoadState('domcontentloaded');
+    await this.page.waitForTimeout(300);
   }
 
   async addToCart(): Promise<void> {
+    // 옵션 선택이 필요한 경우 첫 번째 옵션 자동 선택
+    const select = this.page.locator('select').first();
+    const selectExists = await select.isVisible({ timeout: 1000 }).catch(() => false);
+    if (selectExists) {
+      await select.selectOption({ index: 1 });
+      await this.page.waitForTimeout(200);
+    }
     await this.addToCartButton.click();
   }
 }

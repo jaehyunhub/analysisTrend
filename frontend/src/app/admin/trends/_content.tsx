@@ -133,14 +133,14 @@ export default function TrendsContent() {
               ) : (
                 <>
                   {/* Keyword Cloud */}
-                  <div className="flex flex-wrap gap-2 p-4 bg-gray-50 dark:bg-[#111] rounded-xl min-h-[120px]">
+                  <div className="flex flex-wrap gap-2 p-4 bg-gray-50 dark:bg-[#111] rounded-xl min-h-[120px]" data-testid="news-keywords">
                     {keywords.map((kw, i) => {
                       const size = i < 5 ? 'text-lg font-black' : i < 10 ? 'text-base font-bold' : 'text-sm font-semibold';
                       const color = kw.score > 0.8 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800' :
                         kw.score > 0.4 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800' :
                           'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700';
                       return (
-                        <button key={kw.keyword} className={`${size} ${color} border px-3 py-1.5 rounded-full hover:scale-105 transition-transform cursor-pointer`}>
+                        <button key={kw.keyword} data-testid="keyword-item" className={`${size} ${color} border px-3 py-1.5 rounded-full hover:scale-105 transition-transform cursor-pointer`}>
                           {kw.keyword}
                         </button>
                       );
@@ -212,10 +212,11 @@ export default function TrendsContent() {
               ) : videos.length === 0 ? (
                 <div className="text-center py-8 text-gray-400">데이터가 없습니다. (분석 서비스 연결 확인)</div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3" data-testid="youtube-trending">
                   {videos.map((video, i) => (
                     <a
                       key={video.video_id}
+                      data-testid="video-item"
                       href={`https://youtu.be/${video.video_id}`}
                       target="_blank"
                       rel="noopener noreferrer"

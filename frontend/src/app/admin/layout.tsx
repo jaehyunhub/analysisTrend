@@ -120,10 +120,12 @@ function SidebarContent({ pathname, onClose }: { pathname: string; onClose?: () 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, _hasHydrated } = useAuthStore();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
+    // Zustand persist 하이드레이션 완료 후에만 인증 체크
+    if (!_hasHydrated) return;
     if (!isAuthenticated) {
       router.replace('/');
       return;
@@ -131,7 +133,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     if (user?.role !== 'ADMIN') {
       router.replace('/');
     }
-  }, [isAuthenticated, user, router]);
+  }, [_hasHydrated, isAuthenticated, user, router]);
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-[#09090b]">

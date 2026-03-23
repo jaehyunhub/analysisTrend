@@ -37,10 +37,22 @@ export const useCommunityStore = create<CommunityState & CommunityActions>((set,
         set({ posts: MOCK_POSTS });
         return;
       }
-      const data = await apiGet<{ content: Post[]; totalElements: number }>(
+      const data = await apiGet<{ content: Record<string, unknown>[]; totalElements: number }>(
         '/api/v1/posts?page=0&size=50'
       );
-      set({ posts: data.content ?? [] });
+      // 백엔드 필드(authorNickname, communityName)를 프론트엔드 Post 타입으로 매핑
+      const mapped: Post[] = (data.content ?? []).map((p) => ({
+        id: p.id as number,
+        title: p.title as string,
+        content: p.content as string,
+        author: (p.authorNickname ?? p.author) as string,
+        community: (p.communityName ?? p.community) as string,
+        upvotes: (p.upvotes ?? 0) as number,
+        downvotes: (p.downvotes ?? 0) as number,
+        commentCount: (p.commentCount ?? 0) as number,
+        createdAt: p.createdAt as string,
+      }));
+      set({ posts: mapped });
     } catch {
       // API 실패 시 mock 데이터로 fallback
       set({ posts: MOCK_POSTS });
