@@ -73,7 +73,7 @@ export default function PostCard({ id, subreddit, author, timeAgo, title, conten
              {/* Metadata */}
              <div className="flex items-center gap-1.5 text-[12px] text-gray-500 dark:text-gray-400 mb-2">
                  <div className={`h-5 w-5 ${boardColor} rounded-full flex items-center justify-center text-[9px] text-white font-bold shrink-0`}>
-                   {subreddit[0]}
+                   {subreddit?.[0] ?? '?'}
                  </div>
                  <Link
                     href={`/community/board/${subreddit}`}

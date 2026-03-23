@@ -3,12 +3,18 @@
 import { useState, useRef, useEffect } from 'react';
 import { useModalStore } from '@/shared/model/modalStore';
 import { useCommunityStore } from '@/shared/model/communityStore';
+import { useAuthStore } from '@/shared/model/authStore';
 import type { Comment } from '@/shared/types/post';
 
 export default function PostDetailModal() {
   const { selectedPostId, closePostDetail } = useModalStore();
-  const { addComment } = useCommunityStore();
+  const { posts, setPosts, addComment } = useCommunityStore();
+  const { user } = useAuthStore();
   const [commentText, setCommentText] = useState('');
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+
+  const post = posts.find(p => p.id === selectedPostId);
 
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -46,6 +52,24 @@ export default function PostDetailModal() {
     dialog.addEventListener('keydown', handleKeyDown);
     return () => dialog.removeEventListener('keydown', handleKeyDown);
   }, [selectedPostId]);
+
+  const handleEdit = () => {
+    if (!post) return;
+    setEditTitle(post.title);
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!post || !editTitle.trim()) return;
+    setPosts(posts.map(p => p.id === selectedPostId ? { ...p, title: editTitle.trim() } : p));
+    setIsEditing(false);
+  };
+
+  const handleDelete = () => {
+    if (!selectedPostId) return;
+    setPosts(posts.filter(p => p.id !== selectedPostId));
+    closePostDetail();
+  };
 
   const handleSubmitComment = () => {
     if (!commentText.trim() || !selectedPostId) return;
@@ -90,7 +114,25 @@ export default function PostDetailModal() {
                            <span>• Posted by u/trend_master</span>
                            <span>• 2 hours ago</span>
                         </div>
-                        <h1 className="text-xl font-bold mb-4 text-[#1C1C1C] dark:text-[#D7DADC]">Exploring the new specific trend analysis algorithm</h1>
+                        {isEditing ? (
+                          <div className="mb-4">
+                            <input
+                              type="text"
+                              value={editTitle}
+                              onChange={e => setEditTitle(e.target.value)}
+                              placeholder="제목"
+                              className="w-full px-3 py-2 border border-blue-500 rounded-lg outline-none text-base font-bold dark:bg-[#272729] dark:text-white"
+                            />
+                            <div className="flex gap-2 mt-2">
+                              <button onClick={handleSaveEdit} className="px-3 py-1.5 bg-blue-600 text-white text-sm font-bold rounded-lg hover:bg-blue-700">저장</button>
+                              <button onClick={() => setIsEditing(false)} className="px-3 py-1.5 border border-gray-300 text-sm font-bold rounded-lg hover:bg-gray-50 dark:hover:bg-[#343536] dark:text-gray-300">취소</button>
+                            </div>
+                          </div>
+                        ) : (
+                          <h1 className="text-xl font-bold mb-4 text-[#1C1C1C] dark:text-[#D7DADC]">
+                            {post?.title || 'Exploring the new specific trend analysis algorithm'}
+                          </h1>
+                        )}
                         <p className="text-sm text-[#1C1C1C] dark:text-[#D7DADC] leading-relaxed">
                             I've been working on a new way to analyze YouTube trends using a combination of NLP and time-series forecasting. 
                             The results show a significant improvement in predicting viral content before it peaks...
@@ -106,7 +148,11 @@ export default function PostDetailModal() {
         <div className="w-[350px] bg-white dark:bg-[#1A1A1B] border-l border-gray-200 dark:border-[#343536] flex flex-col hidden md:flex">
              <div className="p-4 border-b border-gray-200 dark:border-[#343536] flex justify-between items-center">
                  <h3 className="font-bold text-sm">Comments (89)</h3>
-                 <button onClick={closePostDetail} aria-label="게시물 닫기" className="text-gray-500 hover:text-black">닫기</button>
+                 <div className="flex gap-1">
+                   <button onClick={handleEdit} className="px-2 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">수정</button>
+                   <button onClick={handleDelete} className="px-2 py-1 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">삭제</button>
+                   <button onClick={closePostDetail} aria-label="게시물 닫기" className="text-gray-500 hover:text-black dark:hover:text-white ml-1">닫기</button>
+                 </div>
              </div>
              <div className="flex-1 overflow-y-auto p-4 space-y-4">
                  <div className="flex gap-2">

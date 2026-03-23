@@ -164,9 +164,9 @@ export default function Home() {
                   </h2>
                   <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-400 hover:text-red-500 font-medium transition-colors">유튜브에서 더 보기 →</a>
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                <div data-testid="video-grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
                     {MOCK_VIDEOS.map(video => (
-                        <div key={video.id} className="group cursor-pointer">
+                        <div key={video.id} data-testid="video-card" className="group cursor-pointer">
                             <div className={`aspect-video rounded-xl mb-3 ${video.thumbnail} relative overflow-hidden shadow-sm`}>
                                 <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/40">
                                     <div className="w-14 h-14 bg-white/90 rounded-full flex items-center justify-center">

@@ -8,6 +8,7 @@ interface AuthState {
   accessToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  _hasHydrated: boolean;
 }
 
 interface AuthActions {
@@ -26,6 +27,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       accessToken: null,
       isAuthenticated: false,
       isLoading: false,
+      _hasHydrated: false,
 
       // 직접 상태 세팅 (OAuth 콜백 / mock 로그인용)
       login: (user, accessToken, refreshToken) => {
@@ -134,6 +136,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         accessToken: state.accessToken,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => () => {
+        useAuthStore.setState({ _hasHydrated: true });
+      },
     }
   )
 );

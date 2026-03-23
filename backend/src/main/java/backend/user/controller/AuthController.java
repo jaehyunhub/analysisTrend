@@ -74,7 +74,8 @@ public class AuthController {
                         "accessToken", accessToken,
                         "refreshToken", refreshToken,
                         "nickname", user.getNickname(),
-                        "email", user.getEmail()
+                        "email", user.getEmail(),
+                        "role", user.getRole().name()
                 )
         ));
     }

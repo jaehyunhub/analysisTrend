@@ -22,6 +22,9 @@ interface ToastActions {
   warning: (message: string) => void;
 }
 
+let _idCounter = 0;
+const generateId = () => `toast-${++_idCounter}-${Math.random().toString(36).slice(2, 7)}`;
+
 const scheduleRemoval = (id: string, duration: number, set: (fn: (s: ToastState) => Partial<ToastState>) => void) => {
   setTimeout(() => {
     set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) }));
@@ -32,7 +35,7 @@ export const useToastStore = create<ToastState & ToastActions>((set) => ({
   toasts: [],
 
   addToast: (message, type = 'info', duration = 3000) => {
-    const id = Date.now().toString();
+    const id = generateId();
     set((state) => ({ toasts: [...state.toasts, { id, message, type, duration }] }));
     scheduleRemoval(id, duration, set);
   },
@@ -41,7 +44,7 @@ export const useToastStore = create<ToastState & ToastActions>((set) => ({
     set((state) => ({ toasts: state.toasts.filter((t) => t.id !== id) })),
 
   success: (message) => {
-    const id = Date.now().toString();
+    const id = generateId();
     set((state) => ({
       toasts: [...state.toasts, { id, message, type: 'success' as ToastType, duration: 3000 }],
     }));
@@ -49,7 +52,7 @@ export const useToastStore = create<ToastState & ToastActions>((set) => ({
   },
 
   error: (message) => {
-    const id = Date.now().toString();
+    const id = generateId();
     set((state) => ({
       toasts: [...state.toasts, { id, message, type: 'error' as ToastType, duration: 4000 }],
     }));
@@ -57,7 +60,7 @@ export const useToastStore = create<ToastState & ToastActions>((set) => ({
   },
 
   info: (message) => {
-    const id = Date.now().toString();
+    const id = generateId();
     set((state) => ({
       toasts: [...state.toasts, { id, message, type: 'info' as ToastType, duration: 3000 }],
     }));
@@ -65,7 +68,7 @@ export const useToastStore = create<ToastState & ToastActions>((set) => ({
   },
 
   warning: (message) => {
-    const id = Date.now().toString();
+    const id = generateId();
     set((state) => ({
       toasts: [...state.toasts, { id, message, type: 'warning' as ToastType, duration: 3000 }],
     }));
