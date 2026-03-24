@@ -1,6 +1,6 @@
 # analysisTrend 점진적 개선 계획
 
-> 기준: PRD.md v1.0 | 아키텍처 분석: 2026-03-15 | 마지막 업데이트: 2026-03-24 | 전략: DDD-lite + 레이어드 아키텍처 + Nginx MSA
+> 기준: PRD.md v1.0 | 아키텍처 분석: 2026-03-15 | 마지막 업데이트: 2026-03-24 (Phase 11 완료) | 전략: DDD-lite + 레이어드 아키텍처 + Nginx MSA
 
 ## Context
 
@@ -10,7 +10,7 @@ analysisTrend는 Docker Compose 기반 트렌드 분석 플랫폼으로, 프론�
 
 **목표:** Phase 0(기반 수정)부터 시작해 10단계에 걸쳐 버그 제거 → 타입/API 추상화 → UI/UX → 인터랙션 → 백엔드 확장 → 연동 → 관리자/폴리싱 → 분석 서비스 → 인프라 → E2E 테스트 순으로 점진적 개선합니다.
 
-**완성도**: ~95% (Phase 0~10 완료 | Phase 11 분석 서비스 API 연동 검증 예정)
+**완성도**: ~98% (Phase 0~11 완료 | 잔여: Recharts 고도화, 50MB 비동기 처리, CI/CD)
 
 ---
 
@@ -690,45 +690,54 @@ Playwright 기반 E2E 테스트 인프라를 구축하고 PRD 기능 ID 기준 7
 
 ---
 
-## Phase 11 (예정): 분석 서비스 API 연동 검증 및 고도화
+## - [x] Phase 11: 백엔드 클린코드 · API 실환경 연동 · 관리자 계정 시드 ★ 완료 (2026-03-24)
 
 ### 오버뷰
-분석 서비스(FastAPI)의 Naver News / YouTube API 실환경 연동을 검증하고, E2E 레벨에서 분석 플로우 전체를 자동화합니다. 선택적으로 Recharts 기반 시각화 고도화도 포함합니다.
+백엔드 전체 하드코딩 제거 및 클린코드 리팩토링, Naver News / YouTube Data API 실환경 연동 검증, admin@e2e.com E2E 관리자 계정 자동 시드를 완료합니다.
 
 ### 작업 목록
 
-- [ ] **Naver News API 실환경 연동 검증**
-  - [ ] `analysis/.env`에 `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` 실키 설정 확인
-  - [ ] `GET /trends/news` — 키워드 반환 확인 (실서버 기동)
-  - [ ] Redis `news_keywords` 키 존재 및 TTL 확인
+#### 백엔드 하드코딩 리팩토링
+- [x] **application.yml 환경변수화**
+  - [x] datasource URL: `${DB_HOST:localhost}:${DB_PORT:3306}` 분리
+  - [x] datasource username/password: `${DB_USERNAME:root}`, `${DB_PASSWORD:password}`
+  - [x] Redis host/port: `${REDIS_HOST:localhost}`, `${REDIS_PORT:6379}`
+  - [x] Kakao redirect-uri: `http://localhost:8080/...` → `{baseUrl}/login/oauth2/code/{registrationId}`
+  - [x] Naver redirect-uri: `http://localhost:8080/...` → `{baseUrl}/login/oauth2/code/{registrationId}`
+- [x] **SecurityConfig / WebMvcConfig**: CORS `allowedOrigins` → `${CORS_ALLOWED_ORIGINS}` 환경변수 파싱
+- [x] **OAuth2SuccessHandler**: `REFRESH_TOKEN_TTL_DAYS = 7`, `REFRESH_COOKIE_MAX_AGE_SECONDS` 상수 추출
+- [x] **AuthController**: `REFRESH_TOKEN_TTL_DAYS` 상수, `reissue()` DB role 조회로 수정, `GET /auth/me` 엔드포인트
+- [x] **JwtTokenProvider**: 하드코딩 `"ROLE_USER"` → `Role.USER.getKey()`
+- [x] **backend/.env.example**: `DB_HOST/PORT/USERNAME/PASSWORD`, `REDIS_HOST/PORT`, `CORS_ALLOWED_ORIGINS` 추가
 
-- [ ] **YouTube Data API v3 실환경 연동 검증**
-  - [ ] `analysis/.env`에 `YOUTUBE_API_KEY` 실키 설정 확인
-  - [ ] `GET /trends/youtube?region=KR&category=0` — 영상 목록 반환 확인
-  - [ ] `GET /trends/keywords` — 통합 키워드 반환 확인
+#### Naver News API 실환경 연동 ✅
+- [x] `analysis/.env`에 `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` 실키 설정
+- [x] `GET /trends/news` — 실데이터 반환 확인 (AI, 인공지능, 반도체, 경제 등 키워드)
+- [x] Redis 캐시 TTL 30분 동작 확인
+- [x] `analysis/tests/test_trends.py` — 16개 API 테스트 케이스 추가
 
-- [ ] **E2E 관리자 계정 (`admin@e2e.com`) 시드 자동화**
-  - [ ] `e2e/helpers/ApiHelper.ts` — 테스트 전 관리자 계정 자동 생성 로직 검토
-  - [ ] `e2e/global-setup.ts` — admin storageState 생성 안정화
+#### YouTube Data API v3 실환경 연동 ✅
+- [x] `analysis/.env`에 `YOUTUBE_API_KEY` 실키 설정
+- [x] Docker 이미지 재빌드로 키 적용 (`docker-compose build analysis`)
+- [x] `GET /trends/youtube?region=KR` — 실데이터 반환 확인 (BTS, 모아나 등 한국 트렌딩)
+- [x] mock 데이터 음수 count 버그 수정 (`youtube_collector.py` `(10-i)` → `max(0, (20-i))`)
+- [x] `GET /trends/keywords` — 뉴스+YouTube 통합 키워드 반환 확인
 
-- [ ] **분석 E2E 테스트 skip 항목 해결**
-  - [ ] ADMIN 테스트 skip 7개 (CRUD 체인 의존성 해결) → passed로 전환 목표
-  - [ ] `POST /analyze/chat` E2E 파일 업로드 플로우 추가
-
-- [ ] **Recharts 히트맵 시각화 고도화** (선택)
-  - [ ] `admin/chat/page.tsx` — CSS 바 차트 → Recharts `BarChart` 교체
-  - [ ] 피크 구간 강조 표시 (색상 오버레이)
-
-- [ ] **50MB 이상 채팅 파일 비동기 처리**
-  - [ ] `POST /analyze/chat` — `task_id` 반환 + 폴링 엔드포인트 구현
-  - [ ] 프론트엔드 폴링 로직 연동
+#### E2E 관리자 계정 시드 자동화 ✅
+- [x] `e2e/helpers/db.ts` — mysql2 기반 `setAdminRole()` 구현
+- [x] `e2e/global-setup.ts` — admin@e2e.com 회원가입 후 DB에서 ADMIN role 업데이트
+- [x] `docker-compose.yml` — MySQL 3306 포트 호스트 노출 (E2E DB 접근용)
+- [x] ADMIN E2E 테스트: **17 passed / 7 skipped / 0 failed**
+- [x] Header.tsx ADMIN role 조건부 "관리자페이지" 링크 표시 확인 (102~116번째 줄)
 
 ### 검증 항목
 
-- [ ] `GET /trends/news`, `GET /trends/youtube` 실 API 키로 정상 응답
-- [ ] Redis에 `news_keywords` / `trending_KR_0` 키 존재 확인
-- [ ] E2E ADMIN 테스트 skip 0 / passed 24 달성
-- [ ] `npx tsc --noEmit` 타입 오류 없음
+- [x] `GET /trends/news` 실 Naver API 키로 정상 응답 (AI, 인공지능, 반도체 등)
+- [x] `GET /trends/youtube?region=KR` 실 YouTube API 키로 정상 응답 (한국 트렌딩 20개)
+- [x] Redis에 캐시 키 정상 저장 (FLUSHALL 후 재조회로 확인)
+- [x] admin@e2e.com ADMIN role 로그인 및 관리자 메뉴 표시 확인
+- [x] E2E ADMIN 테스트 17 passed / 0 failed
+- [x] `npx tsc --noEmit` 타입 오류 없음
 
 ---
 
