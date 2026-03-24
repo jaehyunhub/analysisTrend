@@ -3,6 +3,7 @@ package backend.global.auth;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -21,8 +22,17 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
+        private static final long REFRESH_TOKEN_TTL_DAYS = 7;
+        private static final int REFRESH_COOKIE_MAX_AGE_SECONDS = (int) (REFRESH_TOKEN_TTL_DAYS * 24 * 60 * 60);
+
         private final JwtTokenProvider tokenProvider;
         private final RedisTemplate<String, String> redisTemplate;
+
+        @Value("${app.frontend-url:http://localhost:3000}")
+        private String frontendUrl;
+
+        @Value("${app.cookie-secure:false}")
+        private boolean cookieSecure;
 
         @Override
         public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
@@ -38,22 +48,22 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 redisTemplate.opsForValue().set(
                                 user.getEmail(),
                                 refreshToken,
-                                7,
+                                REFRESH_TOKEN_TTL_DAYS,
                                 TimeUnit.DAYS);
 
                 // 3. Refresh Token은 HttpOnly 쿠키로 발급 (자바스크립트 접근 불가, 보안 강화)
                 Cookie refreshCookie = new Cookie("refresh_token", refreshToken);
                 // XSS 방어(자바크립트가 못 읽게 함)
                 refreshCookie.setHttpOnly(true);
-                // 도청 방어(HTTPS에서만 전송)
-                refreshCookie.setSecure(true); // HTTPS 적용 시 필수 (로컬에선 false로 테스트 가능)
+                // 도청 방어(HTTPS에서만 전송) — 로컬: false, 운영: true (COOKIE_SECURE 환경변수로 제어)
+                refreshCookie.setSecure(cookieSecure);
                 // 경로 제한(토큰 재발급 요청할 때만 쿠키 전송)
                 refreshCookie.setPath("/");
-                refreshCookie.setMaxAge(7 * 24 * 60 * 60); // 7일
+                refreshCookie.setMaxAge(REFRESH_COOKIE_MAX_AGE_SECONDS); // 7일
                 response.addCookie(refreshCookie);
 
                 // 4. Access Token + Refresh Token을 프론트엔드로 리다이렉트 (쿼리 파라미터)
-                String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:3000/oauth/callback")
+                String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/oauth/callback")
                                 .queryParam("accessToken", accessToken)
                                 .queryParam("refreshToken", refreshToken)
                                 .build().toUriString();

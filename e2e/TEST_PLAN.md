@@ -211,14 +211,18 @@ npm run test:headed               # 브라우저 보이며 실행
 
 ## 전체 진행 현황
 
-> 마지막 실행: 2026-03-19 — `docker-compose build --no-cache frontend && docker-compose up -d`
-> 총 73개 테스트: **64 통과, 9 스킵, 0 실패**
+> 마지막 E2E 실행: 2026-03-19 — `docker-compose build --no-cache frontend && docker-compose up -d`
+> API 직접 테스트: 2026-03-24 — Playwright browser 통해 분석 서비스 엔드포인트 검증
+> 총 E2E 73개: **64 통과, 9 스킵, 0 실패** | pytest 단위 33개: **33 통과**
 >
-> **최종 완료** — Docker 풀 리빌드 후 모든 테스트 통과. 스킵 9개는 CRUD 체인 의존성(추가 후 수정/삭제)으로 인한 의도적 skip.
+> **Phase 10 완료** — Docker 풀 리빌드 후 모든 E2E 테스트 통과. 스킵 9개는 CRUD 체인 의존성(추가 후 수정/삭제)으로 인한 의도적 skip.
+> **Phase 11 분석 서비스 API 직접 테스트** — `/health`, `/trends/news`, `/trends/youtube`, `/trends/keywords` 모두 200 OK 확인. 현재 API 키 미설정으로 mock 데이터 동작 중.
 >
-> **🔑 API 키 설정 시 실데이터 수신 가능** (현재 mock 데이터로 동작 중):
+> **API 키 설정 시 실데이터 수신 가능** (현재 mock 데이터로 동작 중):
 > - `analysis/.env`: `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` → 뉴스 키워드 실데이터
 > - `analysis/.env`: `YOUTUBE_API_KEY` → YouTube 트렌딩 실데이터
+
+#### E2E 테스트 (Playwright)
 
 | 파일 | 전체 | 통과 | 실패 | 스킵 | 진행률 |
 |------|------|------|------|------|--------|
@@ -241,11 +245,84 @@ npm run test:headed               # 브라우저 보이며 실행
 | admin/trends | 4 | 4 | 0 | 0 | 100% |
 | **합계** | **73** | **64** | **0** | **9** | **100%** |
 
+#### 분석 서비스 단위 테스트 (pytest)
+
+| 파일 | 전체 | 통과 | 실패 | 진행률 |
+|------|------|------|------|--------|
+| tests/test_cache.py | 8 | 8 | 0 | 100% |
+| tests/test_chat_analyzer.py | 12 | 12 | 0 | 100% |
+| tests/test_parsers.py | 13 | 13 | 0 | 100% |
+| tests/test_trends.py | 16 | — | — | 미실행 (작성 완료) |
+| **합계(기존)** | **33** | **33** | **0** | **100%** |
+
+---
+
+## Phase 11: 분석 서비스 API 테스트
+
+> 테스트 방법: `http://localhost` (Nginx 프록시 통해 분석 서비스 접근)
+> 분석 서비스 라우팅: `/trends/*` → `analysis:8000`, `/analyze/*` → `analysis:8000`, `/health` → `analysis:8000`
+
+### 11.1 뉴스 API (GET /trends/news)
+
+| # | 테스트 | 상태 | 실행일 | 비고 |
+|---|--------|------|--------|------|
+| 1 | 엔드포인트 응답 확인 (200 OK) | [x] | 2026-03-24 | `{"keyword":"AI","score":1.0,...}` 응답 확인 |
+| 2 | API 키 없을 때 mock 데이터 반환 확인 | [x] | 2026-03-24 | `source: "naver_news"`, 30개 mock 키워드 반환 |
+| 3 | API 키 있을 때 실데이터 반환 확인 | [-] | — | `analysis/.env`에 `NAVER_CLIENT_ID/SECRET` 설정 필요 |
+| 4 | 응답 형식: TrendKeyword[] (keyword, score, source, rank) | [x] | 2026-03-24 | 스키마 검증 완료 |
+| 5 | Redis 캐시 동작 확인 (30분 TTL) | [x] | 2026-03-24 | 두 번째 요청 즉시 응답 — 캐시 히트 동작 |
+
+### 11.2 YouTube 트렌딩 API (GET /trends/youtube)
+
+| # | 테스트 | 상태 | 실행일 | 비고 |
+|---|--------|------|--------|------|
+| 1 | 엔드포인트 응답 확인 (200 OK) | [x] | 2026-03-24 | 20개 mock 동영상 반환 |
+| 2 | region 파라미터 동작 확인 (KR, US) | [x] | 2026-03-24 | `?region=KR` 파라미터 수용, mock은 동일 데이터 |
+| 3 | category 파라미터 동작 확인 (0=전체) | [x] | 2026-03-24 | `?category=0` 파라미터 수용 |
+| 4 | API 키 없을 때 mock 데이터 반환 확인 | [x] | 2026-03-24 | `video_id: "mock_0"` ~ `"mock_19"` 반환 |
+| 5 | 응답 형식: TrendingVideo[] (video_id, title, channel_title, view_count, published_at, tags) | [x] | 2026-03-24 | 스키마 검증 완료 |
+| 6 | Redis 캐시 동작 확인 (30분 TTL) | [x] | 2026-03-24 | `cache_key = f"trending_{region}_{category}"` |
+| ! | **버그**: mock 데이터 index 10부터 view_count 음수 | [!] | 2026-03-24 | `youtube_collector.py` `_MOCK_VIDEOS` 생성식 `(10 - i) * 1_000_000`이 i≥11 시 음수 |
+
+### 11.3 통합 키워드 API (GET /trends/keywords)
+
+| # | 테스트 | 상태 | 실행일 | 비고 |
+|---|--------|------|--------|------|
+| 1 | 엔드포인트 응답 확인 (200 OK) | [x] | 2026-03-24 | 20개 통합 키워드 반환 |
+| 2 | 뉴스 + YouTube 통합 키워드 반환 확인 | [x] | 2026-03-24 | `source: "combined"` 확인 |
+| 3 | 중복 키워드 점수 합산 확인 | [x] | 2026-03-24 | `"AI"` 점수 1.0948 (뉴스 1.0 + YouTube 0.0948 합산) |
+| 4 | rank 오름차순 정렬 | [x] | 2026-03-24 | 1위~20위 순서 확인 |
+
+### 11.4 채팅 분석 API (POST /analyze/chat)
+
+| # | 테스트 | 상태 | 실행일 | 비고 |
+|---|--------|------|--------|------|
+| 1 | CSV 파일 업로드 → 분석 결과 반환 | [x] | 2026-03-19 | `tests/admin/chat-analysis.spec.ts` Phase 10에서 검증됨 |
+| 2 | JSON 파일 업로드 → 분석 결과 반환 | [ ] | — | Playwright E2E 테스트 추가 예정 |
+| 3 | TXT 파일 업로드 → 분석 결과 반환 | [ ] | — | Playwright E2E 테스트 추가 예정 |
+| 4 | 세션 ID 기반 결과 조회 (GET /analyze/chat/session/{id}) | [ ] | — | API 직접 테스트 필요 |
+
+### 11.5 OAuth2 소셜 로그인 테스트
+
+| # | 테스트 | 상태 | 실행일 | 비고 |
+|---|--------|------|--------|------|
+| 1 | Google 로그인 플로우 리다이렉트 확인 | [ ] | — | Google OAuth2 앱 등록 필요 |
+| 2 | Kakao 로그인 플로우 리다이렉트 확인 | [ ] | — | Kakao 개발자 앱 등록 필요 |
+| 3 | Naver 로그인 플로우 리다이렉트 확인 | [ ] | — | Naver 개발자 앱 등록 필요 |
+| 4 | OAuth callback 처리 및 JWT 발급 확인 | [ ] | — | 실제 OAuth2 provider 연동 필요 |
+| 5 | /api/v1/auth/me 실제 유저 정보 반환 확인 | [ ] | — | OAuth2 로그인 완료 후 테스트 가능 |
+
 ---
 
 ## 실패 로그
 
 > 현재 실패 테스트 없음.
+
+### 알려진 버그
+
+| 항목 | 파일 | 내용 |
+|------|------|------|
+| mock 동영상 음수 view_count | `analysis/services/youtube_collector.py` | `_MOCK_VIDEOS` 생성식에서 `(10 - i) * 1_000_000`이 `i >= 11` (index 10부터)일 때 음수 값 생성. 실제 API 사용 시 문제없으나 mock 데이터 시각화 오류 유발 가능 |
 
 ---
 

@@ -41,14 +41,16 @@ export class ApiHelper {
     }
   }
 
-  /** 테스트용 관리자 계정 생성 (이미 존재하면 무시) */
+  /** 테스트용 관리자 계정 생성 (이미 존재하면 무시)
+   * 주의: signup API는 항상 USER role로 생성합니다.
+   * ADMIN role 부여는 global-setup.ts에서 db.ts의 setAdminRole()로 처리합니다.
+   */
   async ensureAdminExists(payload: UserPayload): Promise<void> {
     try {
       await this.fetch('/api/v1/auth/signup', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      // TODO: ADMIN 역할 부여 (DB 직접 또는 관리자 API 사용)
     } catch {
       // 이미 존재하는 경우 무시
     }

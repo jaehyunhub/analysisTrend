@@ -25,9 +25,9 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-password}
     expose:
       - "3306"
-    # 개발 편의용: 로컬에서 직접 접근이 필요하면 아래 주석 해제
-    # ports:
-    #   - "3306:3306"
+    # E2E 테스트 및 로컬 개발 편의용: DB 직접 접근 (admin role 부여 등)
+    ports:
+      - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:

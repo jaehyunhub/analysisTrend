@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -29,6 +30,8 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 public class AuthController {
+
+    private static final long REFRESH_TOKEN_TTL_DAYS = 7;
 
     private final JwtTokenProvider tokenProvider;
     private final RedisTemplate<String, String> redisTemplate;
@@ -67,7 +70,7 @@ public class AuthController {
         String refreshToken = tokenProvider.createRefreshToken(user.getEmail());
 
         // Redis에 refreshToken 저장 (7일)
-        redisTemplate.opsForValue().set(user.getEmail(), refreshToken, 7, TimeUnit.DAYS);
+        redisTemplate.opsForValue().set(user.getEmail(), refreshToken, REFRESH_TOKEN_TTL_DAYS, TimeUnit.DAYS);
 
         return ResponseEntity.ok(ApiResponse.success(
                 Map.of(
@@ -78,6 +81,28 @@ public class AuthController {
                         "role", user.getRole().name()
                 )
         ));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> me(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ApiResponse.error("인증되지 않은 사용자입니다."));
+        }
+        String email = authentication.getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ApiResponse.error("사용자를 찾을 수 없습니다."));
+        }
+        return ResponseEntity.ok(ApiResponse.success(Map.of(
+                "id", user.getId(),
+                "email", user.getEmail(),
+                "nickname", user.getNickname(),
+                "role", user.getRole().name(),
+                "provider", user.getProvider() != null ? user.getProvider().name() : "LOCAL",
+                "createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString() : ""
+        )));
     }
 
     // JSON body 기반 토큰 재발급 (프론트엔드 fetch용)
@@ -101,10 +126,13 @@ public class AuthController {
                     .body(ApiResponse.error("Refresh Token이 일치하지 않습니다."));
         }
 
-        String newAccessToken = tokenProvider.createAccessToken(email, "ROLE_USER");
+        User user = userRepository.findByEmail(email).orElse(null);
+        String roleKey = user != null ? user.getRoleKey() : "ROLE_USER";
+
+        String newAccessToken = tokenProvider.createAccessToken(email, roleKey);
         String newRefreshToken = tokenProvider.createRefreshToken(email);
 
-        redisTemplate.opsForValue().set(email, newRefreshToken, 7, TimeUnit.DAYS);
+        redisTemplate.opsForValue().set(email, newRefreshToken, REFRESH_TOKEN_TTL_DAYS, TimeUnit.DAYS);
 
         return ResponseEntity.ok(ApiResponse.success(
                 Map.of("accessToken", newAccessToken, "refreshToken", newRefreshToken)
@@ -130,7 +158,9 @@ public class AuthController {
                     .body(ApiResponse.error("Refresh Token이 일치하지 않습니다."));
         }
 
-        String newAccessToken = tokenProvider.createAccessToken(email, "ROLE_USER");
+        User reissueUser = userRepository.findByEmail(email).orElse(null);
+        String reissueRoleKey = reissueUser != null ? reissueUser.getRoleKey() : Role.USER.getKey();
+        String newAccessToken = tokenProvider.createAccessToken(email, reissueRoleKey);
         return ResponseEntity.ok(ApiResponse.success(Map.of("accessToken", newAccessToken)));
     }
 }
