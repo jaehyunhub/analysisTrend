@@ -63,19 +63,6 @@ export default function Header() {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-1.5 lg:w-[220px] justify-end">
-          <Link
-            href="/admin"
-            className="hidden md:flex items-center justify-center h-8 px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-[#272729] text-gray-500 dark:text-gray-400 text-sm font-medium transition-colors"
-          >
-            관리자
-          </Link>
-          <Link
-            href="/mypage"
-            className="hidden md:flex items-center justify-center h-8 px-3 rounded-lg hover:bg-gray-100 dark:hover:bg-[#272729] text-gray-500 dark:text-gray-400 text-sm font-medium transition-colors"
-          >
-            마이페이지
-          </Link>
-
           {/* Cart link */}
           <Link
             href="/shop/cart"
@@ -112,6 +99,21 @@ export default function Header() {
               <span className="text-sm font-medium text-gray-700 dark:text-gray-200 max-w-[80px] truncate">
                 {displayName}
               </span>
+              {user?.role === 'ADMIN' ? (
+                <Link
+                  href="/admin"
+                  className="flex items-center justify-center rounded-lg border border-gray-300 dark:border-[#343536] hover:bg-gray-100 dark:hover:bg-[#272729] px-3 h-8 text-sm font-semibold text-gray-600 dark:text-gray-300 transition-colors"
+                >
+                  관리자페이지
+                </Link>
+              ) : (
+                <Link
+                  href="/mypage"
+                  className="flex items-center justify-center rounded-lg border border-gray-300 dark:border-[#343536] hover:bg-gray-100 dark:hover:bg-[#272729] px-3 h-8 text-sm font-semibold text-gray-600 dark:text-gray-300 transition-colors"
+                >
+                  마이페이지
+                </Link>
+              )}
               <button
                 onClick={logout}
                 className="flex items-center justify-center rounded-lg border border-gray-300 dark:border-[#343536] hover:bg-gray-100 dark:hover:bg-[#272729] px-3 h-8 text-sm font-semibold text-gray-600 dark:text-gray-300 transition-colors"
@@ -194,22 +196,27 @@ export default function Header() {
             );
           })}
 
-          <div className="pt-3 border-t border-gray-100 dark:border-[#343536] mt-3 space-y-1">
-            <Link
-              href="/mypage"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors"
-            >
-              마이페이지
-            </Link>
-            <Link
-              href="/admin"
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors"
-            >
-              관리자
-            </Link>
-          </div>
+          {isAuthenticated && (
+            <div className="pt-3 border-t border-gray-100 dark:border-[#343536] mt-3">
+              {user?.role === 'ADMIN' ? (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors"
+                >
+                  관리자페이지
+                </Link>
+              ) : (
+                <Link
+                  href="/mypage"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors"
+                >
+                  마이페이지
+                </Link>
+              )}
+            </div>
+          )}
         </nav>
 
         {/* Login / User Button */}
