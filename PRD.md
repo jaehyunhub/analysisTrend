@@ -279,6 +279,7 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | TRD-04 | 트렌드 키워드 시계열 추이 차트 | P1 | 미구현 |
 | TRD-05 | 관심 키워드 북마크 및 다음 로그인 시 변화 알림 | P2 | 미구현 |
 | TRD-06 | AI 콘텐츠 제안 카드 (LLM 기반 영상 주제 추천) | P2 | 미구현 |
+| TRD-07 | Twitch 실시간 인기 스트림·클립 (카테고리 필터) | P2 | 미구현 |
 
 ### 5.9 관리자 — 채팅 분석 (CHAT) ★ 핵심 차별화
 
@@ -402,7 +403,80 @@ US-O-04 (P0) — 관리자 셀프 서비스
 
 ---
 
-### 6.4 채널 분석 (ANA-01 ~ ANA-03)
+### 6.4 Twitch 인기 스트림·클립 (TRD-07)
+
+실시간으로 어떤 영상 콘텐츠가 인기인지 YouTube 외의 플랫폼까지 확장하는 기능.
+Twitch Helix API는 별도 심사 없이 가입 즉시 무료 사용 가능하다.
+
+**Twitch API 선택 이유**
+
+| 비교 항목 | TikTok | Instagram Reels | **Twitch** |
+|---------|--------|----------------|-----------|
+| 트렌딩 영상 API | ❌ 공개 없음 | ❌ 공개 없음 | ✅ 제공 |
+| 가입 즉시 사용 | ❌ 심사 필요 | ❌ 비즈니스 계정 | ✅ Client ID 발급 즉시 |
+| 무료 한도 | - | - | 800 req/분 |
+
+**데이터 소스**
+
+| 엔드포인트 | 용도 | 응답 예시 |
+|-----------|------|---------|
+| `GET /helix/streams` | 현재 시청자 수 기준 인기 방송 | viewer_count, game_name, title |
+| `GET /helix/clips` | 최근 7일 인기 클립 영상 | duration, view_count, thumbnail_url, url |
+| `GET /helix/games/top` | 인기 게임·카테고리 순위 | game_name, box_art_url |
+
+**처리 파이프라인 (FastAPI `GET /trends/twitch`)**
+
+```
+파라미터:
+  - type: streams | clips (기본: streams)
+  - game_id: 특정 카테고리 필터 (선택)
+  - language: ko | en | (전체)
+  - first: 20 (기본)
+
+처리 흐름:
+1. Twitch App Access Token 발급 (Client Credentials Flow, 60일 만료)
+2. Helix API 호출 → 인기 스트림 또는 최근 클립 목록
+3. 결과 정규화 (title, thumbnail_url, url, view_count, category)
+4. Redis 저장 (TTL: 5분, Key: "twitch_trending_{type}_{language}")
+5. GET /trends/twitch 응답
+```
+
+**API 응답 구조**
+
+```json
+{
+  "type": "streams",
+  "updated_at": "2026-03-24T12:00:00Z",
+  "items": [
+    {
+      "id": "12345678",
+      "title": "스트림 제목",
+      "category": "Just Chatting",
+      "viewer_count": 12500,
+      "thumbnail_url": "https://...",
+      "url": "https://www.twitch.tv/streamer_name",
+      "language": "ko"
+    }
+  ]
+}
+```
+
+**프론트엔드 표시 (`/admin/trends` 트렌드 페이지 내 별도 탭)**
+
+- 카드 그리드: 썸네일 + 제목 + 카테고리 + 시청자 수 / 조회 수
+- 탭 전환: 인기 스트림 | 인기 클립
+- 언어 필터: 전체 / 한국어 / 영어
+- 클릭 시 Twitch 원본 URL 새 탭으로 이동
+
+**수용 기준**
+
+- Twitch API 키 없을 경우 mock 데이터 반환 (YouTube 트렌딩과 동일 패턴)
+- 5분 Redis 캐시로 API 호출 최소화
+- 스트림 / 클립 탭 전환 즉시 반응 (캐시 히트 시 로딩 없음)
+
+---
+
+### 6.5 채널 분석 (ANA-01 ~ ANA-03)
 
 **API**: YouTube Analytics API (채널 소유자 OAuth2 서비스 계정 필요)
 
@@ -427,6 +501,7 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | YouTube Analytics API | `reports.query` | 채널 성과 분석 | 무료 (OAuth2 필요) | FastAPI |
 | Naver News API | 뉴스 검색 | 한국 뉴스 키워드 | 무료 (25,000 call/일) | FastAPI |
 | NewsAPI.org | everything | 글로벌 뉴스 | 무료 (100 req/일) | FastAPI |
+| Twitch Helix API | `streams`, `clips`, `games/top` | 실시간 인기 스트림·클립 (TRD-07) | 무료 (800 req/분, Client Credentials) | FastAPI |
 | Claude API (`claude-sonnet-4-6`) | messages.create | 뉴스 3줄 요약(TRD-03), AI 콘텐츠 제안(TRD-06) | 유료 (input $3/M, output $15/M tokens) | FastAPI |
 | OpenAI Vision API (GPT-4o) | chat.completions | 썸네일 이미지 분석(ANA-04) — 대안: Google Cloud Vision | 유료 ($0.005/이미지) | FastAPI |
 | 토스페이먼츠 / KG이니시스 | 결제 SDK | 쇼핑 결제 (Phase 2) | 거래 수수료 | Backend |
@@ -441,6 +516,8 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | 채널 통계 | `channel_stats` | 1시간 |
 | 최신 영상 목록 | `channel_videos` | 10분 |
 | AI 콘텐츠 제안 (Phase 2) | `ai_suggestions:{keyword_hash}` | 1시간 |
+| Twitch 인기 스트림 | `twitch_trending_streams_{language}` | 5분 |
+| Twitch 인기 클립 | `twitch_trending_clips_{language}` | 5분 |
 
 ### 7.3 YouTube API 할당량 관리
 
@@ -511,7 +588,8 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | 4 | **ANA-04** (썸네일 CTR 분석) | **GPT-4o Vision** | 썸네일 이미지 분석 + YouTube Analytics CTR 상관관계 |
 | 5 | **ANA-05** (최적 업로드 시간) | 없음 (scikit-learn) | YouTube Analytics 시청자 활동 패턴 → 통계 분석 |
 | 6 | **SHOP-04~05** (결제 + 주문 내역) | 없음 (PG 연동) | 수익 모델 완성 |
-| 7 | **COMM-06** (전문가 플레어) | 없음 | 커뮤니티 품질 향상 |
+| 7 | **TRD-07** (Twitch 인기 스트림·클립) | 없음 (Twitch Helix API) | YouTube 외 플랫폼 트렌딩 확장 — 무료, 즉시 사용 가능 |
+| 8 | **COMM-06** (전문가 플레어) | 없음 | 커뮤니티 품질 향상 |
 
 ---
 
@@ -540,6 +618,7 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | 대용량 채팅 파일(50MB+) 처리 지연 | 중 | 중 | FastAPI 비동기 처리 + 진행률 WebSocket 또는 polling으로 UX 유지 |
 | YouTube Analytics API OAuth2 설정 복잡도 | 높음 | 중 | 서비스 계정 사전 설정, Mock 데이터로 UI 먼저 개발 후 실제 연동 |
 | OAuth 제공사(Kakao/Naver) 정책 변경 | 낮음 | 높음 | 이메일/비밀번호 로그인 대안 유지 (LOCAL AuthProvider 구현 완료) |
+| Twitch App Access Token 만료 (60일) | 중 | 낮음 | FastAPI 시작 시 자동 재발급 + Redis에 토큰 캐시 (만료 5분 전 선제 갱신) |
 
 ---
 
@@ -557,4 +636,4 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | Phase 8 (인프라) | Nginx 리버스 프록시, docker-compose 운영 수준 개선 |
 | Phase 9 (분석 서비스) | CHAT-01~05 (완료), TRD-01~02 (완료) |
 | Phase 10 (E2E 테스트) | 73개 테스트 케이스 — 64 통과 / 9 skip / 0 실패 |
-| **Phase 11 (v2 — 미구현)** | TRD-03~06, ANA-04~05, SHOP-04~05, COMM-06~07, CHAT-06 |
+| **Phase 11 (v2 — 미구현)** | TRD-03~07, ANA-04~05, SHOP-04~05, COMM-06~07, CHAT-06 |

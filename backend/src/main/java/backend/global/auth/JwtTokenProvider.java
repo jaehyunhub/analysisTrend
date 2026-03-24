@@ -21,6 +21,8 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 
+import backend.user.domain.Role;
+
 @Slf4j
 @Component
 public class JwtTokenProvider {
@@ -72,7 +74,7 @@ public class JwtTokenProvider {
         String role = clamis.get("role", String.class);
 
         // 권한 정보가 없으면 기본 USER 권한 부여(혹은 예외처리)
-        String userRole = role != null ? role : "ROLE_USER";
+        String userRole = role != null ? role : Role.USER.getKey();
 
         List<SimpleGrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(userRole));
         UserDetails principal = new User(clamis.getSubject(), "", authorities);

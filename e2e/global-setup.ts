@@ -2,6 +2,7 @@ import { chromium, FullConfig } from '@playwright/test';
 import * as fs from 'fs';
 import * as path from 'path';
 import { ApiHelper } from './helpers/api';
+import { setAdminRole } from './helpers/db';
 
 /**
  * 전체 테스트 시작 전 1회 실행
@@ -30,6 +31,10 @@ async function globalSetup(config: FullConfig) {
     password: process.env.TEST_ADMIN_PASSWORD || 'Admin1234!',
     nickname: 'E2E관리자',
   });
+
+  // signup API는 항상 USER role로 생성하므로 DB에서 직접 ADMIN role로 업데이트
+  const adminEmail = process.env.TEST_ADMIN_EMAIL || 'admin@e2e.com';
+  await setAdminRole(adminEmail);
 
   /**
    * API로 로그인하고 localStorage에 auth 상태를 직접 주입하여 storageState 저장

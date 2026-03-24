@@ -5,6 +5,30 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { useAuthStore } from '@/shared/model/authStore';
 import { useToastStore } from '@/shared/model/toastStore';
+import type { User } from '@/shared/types';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+
+async function fetchCurrentUser(accessToken: string): Promise<User | null> {
+  try {
+    const res = await fetch(`${API_BASE_URL}/api/v1/auth/me`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const data = json.data ?? json;
+    return {
+      id: data.id ?? 0,
+      email: data.email ?? '',
+      nickname: data.nickname ?? '사용자',
+      role: data.role ?? 'USER',
+      provider: data.provider ?? 'GOOGLE',
+      createdAt: data.createdAt ?? new Date().toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
 
 function OAuthCallbackContent() {
   const router = useRouter();
@@ -18,7 +42,6 @@ function OAuthCallbackContent() {
 
     const accessToken = searchParams.get('accessToken');
     const refreshToken = searchParams.get('refreshToken');
-    // 레거시 파라미터 호환
     const legacyToken = searchParams.get('token');
     const error = searchParams.get('error');
 
@@ -27,21 +50,19 @@ function OAuthCallbackContent() {
     if (resolvedToken) {
       tokenProcessed.current = true;
 
-      const user = {
-        id: 0,
-        email: '',
-        nickname: '소셜 사용자',
-        role: 'USER' as const,
-        provider: 'GOOGLE' as const,
-        createdAt: new Date().toISOString(),
-      };
-
-      login(user, resolvedToken, refreshToken ?? undefined);
-      window.dispatchEvent(new Event('auth-change'));
-
-      setTimeout(() => {
+      fetchCurrentUser(resolvedToken).then((user) => {
+        const fallbackUser: User = {
+          id: 0,
+          email: '',
+          nickname: '소셜 사용자',
+          role: 'USER',
+          provider: 'GOOGLE',
+          createdAt: new Date().toISOString(),
+        };
+        login(user ?? fallbackUser, resolvedToken, refreshToken ?? undefined);
+        window.dispatchEvent(new Event('auth-change'));
         router.push('/');
-      }, 100);
+      });
     } else if (error) {
       addToast('로그인에 실패했습니다: ' + error, 'error');
       router.push('/');

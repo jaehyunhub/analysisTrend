@@ -1,7 +1,9 @@
 package backend.global.config;
 
+import java.util.Arrays;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -29,6 +31,9 @@ public class SecurityConfig {
         private final CustomOAuth2UserService customOAuth2UserService;
         private final OAuth2SuccessHandler oAuth2SuccessHandler;
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+        @Value("${app.cors.allowed-origins:http://localhost,http://localhost:3000}")
+        private String allowedOriginsRaw;
 
         @Bean
         public org.springframework.security.crypto.password.PasswordEncoder passwordEncoder() {
@@ -81,7 +86,8 @@ public class SecurityConfig {
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration config = new CorsConfiguration();
-                config.setAllowedOrigins(List.of("http://localhost", "http://localhost:3000"));
+                List<String> allowedOrigins = Arrays.asList(allowedOriginsRaw.split(","));
+                config.setAllowedOrigins(allowedOrigins);
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
                 config.setAllowedHeaders(List.of("*"));
                 config.setAllowCredentials(true);

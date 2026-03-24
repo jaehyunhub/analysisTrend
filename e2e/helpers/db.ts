@@ -2,10 +2,8 @@
  * DB 헬퍼
  * docker-compose MySQL에 직접 접근해 테스트 데이터 시드/초기화합니다.
  * 주로 global-setup / global-teardown 에서 사용합니다.
- *
- * 실제 구현 시 `mysql2` 패키지 추가 필요:
- * npm install --save-dev mysql2
  */
+import mysql from 'mysql2/promise';
 
 export interface DBConfig {
   host: string;
@@ -24,22 +22,43 @@ export const defaultDBConfig: DBConfig = {
 };
 
 /**
+ * 특정 이메일 사용자의 role을 ADMIN으로 업데이트합니다.
+ */
+export async function setAdminRole(email: string, config: DBConfig = defaultDBConfig): Promise<void> {
+  const connection = await mysql.createConnection(config);
+  try {
+    const [result] = await connection.execute(
+      "UPDATE users SET role = 'ADMIN' WHERE email = ?",
+      [email],
+    );
+    const res = result as { affectedRows: number };
+    if (res.affectedRows === 0) {
+      throw new Error(`[DB] ${email} 계정을 찾을 수 없습니다. 먼저 회원가입이 필요합니다.`);
+    }
+    console.log(`[DB] ${email} → ADMIN role 부여 완료`);
+  } finally {
+    await connection.end();
+  }
+}
+
+/**
  * 테스트 데이터 시드
- * TODO: mysql2 설치 후 실제 쿼리 구현
  */
 export async function seedTestData(_config: DBConfig = defaultDBConfig): Promise<void> {
-  // const connection = await mysql.createConnection(config);
-  // await connection.execute(`INSERT INTO ...`);
-  // await connection.end();
-  console.log('[DB] 테스트 데이터 시드 (미구현 — mysql2 설치 필요)');
+  console.log('[DB] 테스트 데이터 시드 (미구현)');
 }
 
 /**
  * 테스트 데이터 정리
  */
 export async function cleanupTestData(_config: DBConfig = defaultDBConfig): Promise<void> {
-  // const connection = await mysql.createConnection(config);
-  // await connection.execute(`DELETE FROM posts WHERE author_email LIKE '%@e2e.com'`);
-  // await connection.end();
-  console.log('[DB] 테스트 데이터 정리 (미구현 — mysql2 설치 필요)');
+  const connection = await mysql.createConnection(_config);
+  try {
+    await connection.execute("DELETE FROM posts WHERE author_email LIKE '%@e2e.com'");
+    console.log('[DB] 테스트 데이터 정리 완료');
+  } catch {
+    console.log('[DB] 테스트 데이터 정리 실패 (무시)');
+  } finally {
+    await connection.end();
+  }
 }

@@ -1,18 +1,18 @@
 # analysisTrend 점진적 개선 계획
 
-> 기준: PRD.md v1.0 | 아키텍처 분석: 2026-03-15 | 전략: DDD-lite + 레이어드 아키텍처 + Nginx MSA
+> 기준: PRD.md v1.0 | 아키텍처 분석: 2026-03-15 | 마지막 업데이트: 2026-03-24 | 전략: DDD-lite + 레이어드 아키텍처 + Nginx MSA
 
 ## Context
 
 analysisTrend는 Docker Compose 기반 트렌드 분석 플랫폼으로, 프론트엔드(Next.js 16), 백엔드(Spring Boot 3.5), 분석 서비스(FastAPI)로 구성됩니다.
 
-**현재 상태:** 프론트엔드 UI는 대부분 구현 완료(홈, 커뮤니티, 쇼핑, 마이페이지, 관리자 전체)되었으나, 모든 데이터가 컴포넌트 내부에 하드코딩되어 있고, API 추상화 레이어가 없으며, 인터랙션(투표, 장바구니, 검색 등)이 동작하지 않습니다. 백엔드는 OAuth2+JWT 인증만 구현되어 있고, 비즈니스 도메인(커뮤니티, 상품 등)은 미구현입니다.
+**현재 상태 (2026-03-24):** Phase 0~10 완료. 프론트엔드-백엔드-분석 서비스 전체 연동 완료, E2E 테스트 64 passed / 9 skipped / 0 failed. OAuth2 인증 흐름 안정화(하드코딩 제거, 실유저 정보 fetch, ADMIN role 보존 버그 수정), Header 인증 상태별 조건부 네비게이션 구현 완료.
 
-**목표:** Phase 0(기반 수정)부터 시작해 8단계에 걸쳐 버그 제거 → 타입/API 추상화 → UI/UX → 인터랙션 → 백엔드 확장 → 연동 → 관리자/폴리싱 → 분석 서비스 순으로 점진적 개선합니다.
+**목표:** Phase 0(기반 수정)부터 시작해 10단계에 걸쳐 버그 제거 → 타입/API 추상화 → UI/UX → 인터랙션 → 백엔드 확장 → 연동 → 관리자/폴리싱 → 분석 서비스 → 인프라 → E2E 테스트 순으로 점진적 개선합니다.
 
-**완성도**: ~15% (인증 완료, UI 셸 존재, 하드코딩 데이터)
+**완성도**: ~95% (Phase 0~10 완료 | Phase 11 분석 서비스 API 연동 검증 예정)
 
----ㅇ
+---
 
 ## 병렬 처리 분류
 
@@ -112,6 +112,7 @@ Phase 6 (관리자/폴리싱)    ⇄  Phase 7 (인프라) + Phase 8 (분석 서�
   - [x] `application.yml`의 OAuth 시크릿 → `${GOOGLE_CLIENT_SECRET}` 플레이스홀더
   - [x] `backend/.env` 신규 생성 (gitignore)
   - [x] `.env.example` 신규 생성 (공개용)
+  - [x] `FRONTEND_URL`, `COOKIE_SECURE` 환경변수 추가 (`backend/.env.example` 업데이트)
 - [x] **CORS 활성화** — SecurityConfig 주석 해제, `WebMvcConfig.java` 신규 생성
   - [x] 허용 origin: `http://localhost:3000`
   - [x] 허용 메서드: GET, POST, PUT, DELETE, OPTIONS
@@ -424,6 +425,10 @@ Phase 2의 API 추상화 레이어에서 mock 플래그를 끄고 실제 백엔�
   - [x] authStore의 login/signup을 실제 API 호출로 변경
   - [x] OAuth2 콜백 로직 점검 및 authStore 연동
   - [x] Refresh token 갱신 로직
+  - [x] **OAuth2SuccessHandler 리팩토링** — `frontendUrl`, `cookieSecure` `@Value` 주입 (하드코딩 제거)
+  - [x] **`GET /api/v1/auth/me` 엔드포인트 추가** — 현재 로그인 유저 정보 반환 (`AuthController`)
+  - [x] **refresh 토큰 재발급 시 DB role 조회** — ADMIN role 보존 버그 수정 (`AuthController`)
+  - [x] **OAuth 콜백 `fetchCurrentUser()` 연동** — 실제 닉네임/이메일을 서버에서 fetch (`app/oauth/callback/page.tsx`)
 - [x] 커뮤니티 연동
   - [x] communityStore 데이터 소스를 API로 전환
   - [x] 글 작성/수정/삭제 API 호출
@@ -440,6 +445,8 @@ Phase 2의 API 추상화 레이어에서 mock 플래그를 끄고 실제 백엔�
 - [x] 글 작성 → 목록 확인 → 상세 조회 → 댓글 작성 플로우
 - [x] 상품 목록 → 카테고리 필터 → 상세 조회 플로우
 - [x] `NEXT_PUBLIC_USE_MOCK=true` 전환 시 mock 모드 정상 동작
+- [x] `GET /api/v1/auth/me` 호출 시 로그인 유저 정보 정상 반환
+- [x] 토큰 재발급 후 ADMIN role 보존 확인
 - [ ] `npm run build` 성공
 
 ---
@@ -671,12 +678,57 @@ Playwright 기반 E2E 테스트 인프라를 구축하고 PRD 기능 ID 기준 7
 - **`frontend/.dockerignore`** — `.env.local`(MOCK=true) Docker 빌드 제외
 - **백엔드 `AuthController`** — 로그인 응답에 `role` 필드 추가
 - **`global-setup.ts`** — UI 로그인 대신 API 직접 호출 + `page.evaluate()` localStorage 주입
+- **Header 조건부 네비게이션** — 인증 상태별 버튼 표시 (`widgets/Header/ui/Header.tsx`): 비로그인 시 로그인·회원가입 버튼 노출, 로그인 시 마이페이지·로그아웃 버튼 노출
 
 ### 검증 항목
 
 - [x] `cd e2e && npm test` — **73개 중 64 통과, 9 skip, 0 실패** (2026-03-19)
 - [x] Playwright HTML 리포트 생성 (`npm run test:report`)
 - [ ] CI 환경에서 `docker-compose up -d` 후 자동 실행 (GitHub Actions 미설정)
+
+---
+
+---
+
+## Phase 11 (예정): 분석 서비스 API 연동 검증 및 고도화
+
+### 오버뷰
+분석 서비스(FastAPI)의 Naver News / YouTube API 실환경 연동을 검증하고, E2E 레벨에서 분석 플로우 전체를 자동화합니다. 선택적으로 Recharts 기반 시각화 고도화도 포함합니다.
+
+### 작업 목록
+
+- [ ] **Naver News API 실환경 연동 검증**
+  - [ ] `analysis/.env`에 `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET` 실키 설정 확인
+  - [ ] `GET /trends/news` — 키워드 반환 확인 (실서버 기동)
+  - [ ] Redis `news_keywords` 키 존재 및 TTL 확인
+
+- [ ] **YouTube Data API v3 실환경 연동 검증**
+  - [ ] `analysis/.env`에 `YOUTUBE_API_KEY` 실키 설정 확인
+  - [ ] `GET /trends/youtube?region=KR&category=0` — 영상 목록 반환 확인
+  - [ ] `GET /trends/keywords` — 통합 키워드 반환 확인
+
+- [ ] **E2E 관리자 계정 (`admin@e2e.com`) 시드 자동화**
+  - [ ] `e2e/helpers/ApiHelper.ts` — 테스트 전 관리자 계정 자동 생성 로직 검토
+  - [ ] `e2e/global-setup.ts` — admin storageState 생성 안정화
+
+- [ ] **분석 E2E 테스트 skip 항목 해결**
+  - [ ] ADMIN 테스트 skip 7개 (CRUD 체인 의존성 해결) → passed로 전환 목표
+  - [ ] `POST /analyze/chat` E2E 파일 업로드 플로우 추가
+
+- [ ] **Recharts 히트맵 시각화 고도화** (선택)
+  - [ ] `admin/chat/page.tsx` — CSS 바 차트 → Recharts `BarChart` 교체
+  - [ ] 피크 구간 강조 표시 (색상 오버레이)
+
+- [ ] **50MB 이상 채팅 파일 비동기 처리**
+  - [ ] `POST /analyze/chat` — `task_id` 반환 + 폴링 엔드포인트 구현
+  - [ ] 프론트엔드 폴링 로직 연동
+
+### 검증 항목
+
+- [ ] `GET /trends/news`, `GET /trends/youtube` 실 API 키로 정상 응답
+- [ ] Redis에 `news_keywords` / `trending_KR_0` 키 존재 확인
+- [ ] E2E ADMIN 테스트 skip 0 / passed 24 달성
+- [ ] `npx tsc --noEmit` 타입 오류 없음
 
 ---
 
