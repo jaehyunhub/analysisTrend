@@ -212,11 +212,12 @@ npm run test:headed               # 브라우저 보이며 실행
 ## 전체 진행 현황
 
 > 마지막 E2E 실행: 2026-03-19 — `docker-compose build --no-cache frontend && docker-compose up -d`
-> API 직접 테스트: 2026-03-24 — Playwright browser 통해 분석 서비스 엔드포인트 검증
-> 총 E2E 73개: **64 통과, 9 스킵, 0 실패** | pytest 단위 33개: **33 통과**
+> API 직접 테스트: 2026-03-24 — 채팅 분석 API(JSON/TXT/세션), OAuth2 리다이렉트, pytest test_trends.py 추가 실행
+> 총 E2E 73개: **64 통과, 9 스킵, 0 실패** | pytest 단위 48개: **39 통과, 9 오류(pytest-asyncio strict mode)**
 >
 > **Phase 10 완료** — Docker 풀 리빌드 후 모든 E2E 테스트 통과. 스킵 9개는 CRUD 체인 의존성(추가 후 수정/삭제)으로 인한 의도적 skip.
 > **Phase 11 분석 서비스 API 직접 테스트** — `/health`, `/trends/news`, `/trends/youtube`, `/trends/keywords` 모두 200 OK 확인. 현재 API 키 미설정으로 mock 데이터 동작 중.
+> **Phase 11 추가 테스트(2026-03-24)** — 채팅 분석 JSON/TXT/세션 ID 조회 모두 통과. OAuth2 리다이렉트 플로우 정상(placeholder credentials). `/api/v1/auth/me` 500 오류(컨테이너 재빌드 필요). test_trends.py 수집기 6통과/엔드포인트 9오류(pytest-asyncio fixture 수정 필요).
 >
 > **API 키 설정 시 실데이터 수신 가능** (현재 mock 데이터로 동작 중):
 > - `analysis/.env`: `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` → 뉴스 키워드 실데이터
@@ -252,8 +253,8 @@ npm run test:headed               # 브라우저 보이며 실행
 | tests/test_cache.py | 8 | 8 | 0 | 100% |
 | tests/test_chat_analyzer.py | 12 | 12 | 0 | 100% |
 | tests/test_parsers.py | 13 | 13 | 0 | 100% |
-| tests/test_trends.py | 16 | — | — | 미실행 (작성 완료) |
-| **합계(기존)** | **33** | **33** | **0** | **100%** |
+| tests/test_trends.py | 15 | 6 | 9(error) | 실행 완료 — 수집기 6통과, 엔드포인트 9개 pytest-asyncio strict mode 오류 |
+| **합계** | **48** | **39** | **9(error)** | 수집기 유닛 100% · 엔드포인트 통합 fixture 오류 |
 
 ---
 
@@ -298,19 +299,19 @@ npm run test:headed               # 브라우저 보이며 실행
 | # | 테스트 | 상태 | 실행일 | 비고 |
 |---|--------|------|--------|------|
 | 1 | CSV 파일 업로드 → 분석 결과 반환 | [x] | 2026-03-19 | `tests/admin/chat-analysis.spec.ts` Phase 10에서 검증됨 |
-| 2 | JSON 파일 업로드 → 분석 결과 반환 | [ ] | — | Playwright E2E 테스트 추가 예정 |
-| 3 | TXT 파일 업로드 → 분석 결과 반환 | [ ] | — | Playwright E2E 테스트 추가 예정 |
-| 4 | 세션 ID 기반 결과 조회 (GET /analyze/chat/session/{id}) | [ ] | — | API 직접 테스트 필요 |
+| 2 | JSON 파일 업로드 → 분석 결과 반환 | [x] | 2026-03-24 | JSON 배열 형식 정상 파싱, heatmap 집계 정상 (200 OK) |
+| 3 | TXT 파일 업로드 → 분석 결과 반환 | [x] | 2026-03-24 | `[HH:MM:SS] user: message` 형식 자동 감지 및 파싱 (200 OK) |
+| 4 | 세션 ID 기반 결과 조회 (GET /analyze/chat/session/{id}) | [x] | 2026-03-24 | 유효 세션 200 OK, 존재하지 않는 세션 404 정상 처리 |
 
 ### 11.5 OAuth2 소셜 로그인 테스트
 
 | # | 테스트 | 상태 | 실행일 | 비고 |
 |---|--------|------|--------|------|
-| 1 | Google 로그인 플로우 리다이렉트 확인 | [ ] | — | Google OAuth2 앱 등록 필요 |
-| 2 | Kakao 로그인 플로우 리다이렉트 확인 | [ ] | — | Kakao 개발자 앱 등록 필요 |
-| 3 | Naver 로그인 플로우 리다이렉트 확인 | [ ] | — | Naver 개발자 앱 등록 필요 |
-| 4 | OAuth callback 처리 및 JWT 발급 확인 | [ ] | — | 실제 OAuth2 provider 연동 필요 |
-| 5 | /api/v1/auth/me 실제 유저 정보 반환 확인 | [ ] | — | OAuth2 로그인 완료 후 테스트 가능 |
+| 1 | Google 로그인 플로우 리다이렉트 확인 | [x] | 2026-03-24 | `/oauth2/authorization/google` → `accounts.google.com` 302 리다이렉트 정상. 단, `client_id=placeholder-google-client-id` |
+| 2 | Kakao 로그인 플로우 리다이렉트 확인 | [x] | 2026-03-24 | `/oauth2/authorization/kakao` → `kauth.kakao.com` 302 리다이렉트 정상. 단, `client_id=placeholder` |
+| 3 | Naver 로그인 플로우 리다이렉트 확인 | [x] | 2026-03-24 | `/oauth2/authorization/naver` → `nid.naver.com` 302 리다이렉트 정상. 단, `client_id=placeholder` |
+| 4 | OAuth callback 처리 및 JWT 발급 확인 | [-] | 2026-03-24 | client_id가 placeholder → 실제 OAuth2 provider에서 앱 미등록으로 콜백 불가. 실제 앱 등록 시 재테스트 필요 |
+| 5 | /api/v1/auth/me 실제 유저 정보 반환 확인 | [!] | 2026-03-24 | 500 Internal Server Error — 컨테이너 재빌드 필요 (`docker-compose build --no-cache backend`) |
 
 ---
 
@@ -323,6 +324,9 @@ npm run test:headed               # 브라우저 보이며 실행
 | 항목 | 파일 | 내용 |
 |------|------|------|
 | mock 동영상 음수 view_count | `analysis/services/youtube_collector.py` | `_MOCK_VIDEOS` 생성식에서 `(10 - i) * 1_000_000`이 `i >= 11` (index 10부터)일 때 음수 값 생성. 실제 API 사용 시 문제없으나 mock 데이터 시각화 오류 유발 가능 |
+| `/api/v1/auth/me` 500 오류 | `backend/` 컨테이너 | Phase 11에서 `me()` 엔드포인트 추가 후 `docker-compose build --no-cache backend` 미실행 — 컨테이너에 최신 코드 미반영. `docker-compose build --no-cache backend && docker-compose up -d backend`로 해결 가능 |
+| test_trends.py pytest-asyncio 오류 | `analysis/tests/test_trends.py` | `client` fixture가 `@pytest.fixture`로 선언되어 pytest-asyncio 1.3.0 strict mode에서 인식 불가. `@pytest_asyncio.fixture`로 변경 필요 |
+| Kakao/Naver OAuth2 redirect_uri 불일치 | `backend/` application config | Kakao/Naver callback redirect_uri가 `http://localhost:8080/...`으로 Nginx를 거치지 않음. Google처럼 `http://localhost/login/oauth2/code/{provider}`로 통일 권장 |
 
 ---
 
