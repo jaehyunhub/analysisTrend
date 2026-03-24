@@ -3,6 +3,7 @@ import type { Post, Comment } from '../types/post';
 import { MOCK_POSTS } from '../mocks/posts';
 import { USE_MOCK_API } from '../api/mock/config';
 import { apiGet, apiPost } from '../api/client';
+import { useAuthStore } from './authStore';
 
 type SortType = 'best' | 'hot' | 'new' | 'top';
 
@@ -10,6 +11,7 @@ interface CommunityState {
   posts: Post[];
   selectedFilter: SortType;
   isLoading: boolean;
+  joinedCommunities: string[];
 }
 
 interface CommunityActions {
@@ -22,12 +24,17 @@ interface CommunityActions {
   addComment: (postId: number, comment: Comment) => Promise<void>;
   setFilter: (filter: SortType) => void;
   getSortedPosts: () => Post[];
+  joinCommunity: (communityName: string) => void;
+  leaveCommunity: (communityName: string) => void;
+  isMember: (communityName: string) => boolean;
 }
 
 export const useCommunityStore = create<CommunityState & CommunityActions>((set, get) => ({
   posts: MOCK_POSTS,
   selectedFilter: 'new',
   isLoading: false,
+  // 초기 가입 커뮤니티: mock 데이터에서 기본 2개 가입 상태로 설정
+  joinedCommunities: ['경제', '방송'],
 
   // API 또는 mock에서 게시물 목록 로드
   fetchPosts: async () => {
@@ -68,11 +75,13 @@ export const useCommunityStore = create<CommunityState & CommunityActions>((set,
   // API 게시물 작성 (USE_MOCK_API false 시 실제 API 호출)
   addPostWithApi: async (title, content, communityId) => {
     if (USE_MOCK_API) {
+      const currentUser = useAuthStore.getState().user;
       const newPost: Post = {
         id: Date.now(),
         title,
         content,
-        author: '나',
+        author: currentUser?.nickname ?? '나',
+        authorId: currentUser?.id,
         upvotes: 0,
         downvotes: 0,
         commentCount: 0,
@@ -157,6 +166,20 @@ export const useCommunityStore = create<CommunityState & CommunityActions>((set,
   },
 
   setFilter: (filter) => set({ selectedFilter: filter }),
+
+  joinCommunity: (communityName) =>
+    set((state) => ({
+      joinedCommunities: state.joinedCommunities.includes(communityName)
+        ? state.joinedCommunities
+        : [...state.joinedCommunities, communityName],
+    })),
+
+  leaveCommunity: (communityName) =>
+    set((state) => ({
+      joinedCommunities: state.joinedCommunities.filter((c) => c !== communityName),
+    })),
+
+  isMember: (communityName) => get().joinedCommunities.includes(communityName),
 
   getSortedPosts: () => {
     const { posts, selectedFilter } = get();

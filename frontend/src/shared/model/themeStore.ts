@@ -26,14 +26,14 @@ export const useThemeStore = create<ThemeState & ThemeActions>()(
         const next = get().theme === 'light' ? 'dark' : 'light';
         set({ theme: next });
         if (typeof document !== 'undefined') {
-          document.documentElement.className = next;
+          document.documentElement.classList.toggle('dark', next === 'dark');
         }
       },
 
       setTheme: (theme) => {
         set({ theme });
         if (typeof document !== 'undefined') {
-          document.documentElement.className = theme;
+          document.documentElement.classList.toggle('dark', theme === 'dark');
         }
       },
     }),
@@ -45,7 +45,7 @@ export const useThemeStore = create<ThemeState & ThemeActions>()(
           const sys = getSystemTheme();
           state?.setTheme(sys);
         } else if (typeof document !== 'undefined') {
-          document.documentElement.className = state.theme;
+          document.documentElement.classList.toggle('dark', state.theme === 'dark');
         }
       },
     }

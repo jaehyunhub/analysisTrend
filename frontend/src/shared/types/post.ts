@@ -3,6 +3,7 @@ export interface Post {
   title: string;
   content: string;
   author: string;
+  authorId?: number;
   authorAvatar?: string;
   community: string;
   upvotes: number;

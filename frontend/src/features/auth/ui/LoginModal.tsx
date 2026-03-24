@@ -57,11 +57,16 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
     return () => dialog.removeEventListener('keydown', handleKeyDown);
   }, [isOpen]);
 
-  const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+  // OAuth2 소셜 로그인은 Nginx 진입점(포트 80)을 통해 백엔드로 프록시됨
+  // NEXT_PUBLIC_API_URL이 직접 백엔드 포트(8080)를 가리키더라도
+  // OAuth2 흐름은 반드시 Nginx를 통해야 리다이렉트 루프 없이 동작함
+  const OAUTH_BASE = typeof window !== 'undefined'
+    ? `${window.location.protocol}//${window.location.hostname}${window.location.port ? ':' + window.location.port : ''}`
+    : 'http://localhost';
   const LOGIN_URLS = {
-    google: `${API_BASE_URL}/oauth2/authorization/google`,
-    kakao:  `${API_BASE_URL}/oauth2/authorization/kakao`,
-    naver:  `${API_BASE_URL}/oauth2/authorization/naver`,
+    google: `${OAUTH_BASE}/oauth2/authorization/google`,
+    kakao:  `${OAUTH_BASE}/oauth2/authorization/kakao`,
+    naver:  `${OAUTH_BASE}/oauth2/authorization/naver`,
   };
 
   if (!isOpen) return null;
@@ -105,12 +110,36 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
       setError('');
 
       try {
-          const result = await apiPost<{ accessToken: string; user: User }>(
+          // 백엔드 /api/v1/auth/login 응답: { accessToken, refreshToken, nickname, email, role }
+          const result = await apiPost<{
+            accessToken: string;
+            refreshToken?: string;
+            nickname?: string;
+            email?: string;
+            role?: string;
+            // 레거시 형태 (user 객체로 감쌀 경우를 위한 폴백)
+            user?: User;
+          }>(
               AUTH.LOGIN,
               { email, password },
               true
           );
-          useAuthStore.getState().login(result.user, result.accessToken);
+
+          // 백엔드 응답이 { user, accessToken } 형태인 경우와
+          // { accessToken, nickname, email, role } 평탄 형태 모두 처리
+          if (result.user) {
+            useAuthStore.getState().login(result.user, result.accessToken, result.refreshToken);
+          } else {
+            const user: User = {
+              id: 0,
+              email: result.email ?? email,
+              nickname: result.nickname ?? email.split('@')[0],
+              role: (result.role === 'ADMIN' ? 'ADMIN' : 'USER') as 'USER' | 'ADMIN',
+              provider: 'LOCAL',
+              createdAt: new Date().toISOString(),
+            };
+            useAuthStore.getState().login(user, result.accessToken, result.refreshToken);
+          }
           onClose();
       } catch (err) {
           setError(err instanceof Error ? err.message : "로그인에 실패했습니다. 다시 시도해주세요.");

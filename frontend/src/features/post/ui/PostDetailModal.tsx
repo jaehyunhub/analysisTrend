@@ -16,6 +16,10 @@ export default function PostDetailModal() {
 
   const post = posts.find(p => p.id === selectedPostId);
 
+  // 수정/삭제 권한: 작성자 본인만 허용
+  // authorId가 없는 mock 데이터(기존 게시글)는 수정/삭제 불가
+  const isAuthor = !!user && !!post?.authorId && post.authorId === user.id;
+
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -149,8 +153,12 @@ export default function PostDetailModal() {
              <div className="p-4 border-b border-gray-200 dark:border-[#343536] flex justify-between items-center">
                  <h3 className="font-bold text-sm">Comments (89)</h3>
                  <div className="flex gap-1">
-                   <button onClick={handleEdit} className="px-2 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">수정</button>
-                   <button onClick={handleDelete} className="px-2 py-1 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">삭제</button>
+                   {isAuthor && (
+                     <>
+                       <button onClick={handleEdit} className="px-2 py-1 text-xs font-bold text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">수정</button>
+                       <button onClick={handleDelete} className="px-2 py-1 text-xs font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">삭제</button>
+                     </>
+                   )}
                    <button onClick={closePostDetail} aria-label="게시물 닫기" className="text-gray-500 hover:text-black dark:hover:text-white ml-1">닫기</button>
                  </div>
              </div>

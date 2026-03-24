@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import Script from 'next/script';
@@ -18,13 +18,20 @@ const NAV_LINKS = [
 export default function Header() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const { theme, toggleTheme } = useThemeStore();
   const { user, isAuthenticated, logout } = useAuthStore();
   const { items } = useCartStore();
 
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const avatarInitial = user?.nickname?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? '?';
   const displayName = user?.nickname ?? user?.email ?? '';
+
+  const showCart = isAuthenticated && pathname.startsWith('/shop');
 
   return (
     <>
@@ -63,29 +70,31 @@ export default function Header() {
 
         {/* Right: Actions */}
         <div className="flex items-center gap-1.5 lg:w-[220px] justify-end">
-          {/* Cart link */}
-          <Link
-            href="/shop/cart"
-            aria-label="장바구니"
-            className="relative w-9 h-9 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors"
-          >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-            {items.length > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-blue-600 text-white text-[10px] font-black rounded-full flex items-center justify-center">
-                {items.length > 9 ? '9+' : items.length}
-              </span>
-            )}
-          </Link>
+          {/* Cart link — 로그인 상태이고 쇼핑 페이지일 때만 표시 */}
+          {showCart && (
+            <Link
+              href="/shop/cart"
+              aria-label="장바구니"
+              className="relative w-9 h-9 rounded-lg flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              {items.length > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-blue-600 text-white text-[10px] font-black rounded-full flex items-center justify-center">
+                  {items.length > 9 ? '9+' : items.length}
+                </span>
+              )}
+            </Link>
+          )}
 
           {/* 다크모드 토글 */}
           <button
             onClick={toggleTheme}
             className="hidden md:flex items-center justify-center h-8 w-8 rounded-lg hover:bg-gray-100 dark:hover:bg-[#272729] text-gray-500 dark:text-gray-400 transition-colors"
-            aria-label={theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
+            aria-label={mounted && theme === 'dark' ? '라이트 모드로 전환' : '다크 모드로 전환'}
           >
-            {theme === 'dark' ? '☀️' : '🌙'}
+            {mounted && theme === 'dark' ? '☀️' : '🌙'}
           </button>
 
           {isAuthenticated ? (

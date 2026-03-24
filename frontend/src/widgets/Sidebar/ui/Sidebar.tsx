@@ -7,6 +7,7 @@ import { MOCK_COMMUNITIES } from '@/shared/mocks/communities';
 import { USE_MOCK_API } from '@/shared/api/mock/config';
 import { apiGet } from '@/shared/api/client';
 import { COMMUNITIES } from '@/shared/api/endpoints';
+import { useAuthStore } from '@/shared/model/authStore';
 
 const TOPIC_ICONS = {
   경제: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
@@ -23,6 +24,7 @@ const COMMUNITY_COLORS = [
 export default function Sidebar() {
   const [isMyCommunitiesExpanded, setIsMyCommunitiesExpanded] = useState(false);
   const [communities, setCommunities] = useState<Community[]>(MOCK_COMMUNITIES);
+  const { isAuthenticated, user } = useAuthStore();
 
   useEffect(() => {
     if (USE_MOCK_API) {
@@ -125,10 +127,21 @@ export default function Sidebar() {
 
       {/* CTA */}
       <div className="pl-5 mx-2 mt-4 pt-4 border-t border-gray-100 dark:border-[#343536]">
-         <p className="text-xs text-gray-400 mb-3 leading-relaxed">로그인하면 커뮤니티에 참여하고 글을 쓸 수 있어요.</p>
-         <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">
-           로그인 / 가입하기
-         </button>
+        {isAuthenticated && user ? (
+          <div className="flex items-center gap-2 py-1">
+            <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
+              {user.nickname?.[0]?.toUpperCase() ?? 'U'}
+            </div>
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 truncate">{user.nickname}</span>
+          </div>
+        ) : (
+          <>
+            <p className="text-xs text-gray-400 mb-3 leading-relaxed">로그인하면 커뮤니티에 참여하고 글을 쓸 수 있어요.</p>
+            <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-sm transition-colors">
+              로그인 / 가입하기
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

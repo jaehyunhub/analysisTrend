@@ -18,6 +18,8 @@ interface AuthActions {
   logout: () => void;
   setLoading: (loading: boolean) => void;
   checkAuth: () => boolean;
+  fetchMe: () => Promise<void>;
+  updateNickname: (nickname: string) => void;
 }
 
 export const useAuthStore = create<AuthState & AuthActions>()(
@@ -127,6 +129,39 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       checkAuth: () => {
         const { accessToken } = get();
         return !!accessToken;
+      },
+
+      // /api/v1/auth/me 호출하여 최신 사용자 정보로 갱신
+      fetchMe: async () => {
+        const { accessToken } = get();
+        if (!accessToken) return;
+        try {
+          const res = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1/auth/me`,
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+          );
+          if (!res.ok) return;
+          const json = await res.json();
+          const data = json.data ?? json;
+          const updatedUser: User = {
+            id: data.id ?? 0,
+            email: data.email ?? '',
+            nickname: data.nickname ?? '',
+            role: data.role ?? 'USER',
+            provider: data.provider ?? 'LOCAL',
+            createdAt: data.createdAt ?? new Date().toISOString(),
+          };
+          set((state) => ({ user: updatedUser, isAuthenticated: !!state.accessToken }));
+        } catch {
+          // 조용히 실패 — 기존 캐시된 user 유지
+        }
+      },
+
+      // 로컬에서 닉네임만 즉시 반영 (프로필 수정 후 낙관적 업데이트용)
+      updateNickname: (nickname: string) => {
+        set((state) => ({
+          user: state.user ? { ...state.user, nickname } : state.user,
+        }));
       },
     }),
     {

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useModalStore } from '@/shared/model/modalStore';
 import { useCommunityStore } from '@/shared/model/communityStore';
 import { useToastStore } from '@/shared/model/toastStore';
+import { useAuthStore } from '@/shared/model/authStore';
 
 const TABS = [
   { key: 'post', label: '글' },
@@ -22,7 +23,10 @@ const COMMUNITIES = [
 export default function CreatePostModal() {
   const { isCreatePostOpen, closeCreatePost } = useModalStore();
   const addPost = useCommunityStore((state) => state.addPost);
+  const isMember = useCommunityStore((state) => state.isMember);
   const toastSuccess = useToastStore((state) => state.success);
+  const toastError = useToastStore((state) => state.error);
+  const { isAuthenticated } = useAuthStore();
   const [selectedTab, setSelectedTab] = useState('post');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
@@ -69,11 +73,24 @@ export default function CreatePostModal() {
 
   const handleSubmit = () => {
     if (!title.trim()) return;
+
+    if (!isAuthenticated) {
+      toastError('로그인이 필요합니다.');
+      return;
+    }
+
+    if (!isMember(selectedCommunity)) {
+      toastError(`'${selectedCommunity}' 커뮤니티에 먼저 가입해주세요.`);
+      return;
+    }
+
+    const { user } = useAuthStore.getState();
     const newPost = {
       id: Date.now(),
       title: title.trim(),
       content: content.trim(),
-      author: 'me',
+      author: user?.nickname ?? 'me',
+      authorId: user?.id,
       community: selectedCommunity,
       upvotes: 0,
       downvotes: 0,

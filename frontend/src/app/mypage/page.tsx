@@ -1,28 +1,51 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Header from "@/widgets/Header/ui/Header";
 import { useAuthStore } from '@/shared/model/authStore';
+import { useCommunityStore } from '@/shared/model/communityStore';
+import { useToastStore } from '@/shared/model/toastStore';
 import {
   MOCK_ORDER_STATS,
   MOCK_RECENT_ORDERS,
   MOCK_COMMUNITY_ACTIVITIES,
   MOCK_ORDERS,
-  MOCK_MY_POSTS,
 } from '@/shared/mocks/mypage';
+import { USE_MOCK_API } from '@/shared/api/mock/config';
+import { apiPatch } from '@/shared/api/client';
 
 export default function MyPage() {
   const [activeTab, setActiveTab] = useState('overview');
-  const { user } = useAuthStore();
+  const { user, isAuthenticated, _hasHydrated, fetchMe } = useAuthStore();
+  const router = useRouter();
 
-  const renderContent = () => {
-    switch(activeTab) {
-      case 'orders': return <OrdersSection />;
-      case 'community': return <CommunitySection />;
-      case 'profile': return <ProfileSection />;
-      default: return <OverviewSection setActiveTab={setActiveTab} />;
+  // hydration 완료 후 인증 체크 → 비로그인 시 홈으로 리다이렉트
+  useEffect(() => {
+    if (!_hasHydrated) return;
+    if (!isAuthenticated) {
+      router.replace('/');
     }
-  };
+  }, [_hasHydrated, isAuthenticated, router]);
+
+  // 마운트 시 최신 사용자 정보 가져오기 (mock 모드가 아닐 때)
+  useEffect(() => {
+    if (!USE_MOCK_API && isAuthenticated) {
+      fetchMe();
+    }
+  }, [isAuthenticated, fetchMe]);
+
+  // hydration 미완료 또는 비로그인 시 빈 화면
+  if (!_hasHydrated || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-[#09090b]">
+        <Header />
+        <div className="flex items-center justify-center h-[60vh]">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
 
   const NAV_TABS = [
     {
@@ -47,6 +70,15 @@ export default function MyPage() {
     },
   ];
 
+  const renderContent = () => {
+    switch(activeTab) {
+      case 'orders': return <OrdersSection />;
+      case 'community': return <CommunitySection />;
+      case 'profile': return <ProfileSection />;
+      default: return <OverviewSection setActiveTab={setActiveTab} />;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#09090b]">
       <Header />
@@ -58,10 +90,13 @@ export default function MyPage() {
             <div className="bg-white dark:bg-[#1A1A1B] rounded-2xl shadow-sm border border-gray-100 dark:border-[#343536] overflow-hidden sticky top-20">
                 <div className="p-6 border-b border-gray-100 dark:border-[#343536] text-center">
                     <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl mx-auto mb-3 flex items-center justify-center text-2xl text-white font-black shadow-md">
-                        {user?.nickname?.charAt(0) ?? '김'}
+                        {user?.nickname?.charAt(0)?.toUpperCase() ?? '?'}
                     </div>
-                    <h2 className="text-base font-black text-gray-900 dark:text-white">{user?.nickname ?? '김재현'}</h2>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-0.5">골드 멤버</p>
+                    <h2 className="text-base font-black text-gray-900 dark:text-white">{user?.nickname ?? '사용자'}</h2>
+                    <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 truncate">{user?.email ?? ''}</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-1">
+                      {user?.role === 'ADMIN' ? '관리자' : '골드 멤버'}
+                    </p>
                     <div className="mt-4 flex justify-center gap-5">
                         <div className="text-center">
                             <div className="text-xs text-gray-400 mb-0.5">포인트</div>
@@ -173,6 +208,10 @@ function OrdersSection() {
     const ORDER_STATUSES = ['전체', '준비중', '배송 중', '배송 완료', '취소됨'];
     const [activeStatus, setActiveStatus] = useState('전체');
 
+    const filteredOrders = activeStatus === '전체'
+        ? MOCK_ORDERS
+        : MOCK_ORDERS.filter(o => o.status === activeStatus);
+
     return (
         <div className="space-y-5">
             <h1 className="text-2xl font-black text-gray-900 dark:text-white">주문 내역</h1>
@@ -194,72 +233,109 @@ function OrdersSection() {
             </div>
 
             <div className="bg-white dark:bg-[#1A1A1B] rounded-2xl shadow-sm border border-gray-100 dark:border-[#343536] overflow-hidden">
-                {MOCK_ORDERS.map((order) => (
-                    <div key={order.id} className="p-5 border-b border-gray-100 dark:border-[#343536] last:border-0 hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
-                        <div className="flex justify-between mb-3">
-                            <div>
-                                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">주문번호 #{order.orderNo}</span>
-                                <p className="text-xs text-gray-400">{order.orderedAt} 주문</p>
+                {filteredOrders.length === 0 ? (
+                    <div className="p-10 text-center text-gray-400 text-sm">해당 상태의 주문이 없습니다.</div>
+                ) : (
+                    filteredOrders.map((order) => (
+                        <div key={order.id} className="p-5 border-b border-gray-100 dark:border-[#343536] last:border-0 hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
+                            <div className="flex justify-between mb-3">
+                                <div>
+                                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">주문번호 #{order.orderNo}</span>
+                                    <p className="text-xs text-gray-400">{order.orderedAt} 주문</p>
+                                </div>
+                                <span className="text-sm font-bold text-blue-600">{order.status}</span>
                             </div>
-                            <span className="text-sm font-bold text-blue-600">{order.status}</span>
-                        </div>
-                        <div className="flex gap-4">
-                            <div className="w-18 h-18 w-[72px] h-[72px] bg-gray-100 dark:bg-[#272729] rounded-xl flex-shrink-0"></div>
-                            <div className="flex-1 min-w-0">
-                                <h3 className="font-black text-sm text-gray-900 dark:text-white">{order.productName}</h3>
-                                <p className="text-sm text-gray-400 mt-0.5">{order.option}</p>
-                                <p className="font-black text-sm mt-1 text-gray-900 dark:text-white">{order.price}</p>
+                            <div className="flex gap-4">
+                                <div className="w-[72px] h-[72px] bg-gray-100 dark:bg-[#272729] rounded-xl flex-shrink-0"></div>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="font-black text-sm text-gray-900 dark:text-white">{order.productName}</h3>
+                                    <p className="text-sm text-gray-400 mt-0.5">{order.option}</p>
+                                    <p className="font-black text-sm mt-1 text-gray-900 dark:text-white">{order.price}</p>
+                                </div>
+                            </div>
+                            <div className="mt-4 flex gap-2 justify-end">
+                                <button className="px-4 py-2 border border-gray-200 dark:border-[#343536] rounded-xl text-sm font-bold hover:bg-gray-100 dark:hover:bg-[#343536] transition-colors text-gray-700 dark:text-gray-300">영수증</button>
+                                <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-colors">배송 추적</button>
                             </div>
                         </div>
-                        <div className="mt-4 flex gap-2 justify-end">
-                            <button className="px-4 py-2 border border-gray-200 dark:border-[#343536] rounded-xl text-sm font-bold hover:bg-gray-100 dark:hover:bg-[#343536] transition-colors text-gray-700 dark:text-gray-300">영수증</button>
-                            <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition-colors">배송 추적</button>
-                        </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
         </div>
     );
 }
 
 function CommunitySection() {
+    const [activeSubTab, setActiveSubTab] = useState<'posts' | 'comments' | 'saved'>('posts');
+    const { user } = useAuthStore();
+    const { posts } = useCommunityStore();
+
+    // 내가 쓴 게시물: communityStore posts에서 author가 현재 user nickname과 일치하는 것만 필터
+    const myPosts = posts.filter(p => p.author === user?.nickname);
+
+    const SUB_TABS: { id: 'posts' | 'comments' | 'saved'; label: string }[] = [
+        { id: 'posts', label: '내 게시물' },
+        { id: 'comments', label: '댓글' },
+        { id: 'saved', label: '저장됨' },
+    ];
+
     return (
         <div className="space-y-5">
             <h1 className="text-2xl font-black text-gray-900 dark:text-white">커뮤니티 활동</h1>
 
             <div className="bg-white dark:bg-[#1A1A1B] rounded-2xl shadow-sm border border-gray-100 dark:border-[#343536] overflow-hidden">
                 <div className="flex border-b border-gray-100 dark:border-[#343536]">
-                    {['내 게시물', '댓글', '저장됨'].map((tab, i) => (
-                        <button key={tab} className={`flex-1 py-4 text-sm font-bold border-b-2 transition-colors ${
-                            i === 0
-                              ? 'border-blue-500 text-blue-600'
-                              : 'border-transparent text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                        }`}>
-                            {tab}
+                    {SUB_TABS.map((tab) => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveSubTab(tab.id)}
+                            className={`flex-1 py-4 text-sm font-bold border-b-2 transition-colors ${
+                                activeSubTab === tab.id
+                                  ? 'border-blue-500 text-blue-600'
+                                  : 'border-transparent text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                            }`}
+                        >
+                            {tab.label}
                         </button>
                     ))}
                 </div>
 
                 <div>
-                    {MOCK_MY_POSTS.map((post) => (
-                        <div key={post.id} className="p-4 border-b border-gray-50 dark:border-[#343536] last:border-0 hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
-                            <p className="text-xs text-gray-400 mb-1">
-                              <span className="font-bold text-gray-600 dark:text-gray-300">{post.board}</span> 게시판 •{' '}
-                              <span>{post.postedAt}</span>
-                            </p>
-                            <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-2 leading-snug">{post.title}</h3>
-                            <div className="flex items-center gap-4 text-xs text-gray-400 font-bold">
-                                <span className="flex items-center gap-1">
-                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6z"/></svg>
-                                  {post.upvotes}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7z" clipRule="evenodd"/></svg>
-                                  {post.comments}
-                                </span>
-                            </div>
+                    {activeSubTab === 'posts' && (
+                        myPosts.length === 0 ? (
+                            <div className="p-10 text-center text-gray-400 text-sm">작성한 게시물이 없습니다.</div>
+                        ) : (
+                            myPosts.map((post) => (
+                                <div key={post.id} className="p-4 border-b border-gray-50 dark:border-[#343536] last:border-0 hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
+                                    <p className="text-xs text-gray-400 mb-1">
+                                        <span className="font-bold text-gray-600 dark:text-gray-300">{post.community ?? '자유'}</span> 게시판 •{' '}
+                                        <span>{new Date(post.createdAt).toLocaleDateString('ko-KR')}</span>
+                                    </p>
+                                    <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-2 leading-snug">{post.title}</h3>
+                                    <div className="flex items-center gap-4 text-xs text-gray-400 font-bold">
+                                        <span className="flex items-center gap-1">
+                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6z"/></svg>
+                                            {post.upvotes}
+                                        </span>
+                                        <span className="flex items-center gap-1">
+                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7z" clipRule="evenodd"/></svg>
+                                            {post.commentCount}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))
+                        )
+                    )}
+                    {activeSubTab === 'comments' && (
+                        <div className="p-10 text-center text-gray-400 text-sm">
+                            댓글 내역은 준비 중입니다.
                         </div>
-                    ))}
+                    )}
+                    {activeSubTab === 'saved' && (
+                        <div className="p-10 text-center text-gray-400 text-sm">
+                            저장된 게시물이 없습니다.
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -267,16 +343,43 @@ function CommunitySection() {
 }
 
 function ProfileSection() {
-    const { user, login, accessToken } = useAuthStore();
+    const { user, updateNickname, fetchMe } = useAuthStore();
+    const { success: toastSuccess, error: toastError } = useToastStore();
     const [nickname, setNickname] = useState(user?.nickname ?? '');
     const [bio, setBio] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
     const [saved, setSaved] = useState(false);
 
-    const handleSave = () => {
-        if (!user || !accessToken) return;
-        login({ ...user, nickname }, accessToken);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
+    // user가 변경될 때 (fetchMe 완료 후) 닉네임 동기화
+    useEffect(() => {
+        if (user?.nickname) setNickname(user.nickname);
+    }, [user?.nickname]);
+
+    const handleSave = async () => {
+        if (!user) return;
+        const trimmed = nickname.trim();
+        if (!trimmed) {
+            toastError('닉네임을 입력해주세요.');
+            return;
+        }
+
+        setIsSaving(true);
+        try {
+            if (!USE_MOCK_API) {
+                // 백엔드 PATCH /api/v1/users/me API 연동 (API가 없으면 로컬만 업데이트)
+                await apiPatch('/api/v1/users/me', { nickname: trimmed }).catch(() => null);
+                await fetchMe(); // 서버에서 최신 사용자 정보 갱신
+            }
+            // 낙관적 업데이트: Zustand store 즉시 반영
+            updateNickname(trimmed);
+            setSaved(true);
+            toastSuccess('프로필이 저장되었습니다.');
+            setTimeout(() => setSaved(false), 2000);
+        } catch {
+            toastError('프로필 저장에 실패했습니다.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -288,12 +391,9 @@ function ProfileSection() {
                 <div className="flex items-start gap-6">
                     <div className="relative group shrink-0 text-center">
                         <div className="w-24 h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-4xl text-white font-black shadow-md">
-                          {nickname.charAt(0) || '?'}
+                          {nickname.charAt(0)?.toUpperCase() || '?'}
                         </div>
                         <p className="text-sm font-bold text-gray-800 dark:text-gray-200 mt-2">{nickname}</p>
-                        <button className="absolute -bottom-1 -right-1 p-1.5 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 transition-colors">
-                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /></svg>
-                        </button>
                     </div>
 
                     <div className="flex-1 space-y-4">
@@ -305,12 +405,18 @@ function ProfileSection() {
                                     value={nickname}
                                     onChange={(e) => setNickname(e.target.value)}
                                     aria-label="닉네임"
+                                    maxLength={20}
                                     className="w-full p-3 bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-sm text-gray-900 dark:text-white"
                                 />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-gray-500 dark:text-gray-400 mb-1.5">이메일</label>
-                                <input type="email" value={user?.email ?? ''} disabled className="w-full p-3 bg-gray-100 dark:bg-[#343536] border border-gray-200 dark:border-[#343536] rounded-xl outline-none text-gray-400 cursor-not-allowed text-sm" />
+                                <input
+                                    type="email"
+                                    value={user?.email ?? ''}
+                                    disabled
+                                    className="w-full p-3 bg-gray-100 dark:bg-[#343536] border border-gray-200 dark:border-[#343536] rounded-xl outline-none text-gray-400 cursor-not-allowed text-sm"
+                                />
                             </div>
                         </div>
 
@@ -321,19 +427,22 @@ function ProfileSection() {
                                 onChange={(e) => setBio(e.target.value)}
                                 className="w-full p-3 bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-xl outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all h-20 resize-none text-sm text-gray-900 dark:text-white placeholder-gray-400"
                                 placeholder="간단한 자기소개를 작성해주세요..."
+                                maxLength={200}
                             />
                         </div>
 
                         <div className="flex gap-3 pt-2">
                              <button
                                  onClick={handleSave}
-                                 className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors text-sm shadow-sm"
+                                 disabled={isSaving}
+                                 className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-colors text-sm shadow-sm"
                              >
-                                 {saved ? '저장됨!' : '변경 저장'}
+                                 {isSaving ? '저장 중...' : saved ? '저장됨!' : '변경 저장'}
                              </button>
                              <button
                                  onClick={() => { setNickname(user?.nickname ?? ''); setBio(''); }}
-                                 className="px-5 py-2.5 border border-gray-200 dark:border-[#343536] hover:bg-gray-50 dark:hover:bg-[#343536] font-bold rounded-xl transition-colors text-sm text-gray-700 dark:text-gray-300"
+                                 disabled={isSaving}
+                                 className="px-5 py-2.5 border border-gray-200 dark:border-[#343536] hover:bg-gray-50 dark:hover:bg-[#343536] disabled:opacity-60 font-bold rounded-xl transition-colors text-sm text-gray-700 dark:text-gray-300"
                              >
                                  취소
                              </button>
@@ -354,10 +463,14 @@ function ProfileSection() {
                   </div>
                   <div className="flex items-center justify-between py-4">
                       <div>
-                          <p className="font-bold text-sm text-gray-900 dark:text-white">2단계 인증</p>
-                          <p className="text-xs text-gray-400 mt-0.5">계정에 추가적인 보안을 적용합니다</p>
+                          <p className="font-bold text-sm text-gray-900 dark:text-white">계정 정보</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            가입일: {user?.createdAt ? new Date(user.createdAt).toLocaleDateString('ko-KR') : '-'}
+                          </p>
                       </div>
-                      <span className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold">활성화됨</span>
+                      <span className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold">
+                        {user?.provider === 'LOCAL' ? '이메일 계정' : `${user?.provider} 로그인`}
+                      </span>
                   </div>
                 </div>
             </div>

@@ -8,6 +8,8 @@ import { useState, useEffect } from 'react';
 
 import CommunitySearch from "@/features/search/ui/CommunitySearch";
 import { useCommunityStore } from "@/shared/model/communityStore";
+import { useAuthStore } from "@/shared/model/authStore";
+import { useToastStore } from "@/shared/model/toastStore";
 
 const SORT_OPTIONS = [
   { key: 'hot', label: '인기', icon: 'M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z' },
@@ -19,10 +21,14 @@ const SORT_OPTIONS = [
 type SortKey = typeof SORT_OPTIONS[number]['key'];
 
 export default function CommunityPage() {
-  const { getSortedPosts, setFilter, selectedFilter, fetchPosts, isLoading } = useCommunityStore();
+  const { getSortedPosts, setFilter, selectedFilter, fetchPosts, isLoading, isMember, joinCommunity } = useCommunityStore();
   const sortedPosts = getSortedPosts();
+  const { isAuthenticated } = useAuthStore();
+  const toastSuccess = useToastStore((state) => state.success);
+  const toastError = useToastStore((state) => state.error);
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [joinConfirmTarget, setJoinConfirmTarget] = useState<string | null>(null);
 
   useEffect(() => {
     fetchPosts();
@@ -48,12 +54,27 @@ export default function CommunityPage() {
     setFilter(key);
   };
 
+  const handleJoinClick = (slug: string) => {
+    if (!isAuthenticated) {
+      toastError('로그인이 필요합니다.');
+      return;
+    }
+    setJoinConfirmTarget(slug);
+  };
+
+  const handleJoinConfirm = () => {
+    if (!joinConfirmTarget) return;
+    joinCommunity(joinConfirmTarget);
+    toastSuccess(`'${joinConfirmTarget}' 커뮤니티에 가입했습니다.`);
+    setJoinConfirmTarget(null);
+  };
+
   const POPULAR_COMMUNITIES = [
-      { rank: 1, name: '경제', slug: '경제', members: '12만', color: 'bg-blue-500', isJoined: true },
-      { rank: 2, name: '방송', slug: '방송', members: '8.5만', color: 'bg-red-500', isJoined: true },
-      { rank: 3, name: '쇼핑', slug: '쇼핑', members: '6만', color: 'bg-orange-500', isJoined: false },
-      { rank: 4, name: '자유게시판', slug: '자유게시판', members: '4.5만', color: 'bg-green-500', isJoined: false },
-      { rank: 5, name: 'KoreaIT', slug: 'KoreaIT', members: '3만', color: 'bg-indigo-500', isJoined: false },
+      { rank: 1, name: '경제', slug: '경제', members: '12만', color: 'bg-blue-500' },
+      { rank: 2, name: '방송', slug: '방송', members: '8.5만', color: 'bg-red-500' },
+      { rank: 3, name: '쇼핑', slug: '쇼핑', members: '6만', color: 'bg-orange-500' },
+      { rank: 4, name: '자유게시판', slug: '자유게시판', members: '4.5만', color: 'bg-green-500' },
+      { rank: 5, name: 'KoreaIT', slug: 'KoreaIT', members: '3만', color: 'bg-indigo-500' },
   ];
 
   return (
@@ -146,12 +167,16 @@ export default function CommunityPage() {
                                                  <span className="text-xs text-gray-400">{comm.members}명</span>
                                              </div>
                                          </div>
-                                         <button className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors shrink-0 ${
-                                             comm.isJoined
-                                             ? 'border-blue-500 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                                         <button
+                                           onClick={() => !isMember(comm.slug) && handleJoinClick(comm.slug)}
+                                           disabled={isMember(comm.slug)}
+                                           className={`px-3 py-1 rounded-full text-xs font-bold border transition-colors shrink-0 ${
+                                             isMember(comm.slug)
+                                             ? 'border-blue-500 text-blue-500 cursor-default'
                                              : 'bg-blue-600 text-white border-transparent hover:bg-blue-700'
-                                         }`}>
-                                             {comm.isJoined ? '가입됨' : '가입'}
+                                           }`}
+                                         >
+                                             {isMember(comm.slug) ? '가입됨' : '가입'}
                                          </button>
                                      </li>
                                  ))}
@@ -179,6 +204,38 @@ export default function CommunityPage() {
              </div>
         </div>
       </div>
+
+      {/* 커뮤니티 가입 확인 모달 */}
+      {joinConfirmTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setJoinConfirmTarget(null)}
+        >
+          <div
+            className="bg-white dark:bg-[#1A1A1B] rounded-2xl shadow-2xl p-6 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2">커뮤니티 가입</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
+              <span className="font-semibold text-gray-800 dark:text-gray-200">{joinConfirmTarget}</span> 커뮤니티에 가입하시겠습니까?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setJoinConfirmTarget(null)}
+                className="px-4 py-2 text-sm font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-xl transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleJoinConfirm}
+                className="px-5 py-2 text-sm font-bold bg-[#0079D3] hover:bg-[#006CBB] text-white rounded-xl transition-colors"
+              >
+                가입하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

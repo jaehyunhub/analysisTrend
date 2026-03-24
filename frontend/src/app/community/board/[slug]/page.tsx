@@ -2,10 +2,12 @@
 
 import { useParams } from 'next/navigation';
 import { useModalStore } from "@/shared/model/modalStore";
+import { useCommunityStore } from "@/shared/model/communityStore";
+import { useAuthStore } from "@/shared/model/authStore";
+import { useToastStore } from "@/shared/model/toastStore";
 import Header from "@/widgets/Header/ui/Header";
 import Sidebar from "@/widgets/Sidebar/ui/Sidebar";
 import PostCard from "@/entities/post/ui/PostCard";
-import Image from "next/image";
 import Link from "next/link";
 import { useState } from 'react';
 
@@ -14,6 +16,11 @@ export default function CommunityPage() {
   const slug = params.slug as string; // e.g., 'AnalysisTrend', 'KoreaIT'
   const communityName = `r/${slug}`;
   const { openCreatePost } = useModalStore();
+  const { isMember, joinCommunity } = useCommunityStore();
+  const { isAuthenticated } = useAuthStore();
+  const toastSuccess = useToastStore((state) => state.success);
+  const toastError = useToastStore((state) => state.error);
+  const [showJoinConfirm, setShowJoinConfirm] = useState(false);
 
   // Mock Data based on slug
   const communityInfo = {
@@ -46,6 +53,22 @@ export default function CommunityPage() {
       comments: "12"
     }
   ]);
+
+  const handleJoinClick = () => {
+    if (!isAuthenticated) {
+      toastError('로그인이 필요합니다.');
+      return;
+    }
+    setShowJoinConfirm(true);
+  };
+
+  const handleJoinConfirm = () => {
+    joinCommunity(slug);
+    setShowJoinConfirm(false);
+    toastSuccess(`'${slug}' 커뮤니티에 가입했습니다.`);
+  };
+
+  const joined = isMember(slug);
 
   return (
     <div className="bg-[#DAE0E6] dark:bg-[#030303] min-h-screen">
@@ -82,8 +105,16 @@ export default function CommunityPage() {
                                     <h1 className="text-2xl font-bold text-[#1C1C1C] dark:text-[#D7DADC]">{communityName}</h1>
                                     <p className="text-sm text-gray-500">{communityName}</p>
                                  </div>
-                                 <button className="px-8 py-2 bg-[#0079D3] hover:bg-[#006CBB] text-white font-bold rounded-full text-sm transition-colors mb-1">
-                                    Join
+                                 <button
+                                    onClick={handleJoinClick}
+                                    disabled={joined}
+                                    className={`px-8 py-2 font-bold rounded-full text-sm transition-colors mb-1 ${
+                                      joined
+                                        ? 'bg-gray-100 dark:bg-[#272729] text-gray-500 dark:text-gray-400 cursor-default border border-gray-300 dark:border-[#343536]'
+                                        : 'bg-[#0079D3] hover:bg-[#006CBB] text-white'
+                                    }`}
+                                 >
+                                    {joined ? '가입됨' : 'Join'}
                                  </button>
                              </div>
                         </div>
@@ -150,6 +181,38 @@ export default function CommunityPage() {
              </div>
         </div>
       </div>
+
+      {/* 커뮤니티 가입 확인 모달 */}
+      {showJoinConfirm && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => setShowJoinConfirm(false)}
+        >
+          <div
+            className="bg-white dark:bg-[#1A1A1B] rounded-2xl shadow-2xl p-6 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-bold text-gray-900 dark:text-white mb-2">커뮤니티 가입</h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-5">
+              <span className="font-semibold text-gray-800 dark:text-gray-200">{slug}</span> 커뮤니티에 가입하시겠습니까?
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowJoinConfirm(false)}
+                className="px-4 py-2 text-sm font-bold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-xl transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleJoinConfirm}
+                className="px-5 py-2 text-sm font-bold bg-[#0079D3] hover:bg-[#006CBB] text-white rounded-xl transition-colors"
+              >
+                가입하기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,16 +1,16 @@
 # analysisTrend 점진적 개선 계획
 
-> 기준: PRD.md v1.0 | 아키텍처 분석: 2026-03-15 | 마지막 업데이트: 2026-03-24 (Phase 11 완료) | 전략: DDD-lite + 레이어드 아키텍처 + Nginx MSA
+> 기준: PRD.md v1.0 | 아키텍처 분석: 2026-03-15 | 마지막 업데이트: 2026-03-24 (Phase 12 완료) | 전략: DDD-lite + 레이어드 아키텍처 + Nginx MSA
 
 ## Context
 
 analysisTrend는 Docker Compose 기반 트렌드 분석 플랫폼으로, 프론트엔드(Next.js 16), 백엔드(Spring Boot 3.5), 분석 서비스(FastAPI)로 구성됩니다.
 
-**현재 상태 (2026-03-24):** Phase 0~10 완료. 프론트엔드-백엔드-분석 서비스 전체 연동 완료, E2E 테스트 64 passed / 9 skipped / 0 failed. OAuth2 인증 흐름 안정화(하드코딩 제거, 실유저 정보 fetch, ADMIN role 보존 버그 수정), Header 인증 상태별 조건부 네비게이션 구현 완료.
+**현재 상태 (2026-03-24):** Phase 0~12 완료. 프론트엔드-백엔드-분석 서비스 전체 연동 완료, E2E 테스트 64 passed / 9 skipped / 0 failed. OAuth2 인증 흐름 안정화(하드코딩 제거, 실유저 정보 fetch, ADMIN role 보존 버그 수정), Header 인증 상태별 조건부 네비게이션 구현 완료. 커뮤니티 멤버십 상태 관리, Post 작성자 권한 검증, 다크모드 Tailwind v4 대응, 마이페이지 실데이터 연동(fetchMe) 완료.
 
 **목표:** Phase 0(기반 수정)부터 시작해 10단계에 걸쳐 버그 제거 → 타입/API 추상화 → UI/UX → 인터랙션 → 백엔드 확장 → 연동 → 관리자/폴리싱 → 분석 서비스 → 인프라 → E2E 테스트 순으로 점진적 개선합니다.
 
-**완성도**: ~98% (Phase 0~11 완료 | 잔여: Recharts 고도화, 50MB 비동기 처리, CI/CD)
+**완성도**: ~99% (Phase 0~12 완료 | 잔여: Recharts 고도화, 50MB 비동기 처리, CI/CD)
 
 ---
 
@@ -178,6 +178,7 @@ Phase 6 (관리자/폴리싱)    ⇄  Phase 7 (인프라) + Phase 8 (분석 서�
   - [x] `app/mypage/page.tsx` — 주문/활동 데이터 (`shared/mocks/mypage.ts`로 분리)
   - [ ] 관리자 페이지들 — 배너, 스케줄, 광고, YouTube, 멤버 데이터
 - [x] PostCard Props를 `shared/types/post.ts`의 Post 타입으로 통일
+  - [x] `Post` 타입에 `authorId?: number` 추가 — `PostDetailModal`에서 `post.authorId === user.id` 비교로 수정/삭제 버튼 조건부 표시
 - [x] 영어 mock 데이터를 한국어로 번역
 
 ### 검증 항목
@@ -271,9 +272,10 @@ Phase 6 (관리자/폴리싱)    ⇄  Phase 7 (인프라) + Phase 8 (분석 서�
   - [x] `app/error.tsx` — 전역 에러 바운더리
   - [x] `shared/ui/ErrorMessage.tsx` — 인라인 에러 메시지
 - [x] 다크모드 토글 구현
-  - [x] `shared/model/themeStore.ts` — Zustand 테마 스토어
+  - [x] `shared/model/themeStore.ts` — Zustand 테마 스토어 (`classList.toggle('dark')` 방식. className 직접 할당 금지)
   - [x] Header에 토글 버튼 추가
   - [x] `html` 태그에 class="dark" 동적 적용
+  - [x] `globals.css`에 `@variant dark (&:is(.dark *))` Tailwind v4 선언 추가
 - [x] 모바일 반응형 네비게이션 — Header에 햄버거 메뉴 추가
 - [x] Header 네비게이션 링크의 `href="#"`을 실제 경로(`/magazine`, `/about`)로 변경
 - [x] `layout.tsx` metadata 수정 (title: "AnalysisTrend - 트렌드 분석 플랫폼")
@@ -307,8 +309,8 @@ Phase 6 (관리자/폴리싱)    ⇄  Phase 7 (인프라) + Phase 8 (분석 서�
 ### 작업 목록
 
 - [x] 커뮤니티 Zustand 스토어 — `shared/model/communityStore.ts`
-  - [x] 상태: posts, communities, selectedFilter
-  - [x] 액션: addPost, votePost, addComment, setFilter, getSortedPosts
+  - [x] 상태: posts, communities, selectedFilter, joinedCommunities
+  - [x] 액션: addPost, votePost, addComment, setFilter, getSortedPosts, joinCommunity, leaveCommunity, isMember
 - [x] 커뮤니티 글 작성 동작 연결
   - [x] CreatePostModal 제출 → communityStore.addPost → 피드에 반영
 - [x] 투표(upvote/downvote) 동작 — PostCard 화살표 클릭 시 숫자 변경
@@ -323,8 +325,10 @@ Phase 6 (관리자/폴리싱)    ⇄  Phase 7 (인프라) + Phase 8 (분석 서�
   - [x] CommunitySearch 디바운스 적용 (300ms `useRef` 타이머)
   - [x] `/shop` 페이지에 검색바 추가 (300ms 디바운스, 카테고리 AND 조건)
 - [x] 마이페이지 인터랙션
-  - [x] 프로필 수정 (닉네임, 자기소개) → authStore에 저장
+  - [x] 프로필 수정 (닉네임, 자기소개) → authStore에 저장, `apiPatch` 연동, 성공/실패 Toast 추가
   - [x] 주문 필터 탭 동작 (상태별 필터링)
+  - [x] 커뮤니티 서브탭(내 게시물/댓글/저장됨) 전환 — `activeSubTab` 상태
+  - [x] `fetchMe()` 액션 — `GET /api/v1/auth/me` 호출 → user 상태 갱신 (마이페이지 마운트 시 호출)
 - [x] Toast/Notification 시스템 — `shared/ui/Toast.tsx`
   - [x] Zustand 스토어: `shared/model/toastStore.ts`
   - [x] "글이 작성되었습니다" 등 피드백 + ToastContainer 전역 등록
@@ -679,6 +683,7 @@ Playwright 기반 E2E 테스트 인프라를 구축하고 PRD 기능 ID 기준 7
 - **백엔드 `AuthController`** — 로그인 응답에 `role` 필드 추가
 - **`global-setup.ts`** — UI 로그인 대신 API 직접 호출 + `page.evaluate()` localStorage 주입
 - **Header 조건부 네비게이션** — 인증 상태별 버튼 표시 (`widgets/Header/ui/Header.tsx`): 비로그인 시 로그인·회원가입 버튼 노출, 로그인 시 마이페이지·로그아웃 버튼 노출
+- **Header 장바구니** — `usePathname().startsWith('/shop') && isAuthenticated` 조건부 렌더링 (Phase 12에서 수정)
 
 ### 검증 항목
 
@@ -737,6 +742,48 @@ Playwright 기반 E2E 테스트 인프라를 구축하고 PRD 기능 ID 기준 7
 - [x] Redis에 캐시 키 정상 저장 (FLUSHALL 후 재조회로 확인)
 - [x] admin@e2e.com ADMIN role 로그인 및 관리자 메뉴 표시 확인
 - [x] E2E ADMIN 테스트 17 passed / 0 failed
+- [x] `npx tsc --noEmit` 타입 오류 없음
+
+---
+
+## - [x] Phase 12: UI/UX 버그 수정 및 기능 개선 ★ 완료 (2026-03-24)
+
+### 오버뷰
+Phase 10~11 E2E 테스트에서 발견된 UI/UX 버그와 기능 누락을 수정합니다. 인증 흐름, 커뮤니티 멤버십, Header 표시 조건, 마이페이지 실데이터 연동을 개선합니다.
+
+### 작업 목록
+
+#### 인증 (AUTH)
+- [x] **소셜 로그인 URL 수정** — `LoginModal`의 OAuth2 리다이렉트 URL을 `window.location.origin + /oauth2/authorization/{provider}` 형식으로 변경. 기존 `NEXT_PUBLIC_API_URL` 기반 URL은 포트 불일치로 callback `redirect_uri` 오류 발생
+- [x] **백엔드 응답 파싱 오류 수정** — 로그인 응답의 `role` 필드 누락으로 관리자 계정이 `/admin` 접근 불가한 문제 수정
+
+#### 커뮤니티 (COMM)
+- [x] **Sidebar 인증 연동** — `Sidebar.tsx`에 `useAuthStore` 연동하여 로그인 후 로그인/가입 버튼 미표시
+- [x] **커뮤니티 멤버십 상태 관리** — `communityStore`에 `joinedCommunities: string[]`, `joinCommunity(slug)`, `leaveCommunity(slug)`, `isMember(slug)` 추가. 미가입 커뮤니티에서 글 작성 시 안내 메시지 표시
+- [x] **Join 버튼 확인 모달** — `board/[slug]/page.tsx` 및 `community/page.tsx`에서 Join 버튼 클릭 시 확인 모달 절차 추가
+- [x] **Post 작성자 권한 검증** — `Post` 타입에 `authorId?: number` 추가. `PostDetailModal`에서 `post.authorId === user.id` 비교로 수정/삭제 버튼 조건부 표시
+
+#### Header/UI
+- [x] **장바구니 버튼 표시 조건** — `Header.tsx`에서 `usePathname().startsWith('/shop') && isAuthenticated` 조건으로 장바구니 버튼 조건부 렌더링
+- [x] **다크모드 수정** — `themeStore`를 `classList.toggle('dark')` 방식으로 변경 (className 직접 할당 금지). `globals.css`에 `@variant dark (&:is(.dark *))` Tailwind v4 선언 추가
+
+#### 마이페이지 (MY)
+- [x] **비로그인 리다이렉트** — `_hasHydrated` 완료 후 인증 확인하여 `/mypage` 비로그인 접근 시 `/` 리다이렉트
+- [x] **실제 유저 정보 표시** — `authStore`에 `fetchMe()` 액션 추가 (`GET /api/v1/auth/me` 호출 → user 상태 갱신). 마이페이지 마운트 시 서버 최신 정보 동기화, 하드코딩 기본값 제거
+- [x] **닉네임 수정 Toast 피드백** — `apiPatch` 연동, 성공/실패 Toast 알림 추가. `updateNickname(nickname)` 낙관적 업데이트
+- [x] **커뮤니티 서브탭 전환** — `activeSubTab` 상태 추가, 내 게시물/댓글/저장됨 탭 전환 및 내 게시물 필터링 구현
+- [x] **주문 상태 필터 탭** — 주문 필터 탭 실제 작동 구현
+
+### 검증 항목
+
+- [x] 소셜 로그인 버튼 → `/oauth2/authorization/{provider}` 정상 리다이렉트
+- [x] 관리자 계정 로그인 후 `/admin` 정상 접근
+- [x] 사이드바 인증 상태별 버튼 표시 정상 동작
+- [x] 커뮤니티 멤버십 확인 후 글 작성 허용
+- [x] 타인 글에 수정/삭제 버튼 미표시
+- [x] `/shop` 경로 + 로그인 상태에서만 장바구니 버튼 표시
+- [x] 다크모드 토글 즉시 전환
+- [x] 마이페이지 실제 유저 정보 표시 및 닉네임 수정 Toast 피드백
 - [x] `npx tsc --noEmit` 타입 오류 없음
 
 ---

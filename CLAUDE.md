@@ -70,11 +70,11 @@ npm run codegen                   # 셀렉터 자동 생성 도구
 - `shared/mocks/` — mock 데이터 (posts, communities, products, videos, schedules, users, magazines, mypage)
 - `shared/model/` — Zustand 스토어
   - `modalStore` — 전역 모달 제어
-  - `authStore` — 인증 (login/logout/checkAuth, localStorage persist)
-  - `communityStore` — 게시글/투표/댓글 (addPost, votePost, addComment, getSortedPosts)
+  - `authStore` — 인증 (login/logout/checkAuth, fetchMe, updateNickname, localStorage persist)
+  - `communityStore` — 게시글/투표/댓글/멤버십 (addPost, votePost, addComment, getSortedPosts, joinCommunity, leaveCommunity, isMember)
   - `cartStore` — 장바구니 (addItem, removeItem, updateQuantity)
   - `toastStore` — 알림 (addToast, 자동 dismiss)
-  - `themeStore` — 다크모드 (toggle, `document.documentElement.className` 연동)
+  - `themeStore` — 다크모드 (toggle, `classList.toggle('dark')` 연동. className 직접 할당 금지)
 - `shared/ui/` — 재사용 가능한 UI 컴포넌트 (`Button`, `Skeleton`, `Spinner`, `Toast`, `ErrorMessage`)
 - `entities/` — 도메인 모델과 UI (예: `post/ui/PostCard`, `post/api/postApi.ts`)
 - `features/` — 사용자 기능 (`auth/ui/LoginModal`, `post/ui/CreatePostModal`, `post/ui/PostDetailModal`, `search/`, `community/`)
@@ -158,6 +158,12 @@ API 접두사: `/api/v1/`
 - **CORS**: `allowedOrigins`는 `CORS_ALLOWED_ORIGINS` 환경변수로 관리 (기본값: `http://localhost:3000,http://localhost`). `SecurityConfig`와 `WebMvcConfig` 모두 적용
 - **Next.js Image**: 외부 이미지 허용 도메인은 `next.config.ts`의 `images.remotePatterns`에 추가. 현재 `images.unsplash.com` 허용 설정됨
 - **SEO**: `"use client"` 페이지는 `metadata` export 불가 — 해당 라우트에 `layout.tsx`를 별도 생성해 `Metadata` 적용
+- **OAuth2 소셜 로그인 URL**: `window.location.origin + /oauth2/authorization/{provider}` 형식. `NEXT_PUBLIC_API_URL` 기반이면 포트 불일치로 callback redirect_uri 오류 발생
+- **커뮤니티 멤버십**: `communityStore`의 `joinedCommunities`, `isMember(slug)` 으로 관리. 글 작성·삭제 권한 체크 시 참조
+- **Post 작성자 권한**: `Post.authorId`와 `authStore.user.id` 비교로 수정/삭제 버튼 조건부 표시
+- **다크모드**: Tailwind v4 기준 `globals.css`에 `@variant dark (&:is(.dark *))` 선언 필요. themeStore는 `classList.toggle('dark')` 방식 사용 (className 직접 할당 금지)
+- **Header 장바구니**: `usePathname().startsWith('/shop') && isAuthenticated` 조건부 렌더링
+- **authStore.fetchMe()**: 마이페이지 마운트 시 서버 최신 유저 정보 동기화
 
 ## MCP 서버 (`.mcp.json`)
 

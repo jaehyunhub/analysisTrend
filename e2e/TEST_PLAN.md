@@ -218,6 +218,7 @@ npm run test:headed               # 브라우저 보이며 실행
 > **Phase 10 완료** — Docker 풀 리빌드 후 모든 E2E 테스트 통과. 스킵 9개는 CRUD 체인 의존성(추가 후 수정/삭제)으로 인한 의도적 skip.
 > **Phase 11 분석 서비스 API 직접 테스트** — `/health`, `/trends/news`, `/trends/youtube`, `/trends/keywords` 모두 200 OK 확인. 현재 API 키 미설정으로 mock 데이터 동작 중.
 > **Phase 11 추가 테스트(2026-03-24)** — 채팅 분석 JSON/TXT/세션 ID 조회 모두 통과. OAuth2 리다이렉트 플로우 정상(placeholder credentials). `/api/v1/auth/me` 500 오류(컨테이너 재빌드 필요). test_trends.py 수집기 6통과/엔드포인트 9오류(pytest-asyncio fixture 수정 필요).
+> **Phase 12 버그 수정(2026-03-24)** — 인증 2건·커뮤니티 4건·Header 2건·마이페이지 5건 수정. 전체 13개 항목 [x] 통과
 >
 > **API 키 설정 시 실데이터 수신 가능** (현재 mock 데이터로 동작 중):
 > - `analysis/.env`: `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` → 뉴스 키워드 실데이터
@@ -367,3 +368,40 @@ NAVER_CLIENT_SECRET=실제키
 YOUTUBE_API_KEY=실제키
 ```
 키 없이도 mock 데이터가 반환되어 트렌드 테스트는 통과합니다.
+
+---
+
+## Phase 12: UI/UX 버그 수정 및 기능 개선 (2026-03-24)
+
+### 12.1 인증 이슈
+
+| # | 테스트 | PRD | 상태 | 실행일 | 비고 |
+|---|--------|-----|------|--------|------|
+| 1 | Google/Kakao/Naver 소셜 로그인 버튼 클릭 → `/oauth2/authorization/{provider}` 리다이렉트 | AUTH-04 | [x] | 2026-03-24 | LoginModal URL을 `window.location.origin` 기반으로 수정 |
+| 2 | admin@e2e.com 로그인 후 `/admin` 정상 접근 | AUTH-03 | [x] | 2026-03-24 | 백엔드 응답 파싱 오류 수정 (role 필드 누락) |
+
+### 12.2 커뮤니티 이슈
+
+| # | 테스트 | PRD | 상태 | 실행일 | 비고 |
+|---|--------|-----|------|--------|------|
+| 1 | 로그인 후 사이드바에 로그인/가입 버튼 미표시 | COMM-06 | [x] | 2026-03-24 | Sidebar에 `useAuthStore` 연동 |
+| 2 | 미가입 커뮤니티에서 글 작성 시 안내 메시지 표시 | COMM-07 | [x] | 2026-03-24 | communityStore에 joinedCommunities 상태 추가 |
+| 3 | Join 버튼 클릭 → 가입 확인 모달 표시 후 처리 | COMM-08 | [x] | 2026-03-24 | board/[slug]/page.tsx 및 community/page.tsx 수정 |
+| 4 | 타인의 글에 수정/삭제 버튼 미표시 | COMM-09 | [x] | 2026-03-24 | Post 타입에 authorId 추가, PostDetailModal 작성자 검증 |
+
+### 12.3 Header/UI 이슈
+
+| # | 테스트 | PRD | 상태 | 실행일 | 비고 |
+|---|--------|-----|------|--------|------|
+| 1 | 로그인 + `/shop` 경로에서만 장바구니 버튼 표시 | UI-01 | [x] | 2026-03-24 | `usePathname()` + `isAuthenticated` 조건 추가 |
+| 2 | 다크모드 토글 버튼 클릭 → 테마 즉시 전환 | UI-02 | [x] | 2026-03-24 | themeStore `classList.toggle` 방식 변경, globals.css `@variant dark` 추가 |
+
+### 12.4 마이페이지 이슈
+
+| # | 테스트 | PRD | 상태 | 실행일 | 비고 |
+|---|--------|-----|------|--------|------|
+| 1 | 비로그인 → `/mypage` 접근 시 `/` 리다이렉트 | MY-01 | [x] | 2026-03-24 | `_hasHydrated` 완료 후 인증 확인 |
+| 2 | 로그인 후 마이페이지 실제 유저 정보 표시 | MY-02 | [x] | 2026-03-24 | `fetchMe()` 액션 추가, 하드코딩 기본값 제거 |
+| 3 | 프로필(닉네임) 수정 저장 → Toast 피드백 | MY-02 | [x] | 2026-03-24 | `apiPatch` 연동, 성공/실패 Toast 추가 |
+| 4 | 커뮤니티 탭(내 게시물/댓글/저장됨) 전환 | MY-03 | [x] | 2026-03-24 | `activeSubTab` 상태 추가, 내 게시물 필터링 |
+| 5 | 주문 상태 필터 탭 전환 | MY-04 | [x] | 2026-03-24 | 주문 필터 탭 실제 작동 |
