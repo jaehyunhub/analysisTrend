@@ -40,9 +40,10 @@ pytest tests/                          # 단위 테스트
 
 ### 인프라
 ```bash
-docker-compose up -d          # 전체 서비스 시작 (Nginx :80, MySQL, Redis, backend :8080, frontend :3000, analysis :8000)
+docker-compose up -d          # 전체 서비스 시작 (Nginx :80, MySQL :3306, Redis, backend :8080, frontend :3000, analysis :8000)
 docker-compose up -d mysql redis  # DB만 실행 (로컬 백엔드 개발 시)
 docker-compose build --no-cache   # 전체 이미지 재빌드 (환경변수 변경 시)
+docker-compose build analysis     # analysis만 재빌드 (analysis/.env 키 변경 시 필수)
 ```
 
 ### E2E 테스트 (`e2e/`)
@@ -103,6 +104,7 @@ SEO: `community/`, `shop/`, `mypage/` 라우트에 각각 `layout.tsx`를 통해
 - `global/exception/` — GlobalExceptionHandler, ErrorCode, ErrorResponse, BusinessException
 - `global/common/` — ApiResponse (success, data, message, timestamp)
 - `user/` — domain (User, Role, AuthProvider), repository, service, controller, DTO
+  - `AuthController`: `POST /auth/signup`, `POST /auth/login`, `GET /auth/me`, `POST /auth/refresh`, `POST /auth/reissue`
 - `community/` — Community 도메인 (CRUD, `/api/v1/communities`)
 - `post/` — Post·Comment·Vote 도메인 (투표, 댓글 중첩, `/api/v1/posts`)
 - `product/` — Product 도메인 (카테고리 필터, `/api/v1/products`)
@@ -124,13 +126,13 @@ API 접두사: `/api/v1/`
 - `parsers/` — Strategy 패턴 (`base.py` BOM/인코딩 감지, `csv_parser`, `json_parser`, `txt_parser`)
 - `models/` — `chat.py` (HeatmapBucket, PeakSegment, ChatAnalysisResult), `trend.py` (TrendKeyword, TrendingVideo)
 - `tasks/scheduler.py` — APScheduler `AsyncIOScheduler`, 30분 주기 뉴스 키워드 수집
-- `tests/` — `test_parsers.py`, `test_chat_analyzer.py`, `test_cache.py` (pytest-asyncio + AsyncMock)
+- `tests/` — `test_parsers.py`, `test_chat_analyzer.py`, `test_cache.py`, `test_trends.py` (pytest-asyncio + AsyncMock)
 
 주요 엔드포인트:
 - `POST /analyze/chat` — 채팅 파일 업로드 분석 (CSV/JSON/TXT)
 - `GET /analyze/chat/session/{session_id}` — 캐시된 분석 결과 조회
-- `GET /trends/news` — 뉴스 키워드 (Redis 캐시 30분)
-- `GET /trends/youtube?region=KR&category=0` — YouTube 트렌딩 (Redis 캐시 30분)
+- `GET /trends/news` — 뉴스 키워드 (Redis 캐시 30분, Naver News API 연동 완료)
+- `GET /trends/youtube?region=KR&category=0` — YouTube 트렌딩 (Redis 캐시 30분, YouTube Data API v3 연동 완료)
 - `GET /trends/keywords` — 뉴스+YouTube 통합 키워드
 
 ## 주요 기술 사항
@@ -147,11 +149,13 @@ API 접두사: `/api/v1/`
 - **테스트 3계층**:
   - **Unit** (`frontend/src/__tests__/`): Jest — Zustand 스토어 5개 (authStore, communityStore, cartStore, toastStore, themeStore)
   - **Integration** (`backend/src/test/`): JUnit 19개 — H2 인메모리, 테스트용 JWT_SECRET 별도 설정
+  - **FastAPI** (`analysis/tests/`): pytest-asyncio — 4개 파일 49개 (parsers 15 + analyzer 12 + cache 6 + trends 16)
   - **E2E** (`e2e/`): Playwright — 73개 테스트 케이스, 17개 스펙 파일. **최종 결과: 64 passed / 9 skipped / 0 failed** (2026-03-19). 진행 현황은 `e2e/TEST_PLAN.md` 참고
 - **E2E 구조**: Page Object Model (POM) + fixtures(auth/community) + helpers(ApiHelper/DbHelper). `storageState`로 로그인 반복 제거
+- **E2E admin 시드**: `global-setup.ts`에서 admin@e2e.com 회원가입 후 `helpers/db.ts`의 `setAdminRole()`로 DB에서 직접 ADMIN role 업데이트 (mysql2 기반)
 - **E2E 전제**: `docker-compose up -d` 후 `http://localhost` 응답 확인 → `cd e2e && npm test`
 - **Spring Security 6.x 주의**: `permitAll()` 경로에 `/api/v1/communities/**` 외에 `/api/v1/communities` (루트 경로)도 명시 필요 — `/**`가 루트 자체를 매칭하지 않음
-- **CORS**: `allowedOrigins`에 `http://localhost:3000`(로컬 개발)과 `http://localhost`(Nginx 포트 80) 모두 포함
+- **CORS**: `allowedOrigins`는 `CORS_ALLOWED_ORIGINS` 환경변수로 관리 (기본값: `http://localhost:3000,http://localhost`). `SecurityConfig`와 `WebMvcConfig` 모두 적용
 - **Next.js Image**: 외부 이미지 허용 도메인은 `next.config.ts`의 `images.remotePatterns`에 추가. 현재 `images.unsplash.com` 허용 설정됨
 - **SEO**: `"use client"` 페이지는 `metadata` export 불가 — 해당 라우트에 `layout.tsx`를 별도 생성해 `Metadata` 적용
 
