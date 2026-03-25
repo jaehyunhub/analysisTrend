@@ -164,6 +164,12 @@ API 접두사: `/api/v1/`
 - **다크모드**: Tailwind v4 기준 `globals.css`에 `@variant dark (&:is(.dark *))` 선언 필요. themeStore는 `classList.toggle('dark')` 방식 사용 (className 직접 할당 금지)
 - **Header 장바구니**: `usePathname().startsWith('/shop') && isAuthenticated` 조건부 렌더링
 - **authStore.fetchMe()**: 마이페이지 마운트 시 서버 최신 유저 정보 동기화
+- **Google GSI Script 제거 이유**: `Header.tsx`에서 `<Script src="https://accounts.google.com/gsi/client">` 태그를 제거함. 이 스크립트가 브라우저에 Google 계정이 로그인된 경우 헤더 영역에 "E" 버튼을 자동 주입하는 원인이었음. OAuth2 로그인은 `LoginModal.tsx`의 `<a href>` 링크 방식으로 처리하므로 GSI 스크립트 불필요.
+- **Mypage `_hasHydrated` fallback**: `mypage/page.tsx`에 2초 타임아웃 fallback 추가 — Zustand persist hydration이 지연되는 경우 무한 스피너 방지. `useAuthStore.getState()._hasHydrated`가 false이면 `setState({ _hasHydrated: true })`로 강제 완료.
+- **로그아웃 확인 모달**: `Header.tsx`의 로그아웃 버튼은 `logoutConfirmOpen` state로 확인 모달을 거쳐 실행됨. 데스크탑 + 모바일 드로어 모두 동일 패턴.
+- **adsStore**: `shared/model/adsStore.ts` — Zustand + persist 광고 전역 스토어. `admin/ads/page.tsx`와 공유. localStorage `ads-storage` 키로 persist.
+- **커뮤니티 게시물 필터**: `community/board/[slug]/page.tsx`에서 `communityStore.posts`를 `post.community === decodeURIComponent(slug)` 로 필터링. 매칭 없을 시 로컬 mock fallback.
+- **마이페이지 내 커뮤니티**: `communityStore.joinedCommunities` 배열을 "내 커뮤니티" 서브탭에서 카드로 표시. 클릭 시 `/community/board/${name}` 이동.
 
 ## MCP 서버 (`.mcp.json`)
 

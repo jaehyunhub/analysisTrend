@@ -81,7 +81,7 @@ export default function AnalysisPage() {
                 className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                   activeTab === tab.key
                     ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                 }`}
               >
                 {tab.label}
@@ -114,14 +114,14 @@ export default function AnalysisPage() {
               { label: '평균 시청 시간', value: '8:42', delta: '+0.5%', up: true },
             ].map((stat) => (
               <div key={stat.label} className="bg-white dark:bg-[#1A1A1B] p-5 rounded-2xl border border-gray-100 dark:border-[#343536] shadow-sm">
-                <p className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1">{stat.label}</p>
+                <p className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider mb-1">{stat.label}</p>
                 <h3 className="text-2xl font-black text-gray-900 dark:text-white">{stat.value}</h3>
                 <p className={`text-xs font-bold mt-2 flex items-center gap-1 ${stat.up ? 'text-green-500' : 'text-red-500'}`}>
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3}
                       d={stat.up ? 'M5 10l7-7m0 0l7 7m-7-7v18' : 'M19 14l-7 7m0 0l-7-7m7 7V3'} />
                   </svg>
-                  {stat.delta} <span className="text-gray-400 dark:text-gray-500 font-normal">전월 대비</span>
+                  {stat.delta} <span className="text-gray-600 dark:text-gray-400 font-normal">전월 대비</span>
                 </p>
               </div>
             ))}
@@ -132,11 +132,11 @@ export default function AnalysisPage() {
             {/* Growth Chart */}
             <div className="lg:col-span-2 bg-white dark:bg-[#1A1A1B] p-6 rounded-2xl border border-gray-100 dark:border-[#343536] shadow-sm">
               <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-lg dark:text-white">구독자 증가 추이</h3>
+                <h3 className="font-bold text-lg text-gray-900 dark:text-white">구독자 증가 추이</h3>
                 <select
                   value={period}
                   onChange={(e) => setPeriod(e.target.value)}
-                  className="bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-xs font-bold rounded-lg px-3 py-2 outline-none dark:text-white"
+                  className="bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-xs font-bold text-gray-900 dark:text-white rounded-lg px-3 py-2 outline-none"
                 >
                   <option>12개월</option>
                   <option>6개월</option>
@@ -157,26 +157,26 @@ export default function AnalysisPage() {
                   </div>
                 ))}
               </div>
-              <div className="flex justify-between mt-3 text-xs text-gray-400 font-medium">
+              <div className="flex justify-between mt-3 text-xs text-gray-700 dark:text-gray-400 font-medium">
                 {MONTHLY_SUBS.map((d) => <span key={d.month}>{d.month}</span>)}
               </div>
             </div>
 
             {/* Top Videos */}
             <div className="bg-white dark:bg-[#1A1A1B] p-6 rounded-2xl border border-gray-100 dark:border-[#343536] shadow-sm">
-              <h3 className="font-bold text-lg dark:text-white mb-4">인기 영상 TOP 5</h3>
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4">인기 영상 TOP 5</h3>
               <div className="space-y-3">
                 {TOP_VIDEOS.map((v, i) => (
                   <div key={i} className="flex gap-3 items-center group cursor-pointer">
-                    <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm font-black text-gray-500 dark:text-gray-400 shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-sm font-black text-gray-700 dark:text-gray-300 shrink-0">
                       {i + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold dark:text-gray-200 truncate group-hover:text-blue-500 transition-colors">{v.title}</p>
-                      <p className="text-xs text-gray-400">{v.duration} · {v.published}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-200 truncate group-hover:text-blue-500 transition-colors">{v.title}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">{v.duration} · {v.published}</p>
                     </div>
                     <div className="text-right shrink-0">
-                      <div className="text-xs font-bold dark:text-white">{v.views}</div>
+                      <div className="text-xs font-bold text-gray-900 dark:text-white">{v.views}</div>
                       <div className={`text-[10px] font-semibold ${v.trend === 'up' ? 'text-green-500' : v.trend === 'down' ? 'text-red-400' : 'text-gray-400'}`}>
                         {v.trend === 'up' ? '↑ 상승' : v.trend === 'down' ? '↓ 하락' : '─ 유지'}
                       </div>
@@ -198,17 +198,17 @@ export default function AnalysisPage() {
           <div className="flex flex-col md:flex-row gap-6">
             {/* Rising Keywords */}
             <div className="flex-1 bg-white dark:bg-[#1A1A1B] p-6 rounded-2xl border border-gray-100 dark:border-[#343536] shadow-sm">
-              <h3 className="font-bold text-lg dark:text-white mb-4">급상승 키워드</h3>
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4">급상승 키워드</h3>
               <div className="flex flex-wrap gap-2">
                 {RISING_KEYWORDS.map((item, i) => (
                   <span
                     key={i}
-                    className={`px-4 py-2 rounded-full text-sm font-bold cursor-pointer transition-all hover:scale-105 ${
+                    className={`px-4 py-2 rounded-full text-sm font-bold cursor-pointer transition-all hover:scale-105 border ${
                       item.type === 0
-                        ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+                        ? 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800'
                         : item.type === 1
-                        ? 'bg-purple-50 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400'
-                        : 'bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400'
+                        ? 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:border-purple-800'
+                        : 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800'
                     }`}
                   >
                     {item.tag}
@@ -219,11 +219,11 @@ export default function AnalysisPage() {
 
             {/* Category Distribution */}
             <div className="flex-1 bg-white dark:bg-[#1A1A1B] p-6 rounded-2xl border border-gray-100 dark:border-[#343536] shadow-sm">
-              <h3 className="font-bold text-lg dark:text-white mb-4">카테고리 분포</h3>
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white mb-4">카테고리 분포</h3>
               <div className="space-y-4">
                 {CATEGORY_DIST.map((cat) => (
                   <div key={cat.label}>
-                    <div className="flex justify-between text-xs font-bold mb-1 dark:text-gray-300">
+                    <div className="flex justify-between text-xs font-bold mb-1 text-gray-700 dark:text-gray-300">
                       <span>{cat.label}</span>
                       <span>{cat.pct}%</span>
                     </div>
@@ -266,15 +266,15 @@ export default function AnalysisPage() {
       {activeTab === 'recent' && (
         <div className="bg-white dark:bg-[#1A1A1B] rounded-2xl border border-gray-100 dark:border-[#343536] shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-100 dark:border-[#343536] flex flex-col md:flex-row justify-between items-center gap-4">
-            <h3 className="font-bold text-lg dark:text-white">최근 급상승 영상</h3>
+            <h3 className="font-bold text-lg text-gray-900 dark:text-white">최근 급상승 영상</h3>
             <div className="flex gap-2">
-              <select className="bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-xs font-bold rounded-lg px-3 py-2 outline-none dark:text-white">
+              <select className="bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-xs font-bold text-gray-900 dark:text-white rounded-lg px-3 py-2 outline-none">
                 <option>전 세계</option>
                 <option>대한민국</option>
                 <option>미국</option>
                 <option>일본</option>
               </select>
-              <select className="bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-xs font-bold rounded-lg px-3 py-2 outline-none dark:text-white">
+              <select className="bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] text-xs font-bold text-gray-900 dark:text-white rounded-lg px-3 py-2 outline-none">
                 <option>전체 카테고리</option>
                 <option>기술/IT</option>
                 <option>음악</option>
@@ -286,7 +286,7 @@ export default function AnalysisPage() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 dark:bg-[#272729] text-gray-500 dark:text-gray-400">
+              <thead className="bg-gray-50 dark:bg-[#272729] text-gray-700 dark:text-gray-400">
                 <tr>
                   {['순위', '영상', '채널', '조회수', '트렌드 점수', '액션'].map((h, i) => (
                     <th key={h} className={`p-4 font-semibold text-xs uppercase tracking-wide ${i === 5 ? 'text-right' : ''}`}>{h}</th>
@@ -296,7 +296,7 @@ export default function AnalysisPage() {
               <tbody className="divide-y divide-gray-100 dark:divide-[#343536]">
                 {Array.from({ length: 10 }).map((_, i) => (
                   <tr key={i} className="hover:bg-gray-50 dark:hover:bg-[#272729] group transition-colors">
-                    <td className="p-4 pl-6 text-xl font-black text-gray-200 dark:text-gray-700">#{i + 1}</td>
+                    <td className="p-4 pl-6 text-xl font-black text-gray-700 dark:text-gray-400">#{i + 1}</td>
                     <td className="p-4">
                       <div className="flex items-center gap-3">
                         <div className="w-20 h-12 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 rounded-lg flex-shrink-0 flex items-center justify-center">
@@ -305,33 +305,33 @@ export default function AnalysisPage() {
                           </svg>
                         </div>
                         <div className="max-w-[180px]">
-                          <p className="font-semibold dark:text-white truncate group-hover:text-blue-500 transition-colors">
+                          <p className="font-semibold text-gray-900 dark:text-white truncate group-hover:text-blue-500 transition-colors">
                             AI 기술 혁신 #{i + 1} — 2026년 전망
                           </p>
-                          <p className="text-xs text-gray-400">4시간 전</p>
+                          <p className="text-xs text-gray-600 dark:text-gray-400">4시간 전</p>
                         </div>
                       </div>
                     </td>
                     <td className="p-4">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700" />
-                        <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">TechDaily</span>
+                        <span className="text-xs font-semibold text-gray-700 dark:text-gray-300">TechDaily</span>
                       </div>
                     </td>
-                    <td className="p-4 font-bold dark:text-white">120만</td>
+                    <td className="p-4 font-bold text-gray-900 dark:text-white">120만</td>
                     <td className="p-4">
                       <span className={`px-2 py-1 text-xs font-bold rounded-full ${
                         i < 3
                           ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                           : i < 6
                           ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                          : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                          : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
                       }`}>
                         {i < 3 ? '높음' : i < 6 ? '보통' : '낮음'}
                       </span>
                     </td>
                     <td className="p-4 text-right">
-                      <button className="text-gray-400 hover:text-blue-500 p-2 transition-colors" title="상세 보기">
+                      <button className="text-gray-500 dark:text-gray-400 hover:text-blue-500 p-2 transition-colors" title="상세 보기">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                             d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />

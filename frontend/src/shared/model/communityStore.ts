@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { Post, Comment } from '../types/post';
 import { MOCK_POSTS } from '../mocks/posts';
 import { USE_MOCK_API } from '../api/mock/config';
-import { apiGet, apiPost } from '../api/client';
+import { apiGet, apiPost, apiDelete } from '../api/client';
 import { useAuthStore } from './authStore';
 
 type SortType = 'best' | 'hot' | 'new' | 'top';
@@ -24,6 +24,7 @@ interface CommunityActions {
   addComment: (postId: number, comment: Comment) => Promise<void>;
   setFilter: (filter: SortType) => void;
   getSortedPosts: () => Post[];
+  deletePostWithApi: (postId: number) => Promise<void>;
   joinCommunity: (communityName: string) => void;
   leaveCommunity: (communityName: string) => void;
   isMember: (communityName: string) => boolean;
@@ -162,6 +163,19 @@ export const useCommunityStore = create<CommunityState & CommunityActions>((set,
           ),
         }));
       }
+    }
+  },
+
+  deletePostWithApi: async (postId) => {
+    if (USE_MOCK_API) {
+      set((state) => ({ posts: state.posts.filter((p) => p.id !== postId) }));
+      return;
+    }
+    try {
+      await apiDelete(`/api/v1/posts/${postId}`);
+      set((state) => ({ posts: state.posts.filter((p) => p.id !== postId) }));
+    } catch {
+      // 에러는 client.ts에서 toast로 처리됨
     }
   },
 

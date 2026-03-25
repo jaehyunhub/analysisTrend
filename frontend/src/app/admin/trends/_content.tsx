@@ -112,7 +112,7 @@ export default function TrendsContent() {
               }`}
             >
               <div>{tab.label}</div>
-              <div className="text-[10px] font-normal text-gray-400 mt-0.5">{tab.desc}</div>
+              <div className="text-[10px] font-normal text-gray-500 dark:text-gray-400 mt-0.5">{tab.desc}</div>
             </button>
           ))}
         </div>
@@ -123,22 +123,20 @@ export default function TrendsContent() {
             <div role="tabpanel" aria-label="뉴스 키워드" className="space-y-5">
               <div className="flex justify-between items-center">
                 <h3 className="font-bold text-gray-900 dark:text-white">국내 뉴스 급상승 키워드 TOP 20</h3>
-                <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-lg">네이버·연합뉴스 기반</span>
+                <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg">네이버·연합뉴스 기반</span>
               </div>
 
               {loading ? (
-                <div className="text-center py-8 text-gray-400">불러오는 중...</div>
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">불러오는 중...</div>
               ) : keywords.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">데이터가 없습니다. (분석 서비스 연결 확인)</div>
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">데이터가 없습니다. (분석 서비스 연결 확인)</div>
               ) : (
                 <>
                   {/* Keyword Cloud */}
                   <div className="flex flex-wrap gap-2 p-4 bg-gray-50 dark:bg-[#111] rounded-xl min-h-[120px]" data-testid="news-keywords">
                     {keywords.map((kw, i) => {
                       const size = i < 5 ? 'text-lg font-black' : i < 10 ? 'text-base font-bold' : 'text-sm font-semibold';
-                      const color = kw.score > 0.8 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800' :
-                        kw.score > 0.4 ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800' :
-                          'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border-gray-200 dark:border-gray-700';
+                      const color = 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-600';
                       return (
                         <button key={kw.keyword} data-testid="keyword-item" className={`${size} ${color} border px-3 py-1.5 rounded-full hover:scale-105 transition-transform cursor-pointer`}>
                           {kw.keyword}
@@ -152,21 +150,21 @@ export default function TrendsContent() {
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-gray-200 dark:border-gray-700">
-                          <th className="text-left py-3 px-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase" scope="col">순위</th>
-                          <th className="text-left py-3 px-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase" scope="col">키워드</th>
-                          <th className="text-right py-3 px-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase" scope="col">점수</th>
-                          <th className="text-right py-3 px-2 text-xs font-bold text-gray-500 dark:text-gray-400 uppercase" scope="col">출처</th>
+                          <th className="text-left py-3 px-2 text-xs font-bold text-gray-500 dark:text-gray-300 uppercase" scope="col">순위</th>
+                          <th className="text-left py-3 px-2 text-xs font-bold text-gray-500 dark:text-gray-300 uppercase" scope="col">키워드</th>
+                          <th className="text-right py-3 px-2 text-xs font-bold text-gray-500 dark:text-gray-300 uppercase" scope="col">점수</th>
+                          <th className="text-right py-3 px-2 text-xs font-bold text-gray-500 dark:text-gray-300 uppercase" scope="col">출처</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                         {keywords.map((kw, i) => (
                           <tr key={kw.keyword} className="hover:bg-gray-50 dark:hover:bg-[#272729]">
                             <td className="py-3 px-2">
-                              <span className={`text-sm font-black ${i < 3 ? 'text-yellow-500' : 'text-gray-400'}`}>#{(kw.rank ?? i + 1)}</span>
+                              <span className={`text-sm font-black ${i < 3 ? 'text-yellow-500' : 'text-gray-700 dark:text-gray-400'}`}>#{(kw.rank ?? i + 1)}</span>
                             </td>
-                            <td className="py-3 px-2 font-semibold dark:text-white">{kw.keyword}</td>
-                            <td className="py-3 px-2 text-right text-gray-600 dark:text-gray-400">{kw.score.toFixed(3)}</td>
-                            <td className="py-3 px-2 text-right text-xs text-gray-400">{kw.source}</td>
+                            <td className="py-3 px-2 font-semibold text-gray-900 dark:text-white">{kw.keyword}</td>
+                            <td className="py-3 px-2 text-right text-gray-700 dark:text-gray-300">{kw.score.toFixed(3)}</td>
+                            <td className="py-3 px-2 text-right text-xs text-gray-600 dark:text-gray-300">{kw.source}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -208,9 +206,9 @@ export default function TrendsContent() {
               </div>
 
               {loading ? (
-                <div className="text-center py-8 text-gray-400">불러오는 중...</div>
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">불러오는 중...</div>
               ) : videos.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">데이터가 없습니다. (분석 서비스 연결 확인)</div>
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">데이터가 없습니다. (분석 서비스 연결 확인)</div>
               ) : (
                 <div className="space-y-3" data-testid="youtube-trending">
                   {videos.map((video, i) => (
@@ -223,23 +221,23 @@ export default function TrendsContent() {
                       aria-label={`${i + 1}위: ${video.title} - ${video.channel_title}, 조회수 ${(video.view_count / 1000).toFixed(0)}K`}
                       className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors group cursor-pointer"
                     >
-                      <span className={`text-xl font-black w-8 text-center ${i < 3 ? 'text-yellow-500' : 'text-gray-300 dark:text-gray-600'}`} aria-hidden="true">
+                      <span className={`text-xl font-black w-8 text-center ${i < 3 ? 'text-yellow-500' : 'text-gray-500 dark:text-gray-400'}`} aria-hidden="true">
                         {i + 1}
                       </span>
                       <div className="w-20 h-12 rounded-lg bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 shrink-0 overflow-hidden flex items-center justify-center">
                         {video.thumbnail_url ? (
                           <img src={video.thumbnail_url} alt="" className="w-full h-full object-cover" />
                         ) : (
-                          <svg className="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+                          <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-bold dark:text-white truncate group-hover:text-blue-600 transition-colors">{video.title}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{video.channel_title}</p>
+                        <p className="font-bold text-gray-900 dark:text-white truncate group-hover:text-blue-600 transition-colors">{video.title}</p>
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{video.channel_title}</p>
                       </div>
                       <div className="text-right shrink-0">
                         <p className="font-bold text-sm dark:text-white">{(video.view_count / 1000).toFixed(0)}K</p>
-                        <span className="text-[10px] text-gray-400">{new Date(video.published_at).toLocaleDateString('ko-KR')}</span>
+                        <span className="text-[10px] text-gray-500 dark:text-gray-400">{new Date(video.published_at).toLocaleDateString('ko-KR')}</span>
                       </div>
                     </a>
                   ))}
@@ -253,24 +251,24 @@ export default function TrendsContent() {
             <div role="tabpanel" aria-label="뉴스 원문" className="space-y-5">
               <div className="flex justify-between items-center">
                 <h3 className="font-bold text-gray-900 dark:text-white">뉴스 키워드 심층 분석</h3>
-                <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-lg">분석 서비스 기반</span>
+                <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg">분석 서비스 기반</span>
               </div>
 
               {loading ? (
-                <div className="text-center py-8 text-gray-400">불러오는 중...</div>
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">불러오는 중...</div>
               ) : keywords.length === 0 ? (
-                <div className="text-center py-8 text-gray-400">데이터가 없습니다. (분석 서비스 연결 확인)</div>
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">데이터가 없습니다. (분석 서비스 연결 확인)</div>
               ) : (
                 <div className="space-y-3">
                   {keywords.slice(0, 10).map((kw, i) => (
                     <div key={kw.keyword} className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
-                      <span className={`text-base font-black w-8 text-center ${i < 3 ? 'text-yellow-500' : 'text-gray-400'}`} aria-hidden="true">#{(kw.rank ?? i + 1)}</span>
-                      <span className="font-bold dark:text-white flex-1">{kw.keyword}</span>
+                      <span className={`text-base font-black w-8 text-center ${i < 3 ? 'text-yellow-500' : 'text-gray-700 dark:text-gray-400'}`} aria-hidden="true">#{(kw.rank ?? i + 1)}</span>
+                      <span className="font-bold text-gray-900 dark:text-white flex-1">{kw.keyword}</span>
                       <div className="w-32 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden" role="progressbar" aria-valuenow={Math.min(kw.score * 100, 100)} aria-valuemin={0} aria-valuemax={100} aria-label={`점수 ${kw.score.toFixed(3)}`}>
                         <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(kw.score * 100, 100)}%` }} />
                       </div>
-                      <span className="text-xs text-gray-400 w-16 text-right">{kw.score.toFixed(3)}</span>
-                      <span className="text-xs text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-lg">{kw.source}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-300 w-16 text-right">{kw.score.toFixed(3)}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-lg">{kw.source}</span>
                     </div>
                   ))}
                 </div>

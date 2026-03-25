@@ -64,8 +64,8 @@ function OAuthCallbackContent() {
         router.push('/');
       });
     } else if (error) {
-      addToast('로그인에 실패했습니다: ' + error, 'error');
-      router.push('/');
+      addToast('소셜 로그인 설정이 완료되지 않았습니다. 이메일 로그인을 이용해주세요.', 'error');
+      setTimeout(() => router.replace('/'), 2000);
     } else {
       addToast('인증 정보를 찾을 수 없습니다.', 'error');
       router.push('/');

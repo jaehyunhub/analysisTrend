@@ -256,7 +256,7 @@ export default function ChatContent() {
                 <div role="tabpanel" aria-label="채팅 히트맵">
                   <div className="flex items-center justify-between mb-4">
                     <p className="text-sm text-gray-600 dark:text-gray-400">분 단위 채팅 밀도 (빨간색 = 피크)</p>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                       <span className="w-3 h-3 rounded-sm bg-blue-300 inline-block" aria-hidden="true" />낮음
                       <span className="w-3 h-3 rounded-sm bg-yellow-400 inline-block" aria-hidden="true" />중간
                       <span className="w-3 h-3 rounded-sm bg-red-500 inline-block" aria-hidden="true" />피크
@@ -328,7 +328,7 @@ export default function ChatContent() {
                           </div>
                           <div className="text-right shrink-0">
                             <p className="text-2xl font-bold text-gray-800 dark:text-gray-200">{peak.peak_count.toLocaleString()}</p>
-                            <p className="text-xs text-gray-500">최대 채팅 수</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">최대 채팅 수</p>
                           </div>
                         </div>
 
@@ -445,7 +445,7 @@ export default function ChatContent() {
 
       {/* Empty state when no file */}
       {!uploadedFile && (
-        <div className="text-center py-12 text-gray-400 dark:text-gray-600">
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
               d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />

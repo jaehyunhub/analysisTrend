@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from "react";
 import Header from "@/widgets/Header/ui/Header";
 import Footer from "@/widgets/Footer/ui/Footer";
 import Link from "next/link";
-import { SCHEDULE_DAYS, MOCK_BROADCAST_NEWS, BROADCAST_DATES } from "@/shared/mocks/schedules";
+import { SCHEDULE_DAYS, MOCK_BROADCAST_NEWS, MOCK_SCHEDULES, BROADCAST_DATES } from "@/shared/mocks/schedules";
+import type { BroadcastNews } from '@/shared/types/schedule';
 import { MOCK_VIDEOS } from "@/shared/mocks/videos";
 import { SHOP_PREVIEW_ITEMS } from "@/shared/mocks/products";
 
@@ -46,6 +48,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function Home() {
+  const [selectedNews, setSelectedNews] = useState<BroadcastNews | null>(null);
+  const [selectedDate, setSelectedDate] = useState<number | null>(null);
 
   return (
     <div className="bg-white dark:bg-black min-h-screen text-black dark:text-white">
@@ -116,7 +120,7 @@ export default function Home() {
                           const isBroadcast = BROADCAST_DATES.includes(i);
                           const isToday = i === 14;
                           return (
-                            <div key={i} className={`aspect-square flex items-center justify-center text-sm rounded-lg relative ${
+                            <div key={i} onClick={() => isBroadcast ? setSelectedDate(i + 1) : undefined} className={`aspect-square flex items-center justify-center text-sm rounded-lg relative ${
                               isToday ? 'bg-red-500 text-white font-bold' :
                               isBroadcast ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-semibold' :
                               'bg-white dark:bg-[#272729] hover:bg-gray-100 dark:hover:bg-[#343536] text-gray-700 dark:text-gray-300'
@@ -146,7 +150,7 @@ export default function Home() {
                     </div>
                     <ul className="flex flex-col divide-y divide-gray-100 dark:divide-[#343536]">
                         {MOCK_BROADCAST_NEWS.map(item => (
-                            <li key={item.id} className="py-3 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-[#1A1A1B] px-2 rounded-lg cursor-pointer transition-colors group">
+                            <li key={item.id} onClick={() => setSelectedNews(item)} className="py-3 flex justify-between items-center hover:bg-gray-50 dark:hover:bg-[#1A1A1B] px-2 rounded-lg cursor-pointer transition-colors group">
                                 <span className="text-sm truncate pr-4 text-gray-700 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{item.title}</span>
                                 <span className="text-xs text-gray-400 font-mono shrink-0">{item.date}</span>
                             </li>
@@ -255,6 +259,48 @@ export default function Home() {
 
         </div>
       </main>
+
+      {/* 방송 공지 상세 모달 */}
+      {selectedNews && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setSelectedNews(null)}>
+          <div className="bg-white dark:bg-[#1A1A1B] rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 border border-gray-200 dark:border-[#343536]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                {selectedNews.category}
+              </span>
+              <button onClick={() => setSelectedNews(null)} className="text-gray-400 hover:text-gray-700 dark:hover:text-white text-xl leading-none">×</button>
+            </div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{selectedNews.title}</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-mono">{selectedNews.date}</p>
+            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{selectedNews.content}</p>
+          </div>
+        </div>
+      )}
+
+      {/* 방송 일정 날짜 클릭 상세 모달 */}
+      {selectedDate !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setSelectedDate(null)}>
+          <div className="bg-white dark:bg-[#1A1A1B] rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 border border-gray-200 dark:border-[#343536]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">📅 {selectedDate}일 방송 일정</h3>
+              <button onClick={() => setSelectedDate(null)} className="text-gray-400 hover:text-gray-700 dark:hover:text-white text-xl leading-none">×</button>
+            </div>
+            <div className="space-y-3">
+              {MOCK_SCHEDULES.map(s => (
+                <div key={s.id} className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20">
+                  <span className="text-xs font-bold px-2 py-1 rounded-lg bg-blue-600 text-white">{s.time}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white">{s.title}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{s.day}요일</p>
+                  </div>
+                  {s.isLive && <span className="ml-auto text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">LIVE</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <Footer />
     </div>
   );

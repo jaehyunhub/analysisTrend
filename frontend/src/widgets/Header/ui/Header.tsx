@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import Script from 'next/script';
 import { LoginModal } from '@/features/auth/ui/LoginModal';
 import { useThemeStore } from '@/shared/model/themeStore';
 import { useAuthStore } from '@/shared/model/authStore';
@@ -18,6 +17,7 @@ const NAV_LINKS = [
 export default function Header() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const { theme, toggleTheme } = useThemeStore();
@@ -28,7 +28,6 @@ export default function Header() {
     setMounted(true);
   }, []);
 
-  const avatarInitial = user?.nickname?.[0]?.toUpperCase() ?? user?.email?.[0]?.toUpperCase() ?? '?';
   const displayName = user?.nickname ?? user?.email ?? '';
 
   const showCart = isAuthenticated && pathname.startsWith('/shop');
@@ -98,34 +97,25 @@ export default function Header() {
           </button>
 
           {isAuthenticated ? (
-            <div className="hidden md:flex items-center gap-2 ml-1">
-              <div
-                className="flex items-center justify-center h-8 w-8 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-white text-sm font-bold select-none"
-                title={displayName}
-              >
-                {avatarInitial}
-              </div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-200 max-w-[80px] truncate">
-                {displayName}
-              </span>
+            <div className="hidden md:flex items-center gap-1.5 ml-1 flex-nowrap min-w-0">
               {user?.role === 'ADMIN' ? (
                 <Link
                   href="/admin"
-                  className="flex items-center justify-center rounded-lg border border-gray-300 dark:border-[#343536] hover:bg-gray-100 dark:hover:bg-[#272729] px-3 h-8 text-sm font-semibold text-gray-600 dark:text-gray-300 transition-colors"
+                  className="flex items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 px-2.5 h-7 text-xs font-semibold text-blue-700 dark:text-blue-300 transition-colors whitespace-nowrap"
                 >
                   관리자페이지
                 </Link>
               ) : (
                 <Link
                   href="/mypage"
-                  className="flex items-center justify-center rounded-lg border border-gray-300 dark:border-[#343536] hover:bg-gray-100 dark:hover:bg-[#272729] px-3 h-8 text-sm font-semibold text-gray-600 dark:text-gray-300 transition-colors"
+                  className="flex items-center justify-center rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900/30 px-2.5 h-7 text-xs font-semibold text-blue-700 dark:text-blue-300 transition-colors whitespace-nowrap"
                 >
                   마이페이지
                 </Link>
               )}
               <button
-                onClick={logout}
-                className="flex items-center justify-center rounded-lg border border-gray-300 dark:border-[#343536] hover:bg-gray-100 dark:hover:bg-[#272729] px-3 h-8 text-sm font-semibold text-gray-600 dark:text-gray-300 transition-colors"
+                onClick={() => setLogoutConfirmOpen(true)}
+                className="flex items-center justify-center rounded-lg border border-gray-200 dark:border-[#343536] hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-200 dark:hover:border-red-800 px-2.5 h-7 text-xs font-semibold text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors whitespace-nowrap"
               >
                 로그아웃
               </button>
@@ -211,7 +201,7 @@ export default function Header() {
                 <Link
                   href="/admin"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                 >
                   관리자페이지
                 </Link>
@@ -219,7 +209,7 @@ export default function Header() {
                 <Link
                   href="/mypage"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors"
                 >
                   마이페이지
                 </Link>
@@ -233,18 +223,12 @@ export default function Header() {
           {isAuthenticated ? (
             <div className="flex flex-col gap-2">
               <div className="flex items-center gap-3 px-2">
-                <div className="flex items-center justify-center h-9 w-9 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 text-white text-sm font-bold shrink-0">
-                  {avatarInitial}
-                </div>
                 <span className="text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">
                   {displayName}
                 </span>
               </div>
               <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  logout();
-                }}
+                onClick={() => { setMobileMenuOpen(false); setLogoutConfirmOpen(true); }}
                 className="w-full flex items-center justify-center rounded-xl border border-gray-300 dark:border-[#343536] hover:bg-gray-100 dark:hover:bg-[#272729] py-3 text-sm font-semibold text-gray-700 dark:text-gray-300 transition-colors"
               >
                 로그아웃
@@ -264,14 +248,31 @@ export default function Header() {
         </div>
       </div>
 
+      {logoutConfirmOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-[#1A1A1B] rounded-2xl shadow-2xl p-6 w-80 flex flex-col gap-4 border border-gray-200 dark:border-[#343536]">
+            <h3 className="text-base font-bold text-gray-900 dark:text-white text-center">로그아웃 하시겠습니까?</h3>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setLogoutConfirmOpen(false)}
+                className="flex-1 py-2 rounded-xl border border-gray-300 dark:border-[#343536] text-sm font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-[#272729] transition-colors"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => { logout(); setLogoutConfirmOpen(false); }}
+                className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-sm font-semibold text-white transition-colors"
+              >
+                로그아웃
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <LoginModal
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
-      />
-
-      <Script
-        src="https://accounts.google.com/gsi/client"
-        strategy="afterInteractive"
       />
     </>
   );

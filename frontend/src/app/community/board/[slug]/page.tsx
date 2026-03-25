@@ -8,7 +8,6 @@ import { useToastStore } from "@/shared/model/toastStore";
 import Header from "@/widgets/Header/ui/Header";
 import Sidebar from "@/widgets/Sidebar/ui/Sidebar";
 import PostCard from "@/entities/post/ui/PostCard";
-import Link from "next/link";
 import { useState } from 'react';
 
 export default function CommunityPage() {
@@ -16,7 +15,7 @@ export default function CommunityPage() {
   const slug = params.slug as string; // e.g., 'AnalysisTrend', 'KoreaIT'
   const communityName = `r/${slug}`;
   const { openCreatePost } = useModalStore();
-  const { isMember, joinCommunity } = useCommunityStore();
+  const { isMember, joinCommunity, posts: allPosts } = useCommunityStore();
   const { isAuthenticated } = useAuthStore();
   const toastSuccess = useToastStore((state) => state.success);
   const toastError = useToastStore((state) => state.error);
@@ -31,7 +30,26 @@ export default function CommunityPage() {
       description: `Welcome to the ${communityName} community! Discuss everything related to ${slug} here.`
   };
 
-  const [posts, setPosts] = useState([
+  // 현재 slug에 해당하는 게시물만 필터링 (URL 인코딩된 slug도 처리)
+  const decodedSlug = decodeURIComponent(slug);
+  const filteredPosts = allPosts.filter(
+    p => p.community === slug || p.community === decodedSlug
+  );
+
+  // PostCard가 요구하는 형태로 변환
+  const mappedFilteredPosts = filteredPosts.map(p => ({
+    id: p.id,
+    subreddit: p.community,
+    author: p.author,
+    timeAgo: new Date(p.createdAt).toLocaleString('ko-KR'),
+    title: p.title,
+    content: p.content,
+    upvotes: p.upvotes,
+    comments: p.commentCount,
+  }));
+
+  // filteredPosts가 없을 때 fallback용 로컬 mock 데이터
+  const localMockPosts = [
     {
       id: 1,
       subreddit: slug,
@@ -52,7 +70,9 @@ export default function CommunityPage() {
       upvotes: "125",
       comments: "12"
     }
-  ]);
+  ];
+
+  const posts = mappedFilteredPosts.length > 0 ? mappedFilteredPosts : localMockPosts;
 
   const handleJoinClick = () => {
     if (!isAuthenticated) {

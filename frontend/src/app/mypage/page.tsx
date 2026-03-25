@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Header from "@/widgets/Header/ui/Header";
 import { useAuthStore } from '@/shared/model/authStore';
 import { useCommunityStore } from '@/shared/model/communityStore';
@@ -20,12 +21,20 @@ export default function MyPage() {
   const { user, isAuthenticated, _hasHydrated, fetchMe } = useAuthStore();
   const router = useRouter();
 
+  // _hasHydrated 타임아웃 fallback: 2초 후에도 hydration이 안 됐으면 강제로 완료 처리
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (!useAuthStore.getState()._hasHydrated) {
+        useAuthStore.setState({ _hasHydrated: true });
+      }
+    }, 2000);
+    return () => clearTimeout(t);
+  }, []);
+
   // hydration 완료 후 인증 체크 → 비로그인 시 홈으로 리다이렉트
   useEffect(() => {
-    if (!_hasHydrated) return;
-    if (!isAuthenticated) {
-      router.replace('/');
-    }
+    if (!_hasHydrated || isAuthenticated) return;
+    router.replace('/');
   }, [_hasHydrated, isAuthenticated, router]);
 
   // 마운트 시 최신 사용자 정보 가져오기 (mock 모드가 아닐 때)
@@ -33,19 +42,19 @@ export default function MyPage() {
     if (!USE_MOCK_API && isAuthenticated) {
       fetchMe();
     }
-  }, [isAuthenticated, fetchMe]);
+  }, [isAuthenticated]);
 
-  // hydration 미완료 또는 비로그인 시 빈 화면
-  if (!_hasHydrated || !isAuthenticated) {
+  // hydration 미완료 시 스피너
+  if (!_hasHydrated) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-[#09090b]">
-        <Header />
-        <div className="flex items-center justify-center h-[60vh]">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-        </div>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
+
+  // 비로그인 시 빈 화면 (redirect useEffect가 처리)
+  if (!isAuthenticated) return null;
 
   const NAV_TABS = [
     {
@@ -266,15 +275,17 @@ function OrdersSection() {
 }
 
 function CommunitySection() {
-    const [activeSubTab, setActiveSubTab] = useState<'posts' | 'comments' | 'saved'>('posts');
+    const [activeSubTab, setActiveSubTab] = useState<'posts' | 'communities' | 'comments' | 'saved'>('posts');
     const { user } = useAuthStore();
-    const { posts } = useCommunityStore();
+    const { posts, joinedCommunities } = useCommunityStore();
+    const router = useRouter();
 
     // 내가 쓴 게시물: communityStore posts에서 author가 현재 user nickname과 일치하는 것만 필터
     const myPosts = posts.filter(p => p.author === user?.nickname);
 
-    const SUB_TABS: { id: 'posts' | 'comments' | 'saved'; label: string }[] = [
+    const SUB_TABS: { id: 'posts' | 'communities' | 'comments' | 'saved'; label: string }[] = [
         { id: 'posts', label: '내 게시물' },
+        { id: 'communities', label: '내 커뮤니티' },
         { id: 'comments', label: '댓글' },
         { id: 'saved', label: '저장됨' },
     ];
@@ -306,7 +317,11 @@ function CommunitySection() {
                             <div className="p-10 text-center text-gray-400 text-sm">작성한 게시물이 없습니다.</div>
                         ) : (
                             myPosts.map((post) => (
-                                <div key={post.id} className="p-4 border-b border-gray-50 dark:border-[#343536] last:border-0 hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
+                                <div
+                                    key={post.id}
+                                    onClick={() => router.push('/community/board/' + encodeURIComponent(post.community ?? '자유'))}
+                                    className="p-4 border-b border-gray-50 dark:border-[#343536] last:border-0 hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors cursor-pointer"
+                                >
                                     <p className="text-xs text-gray-400 mb-1">
                                         <span className="font-bold text-gray-600 dark:text-gray-300">{post.community ?? '자유'}</span> 게시판 •{' '}
                                         <span>{new Date(post.createdAt).toLocaleDateString('ko-KR')}</span>
@@ -325,6 +340,32 @@ function CommunitySection() {
                                 </div>
                             ))
                         )
+                    )}
+                    {activeSubTab === 'communities' && (
+                        <div className="p-4 space-y-2">
+                            {joinedCommunities.length === 0 ? (
+                                <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-8">가입한 커뮤니티가 없습니다</p>
+                            ) : (
+                                joinedCommunities.map((communityName) => (
+                                    <Link
+                                        key={communityName}
+                                        href={`/community/board/${communityName}`}
+                                        className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-[#272729] hover:bg-gray-100 dark:hover:bg-[#343536] transition-colors"
+                                    >
+                                        <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                                            {communityName[0]}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-900 dark:text-white">r/{communityName}</p>
+                                            <p className="text-xs text-gray-500 dark:text-gray-400">커뮤니티</p>
+                                        </div>
+                                        <svg className="w-4 h-4 text-gray-400 ml-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                        </svg>
+                                    </Link>
+                                ))
+                            )}
+                        </div>
                     )}
                     {activeSubTab === 'comments' && (
                         <div className="p-10 text-center text-gray-400 text-sm">
@@ -358,25 +399,27 @@ function ProfileSection() {
     const handleSave = async () => {
         if (!user) return;
         const trimmed = nickname.trim();
-        if (!trimmed) {
-            toastError('닉네임을 입력해주세요.');
+        if (!trimmed || trimmed === user?.nickname) {
             return;
         }
 
         setIsSaving(true);
         try {
             if (!USE_MOCK_API) {
-                // 백엔드 PATCH /api/v1/users/me API 연동 (API가 없으면 로컬만 업데이트)
-                await apiPatch('/api/v1/users/me', { nickname: trimmed }).catch(() => null);
-                await fetchMe(); // 서버에서 최신 사용자 정보 갱신
+                await apiPatch('/api/v1/users/me', { nickname: trimmed });
             }
-            // 낙관적 업데이트: Zustand store 즉시 반영
             updateNickname(trimmed);
-            setSaved(true);
             toastSuccess('프로필이 저장되었습니다.');
+            setSaved(true);
             setTimeout(() => setSaved(false), 2000);
-        } catch {
-            toastError('프로필 저장에 실패했습니다.');
+
+            // 서버에서 최신 정보 동기화
+            if (!USE_MOCK_API) {
+                await fetchMe();
+            }
+        } catch (err) {
+            const message = err instanceof Error ? err.message : '저장에 실패했습니다.';
+            toastError(message);
         } finally {
             setIsSaving(false);
         }
