@@ -1,7 +1,7 @@
 # PRD — analysisTrend 플랫폼
 
 > **Product Requirements Document**
-> 버전: v1.0 | 작성일: 2026-03-15 | 관련 문서: [SPEC.md](./SPEC.md)
+> 버전: v1.1 | 작성일: 2026-03-15 | 최종 업데이트: 2026-03-25 (Phase 16 완료) | 관련 문서: [SPEC.md](./SPEC.md)
 
 ---
 
@@ -565,7 +565,7 @@ Twitch Helix API는 별도 심사 없이 가입 즉시 무료 사용 가능하�
 
 ## 9. MVP vs Phase 2
 
-### MVP ✅ 완료 (2026-03-19 기준)
+### MVP ✅ 완료 (2026-03-25 기준 — Phase 16 포함)
 
 | 영역 | 포함 기능 | 상태 |
 |------|---------|------|
@@ -577,6 +577,8 @@ Twitch Helix API는 별도 심사 없이 가입 즉시 무료 사용 가능하�
 | 채널 분석 | ANA-01, ANA-02, ANA-03 | ✅ Mock 데이터 UI (YouTube Analytics API 연동 예정) |
 | 트렌드 분석 | TRD-01, TRD-02 | ✅ E2E 검증 완료 (API 키 없으면 mock 반환) |
 | 채팅 분석 | CHAT-01~05 | ✅ E2E 검증 완료 (당초 Phase 2였으나 MVP에 포함 구현) |
+| UI 가시성 | 관리자 페이지 전체 light/dark mode | ✅ Phase 16 — 텍스트 대비 전수 개선 완료 |
+| 인프라 보안 | Google One Tap FedCM 차단 | ✅ Permissions-Policy 헤더 (Nginx + Next.js) |
 
 ### Phase 2 (남은 작업 — 우선순위 순)
 

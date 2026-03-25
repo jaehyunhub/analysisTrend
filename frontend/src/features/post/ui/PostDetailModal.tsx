@@ -13,6 +13,7 @@ export default function PostDetailModal() {
   const [commentText, setCommentText] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState('');
+  const [localComments, setLocalComments] = useState<Comment[]>([]);
 
   const post = posts.find(p => p.id === selectedPostId);
 
@@ -80,10 +81,11 @@ export default function PostDetailModal() {
     const newComment: Comment = {
       id: Date.now(),
       content: commentText.trim(),
-      author: '나',
+      author: user?.nickname ?? '나',
       createdAt: new Date().toISOString(),
     };
     addComment(selectedPostId, newComment);
+    setLocalComments(prev => [...prev, newComment]);
     setCommentText('');
   };
 
@@ -104,7 +106,7 @@ export default function PostDetailModal() {
         ref={dialogRef}
       >
         {/* Left: Vote & Content */}
-        <div className="flex-1 overflow-y-auto p-8 bg-[#DAE0E6] dark:bg-black">
+        <div className="flex-1 overflow-y-auto p-8 bg-[#DAE0E6] dark:bg-[#0D0D0D]">
             <div className="bg-white dark:bg-[#1A1A1B] rounded p-4 shadow-sm min-h-[500px]">
                 <div className="flex gap-4">
                     <div className="flex flex-col items-center gap-1">
@@ -163,13 +165,39 @@ export default function PostDetailModal() {
                  </div>
              </div>
              <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                 {/* 기존 mock 댓글 */}
                  <div className="flex gap-2">
                      <div className="w-8 h-8 bg-purple-500 rounded-full shrink-0"></div>
                      <div>
-                         <div className="text-xs font-bold mb-1">commenter_one</div>
-                         <div className="text-sm">Great analysis! Have you accounted for short-form content spikes?</div>
+                         <div className="text-xs font-bold mb-1 text-gray-900 dark:text-gray-100">commenter_one</div>
+                         <div className="text-sm text-gray-800 dark:text-gray-200">Great analysis! Have you accounted for short-form content spikes?</div>
+                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">2 hours ago</div>
                      </div>
                  </div>
+                 {/* 사용자가 추가한 댓글 */}
+                 {localComments.length === 0 ? (
+                   <div className="flex flex-col items-center justify-center py-8 text-gray-400 dark:text-gray-600">
+                     <svg className="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                     </svg>
+                     <p className="text-sm">첫 댓글을 남겨보세요</p>
+                   </div>
+                 ) : (
+                   localComments.map((comment: Comment) => (
+                     <div key={comment.id} className="flex gap-2">
+                       <div className="w-8 h-8 bg-blue-500 rounded-full shrink-0 flex items-center justify-center text-white text-xs font-bold">
+                         {comment.author.charAt(0).toUpperCase()}
+                       </div>
+                       <div>
+                         <div className="text-xs font-bold mb-1 text-gray-900 dark:text-gray-100">{comment.author}</div>
+                         <div className="text-sm text-gray-800 dark:text-gray-200">{comment.content}</div>
+                         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                           {new Date(comment.createdAt).toLocaleString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                         </div>
+                       </div>
+                     </div>
+                   ))
+                 )}
              </div>
              {/* Comment Input */}
              <div className="p-4 border-t border-gray-200 dark:border-[#343536]">
@@ -180,7 +208,7 @@ export default function PostDetailModal() {
                          onChange={(e) => setCommentText(e.target.value)}
                          onKeyDown={(e) => e.key === 'Enter' && handleSubmitComment()}
                          placeholder="댓글 작성..."
-                         className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg outline-none focus:border-blue-500 dark:text-white"
+                         className="flex-1 px-3 py-2 text-sm bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-600 transition-colors"
                      />
                      <button
                          onClick={handleSubmitComment}

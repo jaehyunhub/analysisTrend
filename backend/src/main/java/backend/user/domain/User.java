@@ -60,6 +60,11 @@ public class User extends BaseTimeEntity {
         return this;
     }
 
+    // 프로필 닉네임 수정
+    public void updateNickname(String nickname) {
+        this.nickname = nickname;
+    }
+
     public String getRoleKey() {
         return this.role.getKey();
     }

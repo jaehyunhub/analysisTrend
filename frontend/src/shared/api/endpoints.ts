@@ -42,6 +42,10 @@ export const YOUTUBE = {
   ADMIN_DETAIL: (id: number) => `/api/v1/admin/youtube/${id}`,
 } as const;
 
+export const USERS = {
+  ME: '/api/v1/users/me',
+} as const;
+
 export const ADMIN = {
   MEMBERS: '/api/v1/admin/members',
   POSTS: '/api/v1/admin/posts',

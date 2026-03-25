@@ -1,16 +1,16 @@
 # analysisTrend 점진적 개선 계획
 
-> 기준: PRD.md v1.0 | 아키텍처 분석: 2026-03-15 | 마지막 업데이트: 2026-03-24 (Phase 12 완료) | 전략: DDD-lite + 레이어드 아키텍처 + Nginx MSA
+> 기준: PRD.md v1.0 | 아키텍처 분석: 2026-03-15 | 마지막 업데이트: 2026-03-25 (Phase 16 완료) | 전략: DDD-lite + 레이어드 아키텍처 + Nginx MSA
 
 ## Context
 
 analysisTrend는 Docker Compose 기반 트렌드 분석 플랫폼으로, 프론트엔드(Next.js 16), 백엔드(Spring Boot 3.5), 분석 서비스(FastAPI)로 구성됩니다.
 
-**현재 상태 (2026-03-24):** Phase 0~12 완료. 프론트엔드-백엔드-분석 서비스 전체 연동 완료, E2E 테스트 64 passed / 9 skipped / 0 failed. OAuth2 인증 흐름 안정화(하드코딩 제거, 실유저 정보 fetch, ADMIN role 보존 버그 수정), Header 인증 상태별 조건부 네비게이션 구현 완료. 커뮤니티 멤버십 상태 관리, Post 작성자 권한 검증, 다크모드 Tailwind v4 대응, 마이페이지 실데이터 연동(fetchMe) 완료.
+**현재 상태 (2026-03-25):** Phase 0~16 완료. 프론트엔드-백엔드-분석 서비스 전체 연동 완료, E2E 테스트 64 passed / 9 skipped / 0 failed. 관리자 페이지 전체 light/dark mode 텍스트 가시성 개선 완료(ads, members, analysis, trends 페이지). Header Google One Tap 주입 차단(Permissions-Policy). 채널 분석·트렌드 분석·최근 트렌드 탭 모든 텍스트 `text-gray-900` 기준 색상 통일. 마이페이지 닉네임 수정 API 연동 완료.
 
 **목표:** Phase 0(기반 수정)부터 시작해 10단계에 걸쳐 버그 제거 → 타입/API 추상화 → UI/UX → 인터랙션 → 백엔드 확장 → 연동 → 관리자/폴리싱 → 분석 서비스 → 인프라 → E2E 테스트 순으로 점진적 개선합니다.
 
-**완성도**: ~99% (Phase 0~12 완료 | 잔여: Recharts 고도화, 50MB 비동기 처리, CI/CD)
+**완성도**: ~100% MVP (Phase 0~16 완료 | 잔여: Recharts 고도화, 50MB 비동기 처리, CI/CD)
 
 ---
 
@@ -485,7 +485,7 @@ Phase 2의 API 추상화 레이어에서 mock 플래그를 끄고 실제 백엔�
   - [x] `/admin/youtube` — YouTube 영상 추가/수정/삭제
   - [x] `/admin/chat` — 채팅 파일 업로드 → 실제 분석 API (`POST /analyze/chat`) 연동
   - [x] `/admin/trends` — 뉴스 키워드·YouTube 트렌딩 실시간 데이터 연동 (`/trends/news`, `/trends/youtube`)
-  - [x] `/admin/ads` — 광고 슬롯 관리 UI 구현 완료 (BE API 없음)
+  - [x] `/admin/ads` — 광고 슬롯 관리 UI 구현 완료 (BE API 없음). CRUD 동작: "+ Add Ad Block" 버튼 → 추가 모달(제목, 부제목, 타입[gradient/placeholder], 링크). Edit 버튼 → 기존값 pre-fill된 수정 모달. Delete 버튼 → 삭제 확인 모달. 현재 프론트엔드 로컬 state 관리 (백엔드 API 미연동)
   - [x] `/admin/community/members` — 회원 목록 UI 구현 완료
 - [x] 관리자 라우트 가드 — `admin/layout.tsx`에서 비인증/비관리자 접근 시 `/` 리다이렉트
 - [x] `shared/api/client.ts` 확장
@@ -766,6 +766,7 @@ Phase 10~11 E2E 테스트에서 발견된 UI/UX 버그와 기능 누락을 수�
 #### Header/UI
 - [x] **장바구니 버튼 표시 조건** — `Header.tsx`에서 `usePathname().startsWith('/shop') && isAuthenticated` 조건으로 장바구니 버튼 조건부 렌더링
 - [x] **다크모드 수정** — `themeStore`를 `classList.toggle('dark')` 방식으로 변경 (className 직접 할당 금지). `globals.css`에 `@variant dark (&:is(.dark *))` Tailwind v4 선언 추가
+- [x] **로그아웃 확인 모달** — Header 로그아웃 버튼 클릭 시 즉시 로그아웃하지 않고 확인 모달 표시. 모달: "로그아웃 하시겠습니까?" + 취소/로그아웃 버튼. 취소: 모달 닫기·로그인 상태 유지. 로그아웃: `authStore.logout()` 호출, accessToken/refreshToken localStorage 삭제. 데스크탑 + 모바일 드로어 모두 동일 동작 (`logoutConfirmOpen` state 사용)
 
 #### 마이페이지 (MY)
 - [x] **비로그인 리다이렉트** — `_hasHydrated` 완료 후 인증 확인하여 `/mypage` 비로그인 접근 시 `/` 리다이렉트
@@ -784,6 +785,164 @@ Phase 10~11 E2E 테스트에서 발견된 UI/UX 버그와 기능 누락을 수�
 - [x] `/shop` 경로 + 로그인 상태에서만 장바구니 버튼 표시
 - [x] 다크모드 토글 즉시 전환
 - [x] 마이페이지 실제 유저 정보 표시 및 닉네임 수정 Toast 피드백
+- [x] `npx tsc --noEmit` 타입 오류 없음
+
+---
+
+---
+
+## - [x] Phase 13: UI 버그 수정 및 기능 개선 ★ 완료 (2026-03-25)
+
+### 오버뷰
+메인페이지 상세 모달, 커뮤니티 게시물 필터링, 마이페이지 커뮤니티 탭, 관리자 광고 persist 등 UI 버그 수정 및 기능 개선을 완료합니다.
+
+### 작업 목록
+
+#### 메인페이지 상세 모달
+- [x] **방송 공지 상세 모달** — 방송 공지 항목 클릭 시 카테고리/제목/날짜/내용이 담긴 오버레이 모달 표시
+- [x] **방송 일정 모달** — 캘린더의 방송 예정일(파란 점) 클릭 시 당일 방송 일정 목록 모달 표시, isLive=true인 항목에 LIVE 배지
+- [x] **모달 닫기** — 바깥 영역 클릭 또는 × 버튼으로 닫기
+
+#### 커뮤니티 게시물 필터
+- [x] **slug 기반 게시물 필터링** — `/community/board/[slug]` 페이지에서 `communityStore.posts`를 slug로 필터링하여 해당 커뮤니티 게시물만 표시
+- [x] **댓글 가시성 개선** — 커뮤니티 상세 모달 댓글 작성자명/내용 라이트·다크 모드 모두 선명하게 표시
+- [x] **댓글 empty state** — 댓글 없는 게시물 상세 모달에 "첫 댓글을 남겨보세요" 메시지 표시
+
+#### 마이페이지 커뮤니티 탭
+- [x] **내 커뮤니티 서브탭** — `communityStore.joinedCommunities` 목록을 카드 형태로 표시, 클릭 시 해당 커뮤니티 이동 (`/community/board/${name}`)
+- [x] **내 게시물 카드 링크** — 내 게시물 카드 클릭 시 해당 커뮤니티 페이지(`/community/board/{community}`)로 이동
+- [x] **empty state** — 가입한 커뮤니티 없을 때 "가입한 커뮤니티가 없습니다" 메시지 표시
+
+#### 광고 persist
+- [x] **adsStore** — `shared/model/adsStore.ts` Zustand + localStorage persist 광고 전역 스토어 구현
+- [x] **관리자 광고 페이지 연동** — `admin/ads/page.tsx`에서 adsStore 사용, 새로고침 후에도 추가/수정/삭제 데이터 유지
+- [x] **관리자 게시물 관리 실데이터** — `admin/community/posts/page.tsx`에서 mock 더미 데이터 대신 `communityStore.posts` 실데이터 표시, 제목/작성자 검색 필터 동작
+
+#### 관리자 가시성 개선
+- [x] **채널분석 light mode** — 순위 숫자 가시성 개선 (흰 배경에서 선명하게)
+- [x] **트렌드 분석 키워드 칩** — gray-900 텍스트로 통일
+
+### 검증 항목
+
+- [x] 방송 공지 항목 클릭 → 모달 표시·닫기 동작
+- [x] 방송 일정 파란 점 클릭 → 일정 모달 및 LIVE 배지 표시
+- [x] 커뮤니티 Sidebar 클릭 → slug 필터링으로 해당 게시물만 노출
+- [x] 마이페이지 "내 커뮤니티" 탭 카드 표시 및 클릭 이동
+- [x] 광고 관리 새로고침 후 데이터 유지 (localStorage persist)
+- [x] 관리자 게시물 관리 실데이터 표시 및 검색 필터
+- [x] `npx tsc --noEmit` 타입 오류 없음
+
+---
+
+## - [x] Phase 15: Header/관리자 가시성/프로필 수정/CRUD 개선 ★ 완료 (2026-03-25)
+
+### 오버뷰
+Header 인증 UI 레이아웃, 관리자 페이지 텍스트 가시성, 마이페이지 프로필 수정 API 연동, 관리자 게시물 삭제 CRUD 개선을 완료합니다.
+
+### 작업 목록
+
+#### Header UI 개선
+- [x] **인증 영역 한 줄 레이아웃** — 로그인 후 닉네임+마이페이지+로그아웃 버튼이 `flex-nowrap`으로 줄바꿈 없이 한 줄 표시
+- [x] **마이페이지 버튼 스타일** — `bg-blue-50 border-blue-200 text-blue-700` 파란색 디자인 적용
+- [x] **로그아웃 버튼 hover** — `hover:text-red-600 hover:bg-red-50` 스타일 적용
+
+#### 관리자 페이지 텍스트 가시성
+- [x] **채널 분석 KPI 라벨** — light mode에서 `gray-400` → `gray-600`으로 가시성 개선
+- [x] **채널 분석 테이블** — 날짜/시간 텍스트에 `dark:` 명시로 다크 모드 가시성 개선
+- [x] **트렌드 분석 로딩/빈 상태** — `dark:text-gray-400` 추가
+- [x] **채팅 분석 범례/레이블** — `dark:` 명시로 다크 모드 가시성 개선
+- [x] **회원 관리 테이블** — 헤더/데이터 셀 `gray-600 dark:gray-300`으로 개선
+
+#### 마이페이지 프로필 수정 API 연동
+- [x] **`PATCH /api/v1/users/me`** — 로그인 유저 닉네임 수정 (2~20자 검증)
+  - 요청: `{ nickname: string }`
+  - 응답: 업데이트된 사용자 정보 (id, email, nickname, role, provider, createdAt)
+- [x] **프론트엔드 연동** — `USERS.ME` 엔드포인트로 `apiPatch` 호출, 성공 시 `updateNickname()` + `fetchMe()` 호출로 서버 최신 상태 동기화
+- [x] **API 실패 처리** — 실패 시 로컬 상태 변경 없음, 에러 toast 표시
+- [x] **변경 없이 저장** — 닉네임 미변경 시 API 호출 없이 편집 모드 종료 (조기 반환)
+
+#### 관리자 게시물 삭제 CRUD
+- [x] **`communityStore.deletePostWithApi(id)`** — mock 모드: 로컬 삭제, API 모드: `DELETE /api/v1/posts/{id}` 호출 후 스토어 업데이트
+- [x] **admin/community/posts/page.tsx 연동** — 삭제 버튼 클릭 시 `deletePostWithApi` 호출, 삭제 후 목록에서 즉시 제거
+
+### 검증 항목
+
+- [x] 로그인 후 Header 인증 영역 한 줄 렌더링 (flex-nowrap)
+- [x] 관리자 채널 분석 KPI/테이블 light·dark mode 가시성 확인
+- [x] 관리자 트렌드·채팅 분석 로딩/빈 상태 dark mode 텍스트 확인
+- [x] 관리자 회원 관리 테이블 dark mode 가시성 확인
+- [x] 마이페이지 닉네임 변경 저장 → `PATCH /api/v1/users/me` 호출, DB 반영
+- [x] API 실패 시 닉네임 이전 값 유지 + 에러 toast 표시
+- [x] 관리자 게시물 삭제 → `DELETE /api/v1/posts/{id}` 호출 + 목록 즉시 반영
+- [x] `npx tsc --noEmit` 타입 오류 없음
+
+---
+
+---
+
+## - [x] Phase 16: 관리자 페이지 텍스트 가시성 전체 개선 ★ 완료 (2026-03-25)
+
+### 오버뷰
+관리자 페이지 전체의 light mode 텍스트 가시성 문제(회색 텍스트 저대비)를 체계적으로 수정합니다. 모든 `dark:text-*` 누락 요소와 `text-gray-400/500` → `text-gray-700/900` 상향 적용.
+
+### 작업 목록
+
+#### 광고 관리 (`/admin/ads`)
+- [x] **페이지 제목** — `dark:text-white` → `text-gray-900 dark:text-white`
+- [x] **설명 텍스트** — `text-gray-500` → `text-gray-600 dark:text-gray-400`
+- [x] **카드 광고 제목** — `dark:text-white` → `text-gray-900 dark:text-white`
+- [x] **카드 타입 배지** — `text-gray-400` → `text-gray-600 dark:text-gray-400`
+- [x] **카드 링크 텍스트** — `text-gray-500` → `text-gray-600 dark:text-gray-400`
+
+#### 회원 관리 (`/admin/community/members`)
+- [x] **페이지 제목** — `text-gray-900` 추가
+- [x] **설명 텍스트** — `text-gray-500` → `text-gray-600`
+- [x] **유저명 td** — `text-gray-900 dark:text-white`
+- [x] **이메일/가입일** — `text-gray-600 dark:text-gray-400` → `text-gray-700 dark:text-gray-300`
+
+#### 채널 분석 (`/admin/analysis` — 내 채널 탭)
+- [x] **구독자 증가 추이 제목** — `text-gray-900` 추가
+- [x] **개월 선택 select** — `text-gray-900 dark:text-white` 추가
+- [x] **차트 월 표시** — `text-gray-500` → `text-gray-700`
+- [x] **인기 영상 TOP 5 제목** — `text-gray-900` 추가
+- [x] **순위 번호** — `text-gray-500` → `text-gray-700 dark:text-gray-300`
+- [x] **영상 제목** — `text-gray-800` → `text-gray-900`
+- [x] **duration/published** — `text-gray-500` → `text-gray-600`
+- [x] **조회수** — `text-gray-900` 추가
+
+#### 채널 분석 (`/admin/analysis` — 트렌드 분석 탭)
+- [x] **급상승 키워드·카테고리 분포 제목** — `text-gray-900` 추가
+- [x] **키워드 칩** — `bg-*-50 text-*-600` → `bg-*-100 text-*-700 border border-*-200` (대비 강화)
+
+#### 채널 분석 (`/admin/analysis` — 최근 트렌드 탭)
+- [x] **최근 급상승 영상 제목** — `text-gray-900` 추가
+- [x] **전세계/전체카테고리 select** — `text-gray-900 dark:text-white` 추가
+- [x] **테이블 헤더** — `text-gray-500` → `text-gray-700`
+- [x] **순위 번호** — `text-gray-500` → `text-gray-700`
+- [x] **영상 제목** — `text-gray-900` 명시
+- [x] **타임스탬프** — `text-gray-500` → `text-gray-600`
+- [x] **채널명** — `text-gray-600` → `text-gray-700`
+- [x] **조회수** — `text-gray-900` 명시
+
+#### 트렌드 분석 (`/admin/trends`)
+- [x] **키워드 테이블 순위(#4+)** — `text-gray-500` → `text-gray-700`
+- [x] **키워드 텍스트** — `text-gray-900 dark:text-white` 명시
+- [x] **점수** — `text-gray-600` → `text-gray-700`
+- [x] **출처(source)** — `text-gray-500` → `text-gray-600`
+
+#### 인프라 (Google One Tap 차단)
+- [x] **`next.config.ts`** — `Permissions-Policy: identity-credentials-get=()` 헤더 추가
+- [x] **`nginx/nginx.conf`** — `add_header Permissions-Policy "identity-credentials-get=()" always` 추가
+
+### 검증 항목
+
+- [x] 관리자 > 광고 관리 light mode — 제목/설명/카드 텍스트 선명히 보임
+- [x] 관리자 > 회원 관리 light mode — 유저명/이메일/가입일 선명히 보임
+- [x] 관리자 > 채널 분석 > 내 채널 — 구독자 추이 제목, select, 영상 TOP5 텍스트 선명
+- [x] 관리자 > 채널 분석 > 트렌드 분석 — 키워드 칩 배경/텍스트 대비 강화
+- [x] 관리자 > 채널 분석 > 최근 트렌드 — 테이블 전체 텍스트 선명
+- [x] 관리자 > 트렌드 분석 — 키워드 테이블 #4 이후 텍스트 선명
+- [x] Header — Google One Tap "E" 버튼 주입 차단 확인 (Permissions-Policy)
 - [x] `npx tsc --noEmit` 타입 오류 없음
 
 ---
