@@ -1,7 +1,7 @@
 # PRD — analysisTrend 플랫폼
 
 > **Product Requirements Document**
-> 버전: v2.1 | 작성일: 2026-03-15 | 최종 업데이트: 2026-04-03 (v2.1 — CHAT-10: 분석범위 N시간N분 표시, CHAT-11: hover tooltip fixed 포지션 방식으로 overflow 클리핑 해결) | 관련 문서: [SPEC.md](./SPEC.md)
+> 버전: v2.5 | 작성일: 2026-03-15 | 최종 업데이트: 2026-04-04 (v2.5 — COMMUNITY-UI: 커뮤니티 UI 리디자인 — 모던 카드 스타일 전환) | 관련 문서: [SPEC.md](./SPEC.md)
 
 ---
 
@@ -18,6 +18,7 @@
 9. [MVP vs Phase 2](#9-mvp-vs-phase-2)
 10. [비기능 요구사항](#10-비기능-요구사항)
 11. [리스크 및 완화 전략](#11-리스크-및-완화-전략)
+12. [변경 이력](#12-변경-이력)
 
 ---
 
@@ -201,6 +202,7 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | AUTH-04 | 프로필 수정 (닉네임, 아바타 이미지) | P1 | UI만 존재 |
 | AUTH-05 | 로그인/로그아웃 토스트 알림 | P1 | 구현 완료 — 로그인 성공 시 "로그인 되었습니다.", 로그아웃 확인 후 "로그아웃 되었습니다." Toast 표시 |
 | AUTH-06 | 로그인 모달 입력 텍스트 가시성 개선 | P1 | 구현 완료 — 모든 입력 필드에 `text-gray-900 dark:text-white` 적용, 라이트 모드 회색 텍스트 문제 해결 |
+| AUTH-07 | 세션 기반 인증 (탭/브라우저 닫으면 자동 로그아웃) | P1 | 구현 완료 — `authStore` persist storage를 `localStorage` → `sessionStorage`로 변경. 탭 닫기 시 토큰 자동 소멸. 로그인 성공 시 1.5초 성공 오버레이 모달 표시 후 자동 닫힘 |
 
 ### 5.2 홈 대시보드 (HOME)
 
@@ -233,6 +235,22 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | COMM-13 | 좋아요/비추천 토글 — 재클릭 시 취소, 투표 상태 색상 표시 | P1 | 구현 완료 — `votePostWithApi` + `getVoteState` 연동. upvote 활성→주황색, downvote 활성→파란색 |
 | COMM-14 | FIXED_CATEGORIES 토픽 고정 — 경제/방송/쇼핑/자유게시판은 Sidebar 토픽 섹션에만 표시, 커뮤니티 섹션 및 가입 목록에서 제외 | P1 | 구현 완료 (2026-04-03) |
 | COMM-15 | 글 상세 페이지 Reddit 스타일 — 게시글 클릭 시 모달 대신 `/community/board/[slug]/comments/[postId]` 페이지 이동, 실제 게시물 데이터 표시 | P1 | 구현 완료 (2026-04-03) |
+| COMM-16 | 글 상세 페이지 전면 재설계 — Reddit r/classicwow 스타일 UI, 실제 댓글 API 연동, 멤버십 댓글 게이팅 | P1 | 구현 완료 (2026-04-03) — 상세 내용 아래 별도 기재 |
+
+**COMM-16 상세 스펙 (글 상세 페이지 Reddit 스타일 재설계)**
+
+- 포스트 카드: 좌측 투표 컬럼(↑주황/↓파랑 색상 강조), 태그 뱃지, 작성자 메타, 액션바(댓글수·공유·저장·더보기)
+- 댓글 입력 3단계 조건부 렌더링:
+  - 비로그인 → "로그인" 버튼 (LoginModal 트리거)
+  - 로그인 + 비멤버 → "가입하기" 버튼 (주황색, joinCommunity 즉시 호출)
+  - 로그인 + 멤버 → textarea + 서식(B/I/인용) 툴바 + 작성 버튼
+  - FIXED_CATEGORIES(경제/방송/쇼핑/자유게시판)는 멤버십 체크 없이 항상 댓글 허용
+- 댓글 스레드: `CommentItem` 재귀 컴포넌트, 스레드 라인(클릭 시 접기/펼치기), 댓글별 업/다운보트(로컬 상태), 인라인 답글 textarea
+- 답글 시 `parentCommentId` 포함 API 전송 (`communityStore.addComment` 개선)
+- 실제 댓글 로딩: `GET /api/v1/posts/{id}/comments` → 평탄 배열 → `buildTree()` 함수로 트리 변환
+- 낙관적 업데이트: 댓글 등록 즉시 UI 반영 후 서버 응답으로 ID 동기화
+- 우측 사이드바: 커뮤니티 그라디언트 배너, 멤버수, 가입 버튼, 커뮤니티 규칙 4개
+- 로딩: 스켈레톤 UI, 빈 상태 일러스트, 링크 복사 토스트, 돌아가기 버튼
 
 **정렬 알고리즘 정의**
 - **New**: `createdAt DESC`
@@ -246,10 +264,12 @@ US-O-04 (P0) — 관리자 셀프 서비스
 |----|------|---------|------|
 | SHOP-01 | 상품 목록 + 카테고리 필터 (GOODS / FOOD / FASHION / DIGITAL) | P0 | 구현 완료 (카테고리 필터, 검색바, 페이지네이션 동작) |
 | SHOP-02 | 상품 상세 페이지 (썸네일, 설명, 가격, 구매 버튼) | P0 | 구현 완료 (이미지 슬라이더, 장바구니 담기, Toast 연동) |
+| SHOP-IMG | 상품 이미지 다중 슬라이더 — 대표 이미지 + `thumbnailImages` JSON 배열로 여러 장 슬라이더, 하단 썸네일 스트립, ‹/› 화살표 네비게이션 | P1 | 구현 완료 (2026-04-03, `Product.thumbnailImages` TEXT 컬럼 추가) |
 | SHOP-03 | 장바구니 추가/삭제/수량 변경 | P1 | 구현 완료 (/shop/cart 페이지, cartStore 연동) |
 | SHOP-04 | 주문 및 결제 플로우 (PG 연동) | P2 | 미구현 |
 | SHOP-05 | 주문 내역 조회 (마이페이지) | P2 | UI만, 하드코딩 |
 | SHOP-ADM-01 | 관리자 상품 CRUD — 등록/수정/삭제/품절 토글 (`/admin/shop/products`) | P1 | 구현 완료 (BE `POST/PUT/DELETE/PATCH /api/v1/admin/products/**`, FE 연동) |
+| SHOP-ADM-MULTI | 관리자 다중 이미지 관리 — 기본정보 탭: 슬라이더 섬네일 여러 장 추가/삭제/순서변경(그리드 미리보기 + hover 컨트롤). 상세페이지 탭: URL 일괄 추가(줄바꿈 구분 textarea). `thumbnailImages` TEXT 컬럼(JSON 배열) | P1 | 구현 완료 (2026-04-03) |
 | SHOP-ADM-02 | Q&A 관리 — 고객 문의 목록 조회, 답변 작성 (`/admin/shop/qna`) | P1 | 구현 완료 (shopQnaStore, Zustand persist). 상품별 샘플 Q&A 5건 초기 데이터 포함. 상품별·상태별 필터링 UI |
 | SHOP-ADM-03 | 리뷰 관리 — 리뷰 목록 조회, 숨기기/삭제 (`/admin/shop/reviews`) | P1 | 구현 완료 (shopReviewStore, Zustand persist). 상품별 샘플 리뷰 7건 초기 데이터 포함. 상품별·별점별 필터링 UI |
 
@@ -278,8 +298,12 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | ADM-04b | 광고 이미지 직접 첨부 (multipart upload) | P1 | ❌ 미구현 — URL 입력 방식에서 파일 업로드 방식으로 전환 |
 | ADM-05 | 커뮤니티 게시물 관리 (신고 처리, 강제 삭제) | P1 | 구현 완료 — `fetchPosts()` → `GET /api/v1/posts` 실제 API 연동. 커뮤니티 목록 카드 (`GET /api/v1/communities`), 커뮤니티별 필터링, 검색 기능, **커뮤니티별 게시물 그룹화** (전체 보기 시 커뮤니티 헤더 + 목록) |
 | ADM-06 | 회원 관리 (역할 변경, 계정 정지) | P1 | 구현 완료 — `AdminUserController` 신규 (`GET /api/v1/admin/users`, `GET /api/v1/admin/users/search?email=`), FE API 연동, 페이지네이션 + 이메일 검색 |
-| ADM-07 | 매거진 콘텐츠 CRUD | P2 | 구현 완료 — `admin/magazine/page.tsx` 전면 재작성. MOCK_MAGAZINES 기반 목록·추가·수정·삭제. 카테고리별 통계 카드, 썸네일 미리보기, 삭제 확인 모달. (BE API 미연동, localStorage 상태관리) |
-| ADM-07a | YouTube 트렌딩 날짜 필터 (일일/일주일/한달) | P1 | 구현 완료 — `admin/trends/_content.tsx` Videos 탭에 필터 버튼 추가. `published_at` 기반 클라이언트 필터링, 해당 기간 영상 없으면 전체 표시 |
+| ADM-07 | 매거진 콘텐츠 CRUD (블록 에디터) | P2 | 구현 완료 (v2 갱신 2026-04-03) — `admin/magazine/page.tsx` 전면 재작성. **Zustand `magazineStore` (localStorage persist)** 기반으로 관리자 저장 내용이 `/magazine` 목록·`/magazine/[id]` 상세에 즉시 반영. 블록 에디터(`ContentBlock[]`) 지원: 텍스트·이미지 블록 자유 혼합, ↑↓ 순서 변경. 기본정보 탭(썸네일·카테고리·메타) + 콘텐츠 편집 탭(블록 추가/삭제/정렬). 삭제 확인 모달. (BE API 미연동) |
+| ADM-07e | 매거진 블록 에디터 cross-page 반영 | P2 | 구현 완료 — `magazineStore.upsert()` / `remove()` 호출 시 localStorage 갱신 → 사용자 페이지(`magazine/page.tsx`, `magazine/[id]/_content.tsx`) Zustand 구독으로 실시간 반영. `_content.tsx` 패턴: 서버 컴포넌트(`generateStaticParams`/`generateMetadata`) + 클라이언트 `_content.tsx`(스토어 읽기) 분리 |
+| ADM-07a | YouTube 트렌딩 날짜 필터 (일일/일주일/한달) | P1 | 구현 완료 (수정 2026-04-03) — `videoDateFilter` 상태 분리, fallback 로직 제거, 기간 내 영상 없으면 빈 상태 메시지 표시. 목업 날짜 `datetime.now()` 기반 동적 생성으로 전환 |
+| ADM-07b | 뉴스 원문 날짜 필터 (일일/일주일/한달) | P1 | 구현 완료 (2026-04-03) — `newsDateFilter` 상태, `withinFilter()` RFC 2822 + ISO 8601 양쪽 파싱. 목업 날짜 동적 생성 (0.3/0.8/3/5/15일 전 분산). Redis 캐시 무효화로 즉시 반영 |
+| ADM-07c | 뉴스 키워드 탭 날짜 필터 제거 | P1 | 구현 완료 (2026-04-03) — `TrendKeyword` 모델에 날짜 필드 없어 필터 불가. 버튼 제거 후 "30분 주기 자동 갱신" 배지로 대체 |
+| ADM-07d | 트렌드 페이지 불필요 UI 제거 | P1 | 구현 완료 (2026-04-03) — AI 콘텐츠 인사이트 카드 제거, 페르소나 가이드 배너 (콘텐츠기획자/리서처/채널운영자 3카드) 제거 |
 
 ### 5.6a 커뮤니티 권한 시스템 (COMM-PERM) ★ v1.3 신규
 
@@ -763,3 +787,29 @@ Twitch Helix API는 별도 심사 없이 가입 즉시 무료 사용 가능하�
 | Phase 19 (관리자 UI 버그·커뮤니티 권한) | ADM-01a~c, ADM-03a, ADM-04a~b, COMM-PERM-01~07, TRD-02a~c — 전 항목 미구현 |
 | Phase 20~21 (쇼핑몰 관리자·메인페이지 개선) | SHOP-ADM-01~03, MAIN-01~02 — 구현 완료, E2E 미구현 (❌) |
 | **v2 미구현** | TRD-03~07, ANA-04~05, SHOP-04~05, CHAT-06, Order/Magazine 도메인, COMM-PERM 전체 |
+
+---
+
+## 12. 변경 이력
+
+| 버전 | 날짜 | 내용 |
+|------|------|------|
+| v2.5 | 2026-04-04 | **COMMUNITY-UI**: 커뮤니티 UI 리디자인 — 모던 카드 스타일 전환 |
+| v2.4 | 2026-04-03 | MAG-BLOCK: 매거진 블록 에디터 + Zustand 스토어 cross-page CRUD |
+| v2.3 | 2026-04-03 | Phase 19~21 — 관리자 쇼핑몰 CRUD, 채팅 분석 고도화, Mock 완전 제거 |
+| v2.2 | 2026-03-27 | Phase 12~16 — UI/UX 버그 수정, 관리자 가시성 개선 |
+| v2.1 | 2026-03-20 | Phase 8~11 — Docker 인프라, E2E 테스트 안정화 |
+| v2.0 | 2026-03-15 | 초기 PRD 작성 |
+
+### v2.5 상세 (COMMUNITY-UI)
+
+**변경 동기**: Old Reddit 스타일 직접 복제에서 벗어나 사용자 친화적인 모던 디자인으로 전환
+
+**변경 범위**:
+- `entities/post/ui/PostCard.tsx` — 좌측 투표 컬럼 제거, 하단 액션바 통합, 카테고리 컬러 pill 태그, hover 애니메이션
+- `app/community/board/[slug]/page.tsx` — 카테고리별 그라디언트 배너(경제=파랑/방송=빨강/쇼핑=주황/자유게시판=초록), 정렬 탭 이모지 개선, 빈 상태 UI
+- `app/community/board/[slug]/comments/[postId]/page.tsx` — rounded-2xl 카드, 버튼 rounded-xl, 다크모드 색상 통일
+- `widgets/Sidebar/ui/Sidebar.tsx` — 다크모드 배경 `#0F1117` 통일
+- `next.config.ts` — remotePatterns에 syukafriends.kr / img.youtube.com 추가
+
+**디자인 레퍼런스**: Dev.to + New Reddit + 에펨코리아 혼합
