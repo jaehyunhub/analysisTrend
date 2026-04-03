@@ -53,7 +53,7 @@ export default function Sidebar() {
     : communitiesWithColor.slice(0, 4);
 
   return (
-    <div className="hidden lg:block w-[240px] shrink-0 h-[calc(100vh-52px)] overflow-y-auto sticky top-[52px] py-4 pr-3 bg-white dark:bg-[#1A1A1B] border-r border-[#EDEFF1] dark:border-[#343536]">
+    <div className="hidden lg:block w-[240px] shrink-0 h-[calc(100vh-52px)] overflow-y-auto sticky top-[52px] py-4 pr-3 bg-white dark:bg-[#0F1117] border-r border-gray-100 dark:border-[#1E2028]">
 
       {/* 1. Recent */}
       {recentVisits.length > 0 && (
@@ -62,7 +62,7 @@ export default function Sidebar() {
           <ul className="space-y-0.5">
             {recentVisits.map((name, i) => (
               <li key={name}>
-                <Link href={`/community/board/${encodeURIComponent(name)}`} className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-lg cursor-pointer transition-colors">
+                <Link href={`/community/board/${encodeURIComponent(name)}`} className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1E2028] rounded-lg cursor-pointer transition-colors">
                   <div className={`h-5 w-5 ${COMMUNITY_COLORS[i % COMMUNITY_COLORS.length]} rounded-full flex items-center justify-center text-[9px] text-white font-bold shrink-0`}>
                     {name[0]}
                   </div>
@@ -82,7 +82,7 @@ export default function Sidebar() {
              <li key={comm.slug}>
                <Link
                  href={`/community/board/${comm.slug}`}
-                 className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-lg cursor-pointer transition-colors"
+                 className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1E2028] rounded-lg cursor-pointer transition-colors"
                >
                   <div className={`h-5 w-5 ${comm.icon} rounded-full flex items-center justify-center text-[9px] text-white font-bold shrink-0`}>
                     {comm.name[0]}
@@ -95,7 +95,7 @@ export default function Sidebar() {
              <li>
                <button
                  onClick={() => setIsMyCommunitiesExpanded(!isMyCommunitiesExpanded)}
-                 className="flex items-center gap-2.5 p-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-lg cursor-pointer w-full text-left transition-colors"
+                 className="flex items-center gap-2.5 p-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1E2028] rounded-lg cursor-pointer w-full text-left transition-colors"
                >
                  <svg className="h-5 w-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isMyCommunitiesExpanded ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
@@ -115,7 +115,7 @@ export default function Sidebar() {
              <li key={topic}>
                <Link
                  href={`/community/board/${topic}`}
-                 className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-lg cursor-pointer group transition-colors"
+                 className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1E2028] rounded-lg cursor-pointer group transition-colors"
                >
                   <svg className="h-4 w-4 text-gray-400 group-hover:text-blue-500 shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={TOPIC_ICONS[topic]}/>
@@ -128,7 +128,7 @@ export default function Sidebar() {
       </div>
 
       {/* CTA */}
-      <div className="pl-5 mx-2 mt-4 pt-4 border-t border-gray-100 dark:border-[#343536]">
+      <div className="pl-5 mx-2 mt-4 pt-4 border-t border-gray-100 dark:border-[#1E2028]">
         {isAuthenticated && user ? (
           <div className="flex items-center gap-2 py-1">
             <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
