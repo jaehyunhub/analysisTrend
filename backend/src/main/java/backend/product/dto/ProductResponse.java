@@ -18,6 +18,7 @@ public class ProductResponse {
     private boolean isSoldOut;
     private String imageUrl;
     private String description;
+    private String detailContent;
 
     public static ProductResponse from(Product product) {
         return ProductResponse.builder()
@@ -30,6 +31,7 @@ public class ProductResponse {
                 .isSoldOut(product.isSoldOut())
                 .imageUrl(product.getImageUrl())
                 .description(product.getDescription())
+                .detailContent(product.getDetailContent())
                 .build();
     }
 }

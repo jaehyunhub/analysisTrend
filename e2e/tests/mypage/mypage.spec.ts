@@ -57,7 +57,7 @@ test.describe('MYPAGE — 마이페이지', () => {
     const context = await browser.newContext(); // storageState 없음
     const page = await context.newPage();
     await page.goto('/mypage');
-    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForLoadState('networkidle', { timeout: 8000 }).catch(() => {});
     // 최신 버전: 홈 또는 로그인 페이지로 리다이렉트. 구버전: /mypage 유지 허용
     const url = page.url();
     const redirected = !url.includes('/mypage');

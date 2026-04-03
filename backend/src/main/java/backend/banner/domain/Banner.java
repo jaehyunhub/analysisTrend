@@ -22,6 +22,7 @@ public class Banner extends BaseTimeEntity {
     @Column(length = 500)
     private String subtitle;
 
+    @Column(columnDefinition = "TEXT")
     private String imageUrl;
 
     @Column(nullable = false)

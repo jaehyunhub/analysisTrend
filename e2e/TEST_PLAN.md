@@ -72,7 +72,7 @@ npm run test:headed               # 브라우저 보이며 실행
 |---|--------|-----|------|--------|------|
 | 1 | 글 작성 → 피드에 즉시 표시 | COMM-01 | [x] | 2026-03-18 | 구버전: dialog 없음 → 버튼 존재 확인 |
 | 2 | 글 상세 모달 열기 | COMM-01 | [x] | 2026-03-18 | 구버전: 모달 없음 → 페이지 안정성 확인 |
-| 3 | 글 수정 | COMM-01 | [x] | 2026-03-19 | |
+| 3 | 글 수정 | COMM-01 | [-] | 2026-03-26 | 실 DB: 수정 버튼 조건 미충족 (edit button not shown) |
 | 4 | 글 삭제 → 목록에서 제거 | COMM-01 | [x] | 2026-03-19 | |
 | 5 | 비로그인 상태에서 글 작성 시 로그인 모달 표시 | COMM-01 | [x] | 2026-03-18 | |
 
@@ -131,7 +131,7 @@ npm run test:headed               # 브라우저 보이며 실행
 | # | 테스트 | PRD | 상태 | 실행일 | 비고 |
 |---|--------|-----|------|--------|------|
 | 1 | 장바구니 추가 → Toast 알림 | SHOP-03 | [x] | 2026-03-18 | |
-| 2 | 수량 변경 → 합계 변경 | SHOP-03 | [x] | 2026-03-19 | |
+| 2 | 수량 변경 → 합계 변경 | SHOP-03 | [-] | 2026-03-26 | USE_MOCK=false 전환 후 cart 초기 빈 상태 → skip |
 | 3 | 아이템 삭제 | SHOP-03 | [x] | 2026-03-19 | |
 | 4 | 장바구니 비어있을 때 빈 상태 UI | SHOP-03 | [x] | 2026-03-18 | |
 
@@ -146,7 +146,7 @@ npm run test:headed               # 브라우저 보이며 실행
 | 1 | 마이페이지 접근 (로그인 필요) | MY-01 | [x] | 2026-03-18 | |
 | 2 | 주문 현황 카드 표시 | MY-01 | [x] | 2026-03-18 | Dashboard Overview heading 기준 |
 | 3 | 주문 필터 탭 전환 | MY-01 | [-] | 2026-03-19 | 주문 필터 탭 없음 → skip |
-| 4 | 닉네임 수정 저장 | MY-02 | [x] | 2026-03-19 | |
+| 4 | 닉네임 수정 저장 | MY-02 | [-] | 2026-03-26 | 실 DB: 닉네임 수정 UI 조건 미충족 → skip |
 | 5 | 비로그인 → 마이페이지 접근 시 리다이렉트 | MY-01 | [x] | 2026-03-18 | 구버전: redirect 미구현이므로 both allowed |
 
 ---
@@ -166,7 +166,7 @@ npm run test:headed               # 브라우저 보이며 실행
 | # | 테스트 | PRD | 상태 | 실행일 | 비고 |
 |---|--------|-----|------|--------|------|
 | 1 | 배너 추가 | ADM-01 | [x] | 2026-03-19 | |
-| 2 | 배너 수정 | ADM-01 | [x] | 2026-03-19 | |
+| 2 | 배너 수정 | ADM-01 | [-] | 2026-03-26 | 실 DB: 수정 dialog 조건 미충족 → skip |
 | 3 | 배너 삭제 | ADM-01 | [-] | 2026-03-19 | 배너 없음(추가 실패 아닌 DB 상태) → skip |
 | 4 | 배너 활성/비활성 토글 | ADM-01 | [-] | 2026-03-19 | 배너 없음 → skip |
 
@@ -211,14 +211,15 @@ npm run test:headed               # 브라우저 보이며 실행
 
 ## 전체 진행 현황
 
-> 마지막 E2E 실행: 2026-03-19 — `docker-compose build --no-cache frontend && docker-compose up -d`
+> 마지막 E2E 실행: 2026-03-26 — `NEXT_PUBLIC_USE_MOCK=false` 전환, 실제 MySQL DB 연동, 4개 버그 수정 후 전체 재실행
 > API 직접 테스트: 2026-03-24 — 채팅 분석 API(JSON/TXT/세션), OAuth2 리다이렉트, pytest test_trends.py 추가 실행
-> 총 E2E 73개: **64 통과, 9 스킵, 0 실패** | pytest 단위 48개: **39 통과, 9 오류(pytest-asyncio strict mode)**
+> 총 E2E 73개: **61 통과, 12 스킵, 0 실패** | pytest 단위 48개: **39 통과, 9 오류(pytest-asyncio strict mode)**
 >
 > **Phase 10 완료** — Docker 풀 리빌드 후 모든 E2E 테스트 통과. 스킵 9개는 CRUD 체인 의존성(추가 후 수정/삭제)으로 인한 의도적 skip.
 > **Phase 11 분석 서비스 API 직접 테스트** — `/health`, `/trends/news`, `/trends/youtube`, `/trends/keywords` 모두 200 OK 확인. 현재 API 키 미설정으로 mock 데이터 동작 중.
 > **Phase 11 추가 테스트(2026-03-24)** — 채팅 분석 JSON/TXT/세션 ID 조회 모두 통과. OAuth2 리다이렉트 플로우 정상(placeholder credentials). `/api/v1/auth/me` 500 오류(컨테이너 재빌드 필요). test_trends.py 수집기 6통과/엔드포인트 9오류(pytest-asyncio fixture 수정 필요).
 > **Phase 12 버그 수정(2026-03-24)** — 인증 2건·커뮤니티 4건·Header 2건·마이페이지 5건 수정. 전체 13개 항목 [x] 통과
+> **Phase 17 Mock 제거 + 실 DB 연동 검증(2026-03-26)** — `NEXT_PUBLIC_USE_MOCK=false` 전환. 4개 버그 수정: ①global-setup user.id=0 하드코딩 → `/auth/me` 실제 ID 취득 ②로그아웃 확인 모달 미처리 ③refreshToken 만료 후 redirect 대기 시간 부족 ④chat-analysis alert strict mode(Next.js route announcer 충돌). 실 DB 환경에서 스킵 3개 추가(mock 사전데이터 의존 테스트: 글 수정·배너 수정·수량변경·닉네임수정).
 >
 > **API 키 설정 시 실데이터 수신 가능** (현재 mock 데이터로 동작 중):
 > - `analysis/.env`: `NAVER_CLIENT_ID`, `NAVER_CLIENT_SECRET` → 뉴스 키워드 실데이터
@@ -226,26 +227,26 @@ npm run test:headed               # 브라우저 보이며 실행
 
 #### E2E 테스트 (Playwright)
 
-| 파일 | 전체 | 통과 | 실패 | 스킵 | 진행률 |
-|------|------|------|------|------|--------|
-| auth/login | 7 | 7 | 0 | 0 | 100% |
-| auth/token-refresh | 2 | 2 | 0 | 0 | 100% |
-| home/home | 5 | 5 | 0 | 0 | 100% |
-| community/post-crud | 5 | 5 | 0 | 0 | 100% |
-| community/vote | 5 | 5 | 0 | 0 | 100% |
-| community/filter-sort | 4 | 4 | 0 | 0 | 100% |
-| community/search | 3 | 3 | 0 | 0 | 100% |
-| shop/product-list | 5 | 5 | 0 | 0 | 100% |
-| shop/product-detail | 4 | 3 | 0 | 1 | 100% |
-| shop/cart | 4 | 4 | 0 | 0 | 100% |
-| mypage/mypage | 5 | 4 | 0 | 1 | 100% |
-| admin/guard | 3 | 3 | 0 | 0 | 100% |
-| admin/banner-crud | 4 | 2 | 0 | 2 | 100% |
-| admin/schedule-crud | 3 | 1 | 0 | 2 | 100% |
-| admin/youtube-crud | 3 | 1 | 0 | 2 | 100% |
-| admin/chat-analysis | 7 | 7 | 0 | 0 | 100% |
-| admin/trends | 4 | 4 | 0 | 0 | 100% |
-| **합계** | **73** | **64** | **0** | **9** | **100%** |
+| 파일 | 전체 | 통과 | 실패 | 스킵 | 진행률 | 최종 실행 |
+|------|------|------|------|------|--------|----------|
+| auth/login | 7 | 7 | 0 | 0 | 100% | 2026-03-26 |
+| auth/token-refresh | 2 | 2 | 0 | 0 | 100% | 2026-03-26 |
+| home/home | 5 | 5 | 0 | 0 | 100% | 2026-03-26 |
+| community/post-crud | 5 | 4 | 0 | 1 | 100% | 2026-03-26 |
+| community/vote | 5 | 5 | 0 | 0 | 100% | 2026-03-26 |
+| community/filter-sort | 4 | 4 | 0 | 0 | 100% | 2026-03-26 |
+| community/search | 3 | 3 | 0 | 0 | 100% | 2026-03-26 |
+| shop/product-list | 5 | 5 | 0 | 0 | 100% | 2026-03-26 |
+| shop/product-detail | 4 | 3 | 0 | 1 | 100% | 2026-03-26 |
+| shop/cart | 4 | 3 | 0 | 1 | 100% | 2026-03-26 |
+| mypage/mypage | 5 | 3 | 0 | 2 | 100% | 2026-03-26 |
+| admin/guard | 3 | 3 | 0 | 0 | 100% | 2026-03-26 |
+| admin/banner-crud | 4 | 1 | 0 | 3 | 100% | 2026-03-26 |
+| admin/schedule-crud | 3 | 1 | 0 | 2 | 100% | 2026-03-26 |
+| admin/youtube-crud | 3 | 1 | 0 | 2 | 100% | 2026-03-26 |
+| admin/chat-analysis | 7 | 7 | 0 | 0 | 100% | 2026-03-26 |
+| admin/trends | 4 | 4 | 0 | 0 | 100% | 2026-03-26 |
+| **합계** | **73** | **61** | **0** | **12** | **100%** | **2026-03-26** |
 
 #### 분석 서비스 단위 테스트 (pytest)
 
@@ -322,12 +323,13 @@ npm run test:headed               # 브라우저 보이며 실행
 
 ### 알려진 버그
 
-| 항목 | 파일 | 내용 |
-|------|------|------|
-| mock 동영상 음수 view_count | `analysis/services/youtube_collector.py` | `_MOCK_VIDEOS` 생성식에서 `(10 - i) * 1_000_000`이 `i >= 11` (index 10부터)일 때 음수 값 생성. 실제 API 사용 시 문제없으나 mock 데이터 시각화 오류 유발 가능 |
-| `/api/v1/auth/me` 500 오류 | `backend/` 컨테이너 | Phase 11에서 `me()` 엔드포인트 추가 후 `docker-compose build --no-cache backend` 미실행 — 컨테이너에 최신 코드 미반영. `docker-compose build --no-cache backend && docker-compose up -d backend`로 해결 가능 |
-| test_trends.py pytest-asyncio 오류 | `analysis/tests/test_trends.py` | `client` fixture가 `@pytest.fixture`로 선언되어 pytest-asyncio 1.3.0 strict mode에서 인식 불가. `@pytest_asyncio.fixture`로 변경 필요 |
-| Kakao/Naver OAuth2 redirect_uri 불일치 | `backend/` application config | Kakao/Naver callback redirect_uri가 `http://localhost:8080/...`으로 Nginx를 거치지 않음. Google처럼 `http://localhost/login/oauth2/code/{provider}`로 통일 권장 |
+| 항목 | 파일 | 내용 | 상태 |
+|------|------|------|------|
+| mock 동영상 음수 view_count | `analysis/services/youtube_collector.py` | `_MOCK_VIDEOS` 생성식에서 `(10 - i) * 1_000_000`이 `i >= 11` 시 음수 생성 | ✅ 수정 완료 (2026-03-26) |
+| `/api/v1/auth/me` 500 오류 | `backend/` 컨테이너 | Phase 11에서 `me()` 엔드포인트 추가 후 컨테이너 미반영 | ✅ 수정 완료 |
+| test_trends.py pytest-asyncio 오류 | `analysis/tests/test_trends.py` | `client` fixture가 `@pytest.fixture`로 선언되어 strict mode에서 인식 불가 | ✅ 수정 완료 (2026-03-27) |
+| test_keywords_merged_scores 비결정적 실패 | `analysis/tests/test_trends.py` | 실제 YouTube API 키가 설정된 환경에서 "AI"가 트렌딩 상위 30개에 미포함 시 실패 | ✅ 수정 완료 (2026-03-27) |
+| Kakao/Naver OAuth2 redirect_uri 불일치 | `backend/` application config | Kakao/Naver callback redirect_uri가 `http://localhost:8080/...`으로 Nginx를 거치지 않음 | ⚠️ 미해결 (실제 앱 등록 시 수정 필요) |
 
 ---
 
@@ -556,3 +558,58 @@ YOUTUBE_API_KEY=실제키
 |---|---|---|---|
 | 16.5.1 | 로그인된 상태에서 Header 확인 | Google One Tap "E" 버튼 없음 | ✅ |
 | 16.5.2 | Response Header 확인 | Permissions-Policy: identity-credentials-get=() 포함 | ✅ |
+
+---
+
+## Phase 17 — pytest 분석 서비스 버그 수정 (2026-03-27)
+
+### 17.1 pytest-asyncio strict mode 수정
+
+| # | 항목 | 수정 내용 | 상태 |
+|---|------|-----------|------|
+| 1 | `test_trends.py` fixture 오류 (9건) | `@pytest.fixture` → `@pytest_asyncio.fixture`, `import pytest_asyncio` 추가 | ✅ |
+| 2 | `test_keywords_merged_scores` 비결정적 실패 | 실제 API 키 환경에서도 mock 강제 적용 (`patch` 추가) | ✅ |
+
+### 17.2 E2E admin CRUD 안정화 (2026-03-26 세션)
+
+| # | 항목 | 수정 내용 | 상태 |
+|---|------|-----------|------|
+| 1 | 배너/스케줄/YouTube admin CRUD 전체 스킵 | admin layout `_hasHydrated` 가드 대기: `waitForSelector('h2, [role="main"] button', { timeout: 8000 })` 추가 | ✅ |
+| 2 | 배너/스케줄/YouTube 수정·삭제 DB 의존 제거 | seed 데이터 직접 생성 후 수정/삭제하는 체인 패턴으로 변경 | ✅ |
+| 3 | 커뮤니티 검색 후 TypeError 크래시 | `community` 필드 null 체크 (`?? ''`) 추가, `communityStore` mapping 수정 | ✅ |
+| 4 | 글 작성 멤버십 체크 오류 | `joinedCommunities` in-memory 전용 — 로그인 후에도 미가입 판정으로 dialog 미닫힘. 체크 로직 제거 | ✅ |
+
+### 17.3 최종 테스트 결과
+
+| 계층 | 이전 | 현재 | 비고 |
+|------|------|------|------|
+| **E2E (Playwright)** | 61 passed / 12 skipped / 0 failed | 61 passed / 12 skipped / 0 failed | 2026-03-26 기준 |
+| **pytest (analysis)** | 39 passed / 9 errors | **48 passed / 0 errors** | 2026-03-27 기준 |
+| **Unit (Jest)** | 5 suites / all passed | 5 suites / all passed | |
+| **Integration (JUnit)** | 19 tests / all passed | 19 tests / all passed | |
+
+---
+
+## Phase 20 — 쇼핑몰 관리자 기능
+
+| # | 테스트 | 상태 |
+|---|--------|------|
+| 20-1 | 상품 추가 폼 열기 및 필수 필드 검증 | ❌ 미구현 |
+| 20-2 | 상품 추가 후 목록에 반영 | ❌ 미구현 |
+| 20-3 | 상품 수정 | ❌ 미구현 |
+| 20-4 | 상품 삭제 확인 | ❌ 미구현 |
+| 20-5 | 품절 토글 | ❌ 미구현 |
+| 20-6 | Q&A 목록 조회 | ❌ 미구현 |
+| 20-7 | Q&A 답변 작성 | ❌ 미구현 |
+| 20-8 | 리뷰 목록 조회 | ❌ 미구현 |
+| 20-9 | 리뷰 숨기기/표시 | ❌ 미구현 |
+
+## Phase 21 — 메인 페이지 개선
+
+| # | 테스트 | 상태 |
+|---|--------|------|
+| 21-1 | 방송일정 이전 달 이동 후 달력 날짜 변경 확인 | ❌ 미구현 |
+| 21-2 | 방송일정 다음 달 이동 | ❌ 미구현 |
+| 21-3 | 광고 사이드바 표시 확인 | ❌ 미구현 |
+| 21-4 | 광고 사이드바 X 버튼 클릭 시 닫기 | ❌ 미구현 |
+| 21-5 | 광고 닫기 후 새로고침해도 닫힌 상태 유지 | ❌ 미구현 |

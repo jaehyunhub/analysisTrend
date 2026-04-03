@@ -34,7 +34,11 @@ def _parse_minute_key(timestamp: str) -> str:
 class ChatAnalyzer:
     """채팅 데이터를 분석하여 히트맵, 피크 구간, 키워드 타임라인을 생성합니다."""
 
-    async def analyze(self, raw_data: list[dict[str, Any]]) -> ChatAnalysisResult:
+    async def analyze(
+        self,
+        raw_data: list[dict[str, Any]],
+        search_keywords: list[str] | None = None,
+    ) -> ChatAnalysisResult:
         if not raw_data:
             return ChatAnalysisResult(
                 session_id=str(uuid.uuid4()),
@@ -47,15 +51,26 @@ class ChatAnalyzer:
 
         heatmap = self._build_heatmap(raw_data)
         peaks = self._detect_peaks(heatmap)
-        keywords = self._extract_keywords(raw_data)
-        timelines = self._build_keyword_timelines(raw_data, keywords)
+        extracted = self._extract_keywords(raw_data)
+
+        # 사용자 검색 키워드를 앞에 배치하고 자동 추출 키워드로 채움 (중복 제거)
+        search_kws = [k for k in (search_keywords or []) if k]
+        merged = list(dict.fromkeys(search_kws + extracted))
+
+        timelines = self._build_keyword_timelines(raw_data, merged[:30])
+
+        # top_keywords: 검색 키워드 우선 + 나머지 자동 추출
+        top_keywords = list(dict.fromkeys(search_kws + extracted))[:20]
+
+        # 각 피크 구간에 해당 시간대 주요 키워드 할당
+        peaks = self._assign_peak_keywords(raw_data, peaks, top_keywords)
 
         return ChatAnalysisResult(
             session_id=str(uuid.uuid4()),
             total_messages=len(raw_data),
             heatmap=heatmap,
             peaks=peaks,
-            top_keywords=keywords,
+            top_keywords=top_keywords,
             keyword_timelines=timelines,
         )
 
@@ -147,14 +162,31 @@ class ChatAnalyzer:
                     counter[token] += 1
         return [word for word, _ in counter.most_common(top_n)]
 
+    def _assign_peak_keywords(
+        self, records: list[dict], peaks: list[PeakSegment], keywords: list[str]
+    ) -> list[PeakSegment]:
+        """각 피크 구간에 해당 시간대에서 가장 많이 등장한 키워드를 할당."""
+        if not keywords:
+            return peaks
+        for peak in peaks:
+            counter: Counter = Counter()
+            for r in records:
+                key = _parse_minute_key(r.get("timestamp", ""))
+                if peak.start <= key <= peak.end:
+                    msg = r.get("message", "").lower()
+                    for kw in keywords:
+                        if kw.lower() in msg:
+                            counter[kw] += 1
+            peak.keywords = [kw for kw, _ in counter.most_common(5)]
+        return peaks
+
     def _build_keyword_timelines(
         self, records: list[dict], keywords: list[str]
     ) -> list[KeywordTimeline]:
-        """키워드별 분당 언급 횟수 시계열 생성."""
+        """키워드별 분당 언급 횟수 시계열 + 등장 타임스탬프 목록 생성."""
         if not keywords:
             return []
 
-        # 분 단위 버킷 생성
         timeline_data: dict[str, dict[str, int]] = {kw: defaultdict(int) for kw in keywords}
 
         for r in records:
@@ -164,7 +196,6 @@ class ChatAnalyzer:
                 if kw.lower() in msg:
                     timeline_data[kw][minute_key] += 1
 
-        # 타임라인 결과 구성
         all_keys = sorted({
             _parse_minute_key(r.get("timestamp", ""))
             for r in records
@@ -176,6 +207,8 @@ class ChatAnalyzer:
                 HeatmapBucket(timestamp=k, count=timeline_data[kw].get(k, 0), normalized=0.0)
                 for k in all_keys
             ]
-            result.append(KeywordTimeline(keyword=kw, timeline=buckets))
+            # 키워드가 실제로 등장한 분 단위 타임스탬프만 수집
+            timestamps = [k for k in all_keys if timeline_data[kw].get(k, 0) > 0]
+            result.append(KeywordTimeline(keyword=kw, timeline=buckets, timestamps=timestamps))
 
         return result

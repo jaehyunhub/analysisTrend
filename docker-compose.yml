@@ -80,7 +80,6 @@ services:
       args:
         - NEXT_PUBLIC_API_URL=http://localhost
         - NEXT_PUBLIC_ANALYSIS_URL=http://localhost
-        - NEXT_PUBLIC_USE_MOCK=false
     container_name: analysis_trend_frontend
     expose:
       - "3000"

@@ -60,9 +60,23 @@ async function globalSetup(config: FullConfig) {
     const resolvedRole = data.role || role;
     const resolvedNickname = data.nickname || nickname;
 
+    // /auth/me 호출로 실제 DB user ID 취득 (id: 0 하드코딩 방지)
+    let userId = 0;
+    try {
+      const meRes = await fetch(`${baseURL}/api/v1/auth/me`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (meRes.ok) {
+        const meJson = await meRes.json() as { data: { id: number } };
+        userId = meJson.data.id;
+      }
+    } catch {
+      // fallback: id=0 유지
+    }
+
     // Zustand auth-storage에 저장될 user 객체 구성
     const user = {
-      id: 0,
+      id: userId,
       email: data.email || email,
       nickname: resolvedNickname,
       role: resolvedRole,

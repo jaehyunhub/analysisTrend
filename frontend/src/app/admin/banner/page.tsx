@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { apiGet, apiPost, apiPut, apiDelete, apiPatch } from '@/shared/api/client';
 import { BANNERS } from '@/shared/api/endpoints';
+import { useToastStore } from '@/shared/model/toastStore';
 
 interface Banner {
   id: number;
@@ -21,6 +22,9 @@ export default function BannerManagement() {
   const [editTarget, setEditTarget] = useState<Banner | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [isLoading, setIsLoading] = useState(true);
+  const [imageInputMode, setImageInputMode] = useState<'url' | 'file'>('url');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const addToast = useToastStore((s) => s.addToast);
 
   const load = async () => {
     try {
@@ -38,13 +42,26 @@ export default function BannerManagement() {
   const openCreate = () => {
     setEditTarget(null);
     setForm(EMPTY_FORM);
+    setImageInputMode('url');
     setIsFormOpen(true);
   };
 
   const openEdit = (banner: Banner) => {
     setEditTarget(banner);
     setForm({ title: banner.title, subtitle: banner.subtitle, imageUrl: banner.imageUrl, active: banner.active, displayOrder: banner.displayOrder });
+    setImageInputMode(banner.imageUrl?.startsWith('data:') ? 'file' : 'url');
     setIsFormOpen(true);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const base64 = ev.target?.result as string;
+      setForm(f => ({ ...f, imageUrl: base64 }));
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
@@ -59,6 +76,7 @@ export default function BannerManagement() {
       setIsFormOpen(false);
     } catch (e) {
       console.error(e);
+      addToast('저장에 실패했습니다. 이미지 파일이 너무 크거나 네트워크 오류입니다.', 'error');
     }
   };
 
@@ -85,7 +103,7 @@ export default function BannerManagement() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold dark:text-white">메인 배너 관리</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">메인 배너 관리</h2>
           <p className="text-gray-500 dark:text-gray-400 text-sm">메인 페이지 히어로 배너를 관리합니다.</p>
         </div>
         <button
@@ -98,7 +116,7 @@ export default function BannerManagement() {
 
       {isFormOpen && (
         <div className="bg-white dark:bg-[#1A1A1B] p-6 rounded-2xl border border-gray-200 dark:border-[#343536] shadow-sm">
-          <h3 className="font-bold mb-4 dark:text-white">{editTarget ? '배너 수정' : '배너 추가'}</h3>
+          <h3 className="font-bold mb-4 text-gray-900 dark:text-white">{editTarget ? '배너 수정' : '배너 추가'}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-xs font-bold text-gray-400 mb-1">제목 *</label>
@@ -106,7 +124,7 @@ export default function BannerManagement() {
                 type="text"
                 value={form.title}
                 onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none"
                 placeholder="배너 제목 입력..."
               />
             </div>
@@ -116,27 +134,96 @@ export default function BannerManagement() {
                 type="text"
                 value={form.subtitle}
                 onChange={e => setForm(f => ({ ...f, subtitle: e.target.value }))}
-                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none"
                 placeholder="설명 입력..."
               />
             </div>
+
+            {/* 이미지 — URL 또는 파일 첨부 */}
             <div className="md:col-span-2">
-              <label className="block text-xs font-bold text-gray-400 mb-1">이미지 URL / CSS 클래스</label>
-              <input
-                type="text"
-                value={form.imageUrl}
-                onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))}
-                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                placeholder="https://... 또는 bg-gradient-to-r from-blue-900..."
-              />
+              <label className="block text-xs font-bold text-gray-400 mb-2">이미지</label>
+              <div className="flex gap-2 mb-2">
+                <button
+                  type="button"
+                  onClick={() => setImageInputMode('url')}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${imageInputMode === 'url' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-[#272729] text-gray-500 dark:text-gray-400 border-gray-300 dark:border-[#343536] hover:border-blue-400'}`}
+                >
+                  URL 직접 입력
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageInputMode('file')}
+                  className={`flex-1 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${imageInputMode === 'file' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white dark:bg-[#272729] text-gray-500 dark:text-gray-400 border-gray-300 dark:border-[#343536] hover:border-blue-400'}`}
+                >
+                  파일 직접 첨부
+                </button>
+              </div>
+
+              {imageInputMode === 'url' ? (
+                <input
+                  type="text"
+                  value={form.imageUrl}
+                  onChange={e => setForm(f => ({ ...f, imageUrl: e.target.value }))}
+                  className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none"
+                  placeholder="https://... 또는 bg-gradient-to-r from-blue-900..."
+                />
+              ) : (
+                <div
+                  className="w-full p-4 rounded-lg border border-dashed border-gray-300 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] cursor-pointer hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors flex items-center gap-3"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <svg className="w-6 h-6 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {form.imageUrl && form.imageUrl.startsWith('data:') ? '이미지 선택됨 — 클릭하여 변경' : '이미지 파일 선택 (JPG, PNG, GIF, WebP)'}
+                  </span>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </div>
+              )}
+
+              {/* 이미지 미리보기 */}
+              {form.imageUrl && (
+                <div className="mt-3 relative rounded-xl overflow-hidden border border-gray-200 dark:border-[#343536]">
+                  {form.imageUrl.startsWith('http') || form.imageUrl.startsWith('data:') ? (
+                    <img
+                      src={form.imageUrl}
+                      alt="배너 미리보기"
+                      className="w-full h-40 object-cover"
+                    />
+                  ) : (
+                    <div className={`w-full h-40 flex items-center justify-center text-white text-sm font-bold ${form.imageUrl}`}>
+                      [CSS 배경 미리보기]
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, imageUrl: '' }))}
+                    className="absolute top-2 right-2 w-7 h-7 bg-black/60 text-white rounded-full text-sm flex items-center justify-center hover:bg-black/80 font-bold"
+                  >
+                    ×
+                  </button>
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent px-3 py-2">
+                    <p className="text-white text-xs font-semibold">{form.title || '배너 제목'}</p>
+                    {form.subtitle && <p className="text-white/80 text-[10px]">{form.subtitle}</p>}
+                  </div>
+                </div>
+              )}
             </div>
+
             <div>
               <label className="block text-xs font-bold text-gray-400 mb-1">표시 순서</label>
               <input
                 type="number"
                 value={form.displayOrder}
                 onChange={e => setForm(f => ({ ...f, displayOrder: Number(e.target.value) }))}
-                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
             <div className="flex items-center gap-3 pt-5">
@@ -165,14 +252,14 @@ export default function BannerManagement() {
         ) : banners.map((banner) => (
           <div key={banner.id} className="bg-white dark:bg-[#1A1A1B] p-4 rounded-xl border border-gray-200 dark:border-[#343536] flex flex-col md:flex-row gap-4 items-center">
             <div className="w-full md:w-48 h-24 rounded-lg flex-shrink-0 flex items-center justify-center text-white text-xs bg-gradient-to-r from-blue-900 to-purple-900 overflow-hidden">
-              {banner.imageUrl?.startsWith('http') ? (
+              {banner.imageUrl?.startsWith('http') || banner.imageUrl?.startsWith('data:') ? (
                 <img src={banner.imageUrl} alt={banner.title} className="w-full h-full object-cover" />
               ) : (
                 <span className={`w-full h-full flex items-center justify-center ${banner.imageUrl}`}>[미리보기]</span>
               )}
             </div>
             <div className="flex-1 text-center md:text-left">
-              <h3 className="font-bold text-lg dark:text-white">{banner.title}</h3>
+              <h3 className="font-bold text-lg text-gray-900 dark:text-white">{banner.title}</h3>
               <p className="text-sm text-gray-500 dark:text-gray-400">{banner.subtitle}</p>
               <p className="text-xs text-gray-400 mt-1">순서: {banner.displayOrder}</p>
             </div>

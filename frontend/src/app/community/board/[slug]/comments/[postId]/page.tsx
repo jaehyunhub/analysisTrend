@@ -3,9 +3,9 @@
 import { useParams } from 'next/navigation';
 import Header from "@/widgets/Header/ui/Header";
 import Sidebar from "@/widgets/Sidebar/ui/Sidebar";
-import PostCard from "@/entities/post/ui/PostCard";
 import Link from "next/link";
 import { useState } from 'react';
+import { useCommunityStore } from "@/shared/model/communityStore";
 
 export default function PostDetailPage() {
   const params = useParams();
@@ -13,17 +13,27 @@ export default function PostDetailPage() {
   const postId = params.postId as string;
   const communityName = `r/${slug}`;
 
-  // Mock Post Data
-  const post = {
-      id: postId,
-      subreddit: slug,
-      author: "trend_master",
-      timeAgo: "2 hours ago",
-      title: "Exploring the new specific trend analysis algorithm",
-      content: "I've been working on a new way to analyze YouTube trends using a combination of NLP and time-series forecasting. The results show a significant improvement in predicting viral content before it peaks. I utilized the Youtube Data API to gather datasets from top 100 channels in tech category.",
-      upvotes: 1200,
-      comments: 89,
-      videoUrl: mockVideoUrl // Placeholder if needed
+  const { posts: allPosts } = useCommunityStore();
+  const foundPost = allPosts.find(p => p.id === Number(postId));
+
+  const post = foundPost ? {
+    id: String(foundPost.id),
+    subreddit: foundPost.community,
+    author: foundPost.author,
+    timeAgo: new Date(foundPost.createdAt).toLocaleString('ko-KR'),
+    title: foundPost.title,
+    content: foundPost.content,
+    upvotes: foundPost.upvotes,
+    comments: foundPost.commentCount,
+  } : {
+    id: postId,
+    subreddit: slug,
+    author: "trend_master",
+    timeAgo: "2 hours ago",
+    title: "Exploring the new specific trend analysis algorithm",
+    content: "I've been working on a new way to analyze YouTube trends using a combination of NLP and time-series forecasting. The results show a significant improvement in predicting viral content before it peaks. I utilized the Youtube Data API to gather datasets from top 100 channels in tech category.",
+    upvotes: 1200,
+    comments: 89,
   };
 
   const [commentText, setCommentText] = useState('');
@@ -66,7 +76,7 @@ export default function PostDetailPage() {
                          <div className="flex-1 p-4">
                              {/* Header */}
                              <div className="flex items-center text-xs text-gray-500 mb-2 gap-1">
-                                 <Link href={`/community/board/${post.subreddit}`} className="font-bold text-[#1C1C1C] dark:text-[#D7DADC] hover:underline">{post.subreddit}</Link>
+                                 <Link href={`/community/board/${encodeURIComponent(post.subreddit)}`} className="font-bold text-[#1C1C1C] dark:text-[#D7DADC] hover:underline">{post.subreddit}</Link>
                                  <span>•</span>
                                  <span>Posted by u/{post.author}</span>
                                  <span>{post.timeAgo}</span>
@@ -205,5 +215,3 @@ export default function PostDetailPage() {
     </div>
   );
 }
-// Placeholder
-const mockVideoUrl = '';

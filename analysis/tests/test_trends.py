@@ -1,5 +1,6 @@
 """트렌드 수집 서비스 및 API 엔드포인트 테스트"""
 import pytest
+import pytest_asyncio
 from unittest.mock import AsyncMock, patch
 from httpx import AsyncClient, ASGITransport
 from main import app
@@ -90,7 +91,7 @@ async def test_youtube_collector_fallback_on_api_error():
 
 # ─── 트렌드 API 엔드포인트 통합 테스트 ─────────────────────────────────────
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def client():
     """FastAPI TestClient (ASGI Transport)."""
     transport = ASGITransport(app=app)
@@ -190,10 +191,18 @@ async def test_keywords_endpoint_rank_order(client):
 @pytest.mark.asyncio
 async def test_keywords_merged_scores(client):
     """GET /trends/keywords — 뉴스+YouTube 공통 키워드 점수가 합산된다."""
-    response = await client.get("/trends/keywords?limit=30")
+    # 실제 API 키 여부와 무관하게 결정적 결과를 보장하기 위해 mock 강제 사용
+    with patch("services.news_collector.settings") as mock_ns, \
+         patch("services.youtube_collector.settings") as mock_ys, \
+         patch("routers.trends.cache_get", new=AsyncMock(return_value=None)), \
+         patch("routers.trends.cache_set", new=AsyncMock()):
+        mock_ns.naver_client_id = ""
+        mock_ns.naver_client_secret = ""
+        mock_ys.youtube_api_key = ""
+        response = await client.get("/trends/keywords?limit=30")
     assert response.status_code == 200
     items = response.json()
-    # "AI"는 뉴스(1.0) + YouTube 합산이므로 1.0 초과여야 함
+    # "AI"는 뉴스 mock(1.0) + YouTube mock 태그 합산이므로 1.0 초과여야 함
     ai_item = next((i for i in items if i["keyword"] == "AI"), None)
     assert ai_item is not None
     assert ai_item["score"] > 1.0

@@ -21,6 +21,7 @@ class KeywordTimeline(BaseModel):
     """키워드별 시간 흐름 데이터"""
     keyword: str
     timeline: List[HeatmapBucket]   # 시간대별 해당 키워드 언급 수
+    timestamps: List[str] = []      # 키워드가 등장한 분 단위 타임스탬프 목록 (예: ["00:05", "01:23"])
 
 
 class ChatAnalysisResult(BaseModel):

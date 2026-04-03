@@ -79,11 +79,6 @@ export default function CreatePostModal() {
       return;
     }
 
-    if (!isMember(selectedCommunity)) {
-      toastError(`'${selectedCommunity}' 커뮤니티에 먼저 가입해주세요.`);
-      return;
-    }
-
     const { user } = useAuthStore.getState();
     const newPost = {
       id: Date.now(),

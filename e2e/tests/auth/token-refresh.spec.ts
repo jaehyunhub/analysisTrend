@@ -49,12 +49,15 @@ test.describe('AUTH — 토큰 갱신', () => {
 
     // 인증이 필요한 API 유발
     await page.goto('/mypage');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('networkidle', { timeout: 10000 }).catch(() => {});
+    // refresh 실패 후 로그아웃 처리 및 리다이렉트 완료 대기
+    await page.waitForTimeout(3000);
 
     // 로그아웃 처리 → 로그인 버튼 표시 또는 리다이렉트
-    const isRedirected = page.url().includes('/') && !page.url().includes('/mypage');
+    const currentUrl = page.url();
+    const isRedirected = !currentUrl.includes('/mypage');
     const loginButton = page.getByRole('button', { name: /^(로그인|Log In)$/i });
-    const loginButtonVisible = await loginButton.isVisible().catch(() => false);
+    const loginButtonVisible = await loginButton.isVisible({ timeout: 3000 }).catch(() => false);
 
     expect(isRedirected || loginButtonVisible).toBeTruthy();
   });

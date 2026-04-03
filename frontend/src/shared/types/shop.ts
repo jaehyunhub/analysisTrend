@@ -1,13 +1,22 @@
+export type DetailBlock =
+  | { type: 'image'; url: string }
+  | { type: 'text'; content: string };
+
 export interface Product {
   id: number;
   name: string;
   price: number;
   originalPrice?: number;
   discount?: number;
+  discountRate?: number;
   category: string;
-  image: string;
+  image?: string;
+  imageUrl?: string;
   badge?: string;
   isSoldOut: boolean;
+  soldOut?: boolean;
+  description?: string;
+  detailContent?: string;
   rating?: number;
   reviewCount?: number;
 }
