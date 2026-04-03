@@ -3,30 +3,38 @@
 import { useState, useEffect, useCallback } from 'react';
 import { analysisGet } from '@/shared/api/client';
 
-interface TrendKeyword { keyword: string; score: number; source: string; rank?: number; }
+interface TrendKeyword { keyword: string; score: number; source: string; rank?: number; link?: string; }
 interface TrendingVideo {
   video_id: string; title: string; channel_title: string;
   view_count: number; thumbnail_url?: string; published_at: string; tags: string[];
+}
+interface NewsArticle {
+  title: string; description: string; link: string;
+  original_link?: string; pub_date: string; source: string;
 }
 
 export default function TrendsContent() {
   const [activeTab, setActiveTab] = useState<'keywords' | 'videos' | 'news'>('keywords');
   const [region, setRegion] = useState('KR');
   const [category, setCategory] = useState('0');
+  const [dateFilter, setDateFilter] = useState<'day' | 'week' | 'month'>('day');
   const [keywords, setKeywords] = useState<TrendKeyword[]>([]);
   const [videos, setVideos] = useState<TrendingVideo[]>([]);
+  const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string>('–');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [kws, vids] = await Promise.all([
+      const [kws, vids, arts] = await Promise.all([
         analysisGet<TrendKeyword[]>('/trends/news', { limit: '20' }),
         analysisGet<TrendingVideo[]>('/trends/youtube', { region, category, limit: '20' }),
+        analysisGet<NewsArticle[]>('/trends/news/articles', { limit: '20' }),
       ]);
       setKeywords(kws);
       setVideos(vids);
+      setArticles(arts);
       setLastUpdated(new Date().toLocaleString('ko-KR'));
     } catch {
       // API 미연결 시 빈 배열 유지
@@ -44,7 +52,7 @@ export default function TrendsContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-2xl font-bold dark:text-white">트렌드 분석</h2>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">트렌드 분석</h2>
             <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full font-bold">LIVE</span>
           </div>
           <p className="text-gray-500 dark:text-gray-400 text-sm">실시간 뉴스 키워드 · YouTube 급상승 · 콘텐츠 인사이트 — 마지막 업데이트: {lastUpdated}</p>
@@ -136,11 +144,20 @@ export default function TrendsContent() {
                   <div className="flex flex-wrap gap-2 p-4 bg-gray-50 dark:bg-[#111] rounded-xl min-h-[120px]" data-testid="news-keywords">
                     {keywords.map((kw, i) => {
                       const size = i < 5 ? 'text-lg font-black' : i < 10 ? 'text-base font-bold' : 'text-sm font-semibold';
-                      const color = 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-600';
+                      const color = 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-300 dark:hover:border-blue-700 hover:text-blue-700 dark:hover:text-blue-300';
+                      const href = kw.link ?? `https://search.naver.com/search.naver?where=news&query=${encodeURIComponent(kw.keyword)}`;
                       return (
-                        <button key={kw.keyword} data-testid="keyword-item" className={`${size} ${color} border px-3 py-1.5 rounded-full hover:scale-105 transition-transform cursor-pointer`}>
+                        <a
+                          key={kw.keyword}
+                          data-testid="keyword-item"
+                          href={href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`${kw.keyword} 뉴스 검색`}
+                          className={`${size} ${color} border px-3 py-1.5 rounded-full hover:scale-105 transition-transform cursor-pointer`}
+                        >
                           {kw.keyword}
-                        </button>
+                        </a>
                       );
                     })}
                   </div>
@@ -157,16 +174,42 @@ export default function TrendsContent() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                        {keywords.map((kw, i) => (
-                          <tr key={kw.keyword} className="hover:bg-gray-50 dark:hover:bg-[#272729]">
-                            <td className="py-3 px-2">
-                              <span className={`text-sm font-black ${i < 3 ? 'text-yellow-500' : 'text-gray-700 dark:text-gray-400'}`}>#{(kw.rank ?? i + 1)}</span>
-                            </td>
-                            <td className="py-3 px-2 font-semibold text-gray-900 dark:text-white">{kw.keyword}</td>
-                            <td className="py-3 px-2 text-right text-gray-700 dark:text-gray-300">{kw.score.toFixed(3)}</td>
-                            <td className="py-3 px-2 text-right text-xs text-gray-600 dark:text-gray-300">{kw.source}</td>
-                          </tr>
-                        ))}
+                        {keywords.map((kw, i) => {
+                          const searchHref = kw.link ?? `https://search.naver.com/search.naver?where=news&query=${encodeURIComponent(kw.keyword)}`;
+                          return (
+                            <tr key={kw.keyword} className="hover:bg-gray-50 dark:hover:bg-[#272729]">
+                              <td className="py-3 px-2">
+                                <span className={`text-sm font-black ${i < 3 ? 'text-yellow-500' : 'text-gray-700 dark:text-gray-400'}`}>#{(kw.rank ?? i + 1)}</span>
+                              </td>
+                              <td className="py-3 px-2 font-semibold text-gray-900 dark:text-white">
+                                <a
+                                  href={searchHref}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label={`${kw.keyword} 뉴스 검색`}
+                                  className="hover:text-blue-600 dark:hover:text-blue-400 hover:underline transition-colors"
+                                >
+                                  {kw.keyword}
+                                </a>
+                              </td>
+                              <td className="py-3 px-2 text-right text-gray-700 dark:text-gray-300">{kw.score.toFixed(3)}</td>
+                              <td className="py-3 px-2 text-right text-xs text-gray-600 dark:text-gray-300">
+                                <a
+                                  href={searchHref}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  aria-label={`${kw.keyword} 뉴스 원문 열기`}
+                                  className="inline-flex items-center gap-1 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                >
+                                  {kw.source}
+                                  <svg className="w-3 h-3 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                </a>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -180,27 +223,47 @@ export default function TrendsContent() {
             <div role="tabpanel" aria-label="YouTube 트렌딩" className="space-y-5">
               <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
                 <h3 className="font-bold text-gray-900 dark:text-white">YouTube 급상승 동영상</h3>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 items-center">
+                  {/* 날짜 필터 */}
+                  <div className="flex rounded-xl overflow-hidden border border-gray-200 dark:border-[#343536]">
+                    {([
+                      { key: 'day', label: '일일' },
+                      { key: 'week', label: '일주일' },
+                      { key: 'month', label: '한달' },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.key}
+                        onClick={() => setDateFilter(opt.key)}
+                        className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                          dateFilter === opt.key
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 dark:bg-[#272729] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#343536]'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
                   <select
                     value={region}
                     onChange={e => setRegion(e.target.value)}
                     aria-label="국가 선택"
-                    className="bg-gray-100 dark:bg-[#272729] border-none text-xs font-bold rounded-xl px-3 py-2 outline-none dark:text-white cursor-pointer"
+                    className="bg-gray-100 dark:bg-[#272729] border-none text-xs font-bold rounded-xl px-3 py-2 outline-none text-gray-900 dark:text-white cursor-pointer"
                   >
-                    <option value="KR">🇰🇷 한국</option>
-                    <option value="US">🇺🇸 미국</option>
-                    <option value="JP">🇯🇵 일본</option>
+                    <option value="KR" className="text-gray-900 dark:text-white bg-white dark:bg-[#272729]">🇰🇷 한국</option>
+                    <option value="US" className="text-gray-900 dark:text-white bg-white dark:bg-[#272729]">🇺🇸 미국</option>
+                    <option value="JP" className="text-gray-900 dark:text-white bg-white dark:bg-[#272729]">🇯🇵 일본</option>
                   </select>
                   <select
                     value={category}
                     onChange={e => setCategory(e.target.value)}
                     aria-label="카테고리 선택"
-                    className="bg-gray-100 dark:bg-[#272729] border-none text-xs font-bold rounded-xl px-3 py-2 outline-none dark:text-white cursor-pointer"
+                    className="bg-gray-100 dark:bg-[#272729] border-none text-xs font-bold rounded-xl px-3 py-2 outline-none text-gray-900 dark:text-white cursor-pointer"
                   >
-                    <option value="0">전체</option>
-                    <option value="25">뉴스/정치</option>
-                    <option value="28">과학/기술</option>
-                    <option value="22">사람/블로그</option>
+                    <option value="0" className="text-gray-900 dark:text-white bg-white dark:bg-[#272729]">전체</option>
+                    <option value="25" className="text-gray-900 dark:text-white bg-white dark:bg-[#272729]">뉴스/정치</option>
+                    <option value="28" className="text-gray-900 dark:text-white bg-white dark:bg-[#272729]">과학/기술</option>
+                    <option value="22" className="text-gray-900 dark:text-white bg-white dark:bg-[#272729]">사람/블로그</option>
                   </select>
                 </div>
               </div>
@@ -211,7 +274,15 @@ export default function TrendsContent() {
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">데이터가 없습니다. (분석 서비스 연결 확인)</div>
               ) : (
                 <div className="space-y-3" data-testid="youtube-trending">
-                  {videos.map((video, i) => (
+                  {(() => {
+                    const now = new Date();
+                    const cutoff = new Date(now);
+                    if (dateFilter === 'day') cutoff.setDate(now.getDate() - 1);
+                    else if (dateFilter === 'week') cutoff.setDate(now.getDate() - 7);
+                    else cutoff.setMonth(now.getMonth() - 1);
+                    const filtered = videos.filter((v) => new Date(v.published_at) >= cutoff);
+                    const display = filtered.length > 0 ? filtered : videos;
+                    return [...display].sort((a, b) => b.view_count - a.view_count).map((video, i) => (
                     <a
                       key={video.video_id}
                       data-testid="video-item"
@@ -236,11 +307,12 @@ export default function TrendsContent() {
                         <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">{video.channel_title}</p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="font-bold text-sm dark:text-white">{(video.view_count / 1000).toFixed(0)}K</p>
+                        <p className="font-bold text-sm text-gray-900 dark:text-white">{(video.view_count / 1000).toFixed(0)}K</p>
                         <span className="text-[10px] text-gray-500 dark:text-gray-400">{new Date(video.published_at).toLocaleDateString('ko-KR')}</span>
                       </div>
                     </a>
-                  ))}
+                  ));
+                  })()}
                 </div>
               )}
             </div>
@@ -250,26 +322,53 @@ export default function TrendsContent() {
           {activeTab === 'news' && (
             <div role="tabpanel" aria-label="뉴스 원문" className="space-y-5">
               <div className="flex justify-between items-center">
-                <h3 className="font-bold text-gray-900 dark:text-white">뉴스 키워드 심층 분석</h3>
-                <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg">분석 서비스 기반</span>
+                <h3 className="font-bold text-gray-900 dark:text-white">최신 뉴스 기사</h3>
+                <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg">네이버 뉴스 · 30분 갱신</span>
               </div>
 
               {loading ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">불러오는 중...</div>
-              ) : keywords.length === 0 ? (
+              ) : articles.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">데이터가 없습니다. (분석 서비스 연결 확인)</div>
               ) : (
                 <div className="space-y-3">
-                  {keywords.slice(0, 10).map((kw, i) => (
-                    <div key={kw.keyword} className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
-                      <span className={`text-base font-black w-8 text-center ${i < 3 ? 'text-yellow-500' : 'text-gray-700 dark:text-gray-400'}`} aria-hidden="true">#{(kw.rank ?? i + 1)}</span>
-                      <span className="font-bold text-gray-900 dark:text-white flex-1">{kw.keyword}</span>
-                      <div className="w-32 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden" role="progressbar" aria-valuenow={Math.min(kw.score * 100, 100)} aria-valuemin={0} aria-valuemax={100} aria-label={`점수 ${kw.score.toFixed(3)}`}>
-                        <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.min(kw.score * 100, 100)}%` }} />
+                  {articles.map((article, i) => (
+                    <a
+                      key={i}
+                      href={article.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-[#272729] hover:border-blue-200 dark:hover:border-blue-800 transition-all group"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center shrink-0 mt-0.5">
+                          <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                          </svg>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+                            {article.title}
+                          </p>
+                          {article.description && (
+                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                              {article.description}
+                            </p>
+                          )}
+                          <div className="flex items-center gap-2 mt-2">
+                            <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 px-2 py-0.5 rounded-md">
+                              {article.source}
+                            </span>
+                            <span className="text-xs text-gray-500 dark:text-gray-400">
+                              {article.pub_date ? new Date(article.pub_date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                            </span>
+                          </div>
+                        </div>
+                        <svg className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
                       </div>
-                      <span className="text-xs text-gray-500 dark:text-gray-300 w-16 text-right">{kw.score.toFixed(3)}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-lg">{kw.source}</span>
-                    </div>
+                    </a>
                   ))}
                 </div>
               )}

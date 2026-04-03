@@ -105,7 +105,8 @@ test.describe('ADMIN — 채팅 분석', () => {
     await chat.fileInput.setInputFiles(invalidPath);
     await chat.uploadButton.click();
 
+    // getByRole('alert')이 Next.js route announcer와 충돌하므로 first()로 한정
     const errorMsg = page.getByRole('alert').or(page.getByText(/오류|실패|잘못된 형식|지원하지 않는/i));
-    await expect(errorMsg).toBeVisible({ timeout: 10000 });
+    await expect(errorMsg.first()).toBeVisible({ timeout: 10000 });
   });
 });

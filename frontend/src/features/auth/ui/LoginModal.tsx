@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { apiPost } from '@/shared/api/client';
 import { AUTH } from '@/shared/api/endpoints';
 import { useAuthStore } from '@/shared/model/authStore';
+import { useToastStore } from '@/shared/model/toastStore';
 import type { User } from '@/shared/types';
 
 interface LoginModalProps {
@@ -13,6 +14,7 @@ interface LoginModalProps {
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [authView, setAuthView] = useState<'login' | 'signup'>('login');
+  const toastSuccess = useToastStore((state) => state.success);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -140,6 +142,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             };
             useAuthStore.getState().login(user, result.accessToken, result.refreshToken);
           }
+          toastSuccess('로그인 되었습니다.');
           onClose();
       } catch (err) {
           setError(err instanceof Error ? err.message : "로그인에 실패했습니다. 다시 시도해주세요.");
@@ -209,14 +212,14 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                                    placeholder="이메일"
                                    value={email}
                                    onChange={(e) => setEmail(e.target.value)}
-                                   className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-all"
+                                   className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                />
                                <input
                                    type="password"
                                    placeholder="비밀번호"
                                    value={password}
                                    onChange={(e) => setPassword(e.target.value)}
-                                   className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-all"
+                                   className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                />
                                <button
                                    type="submit"
@@ -285,21 +288,21 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                                     placeholder="이메일"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-all"
+                                    className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                 />
                                 <input
                                     type="text"
                                     placeholder="닉네임 (2~10자)"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-all"
+                                    className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                 />
                                 <input
                                     type="password"
                                     placeholder="비밀번호 (최소 8자)"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-all"
+                                    className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                 />
                                 <button
                                     type="submit"

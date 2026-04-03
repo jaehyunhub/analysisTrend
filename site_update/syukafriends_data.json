@@ -1,0 +1,393 @@
+{
+  "source": "https://syukafriends.kr",
+  "scraped_at": "2026-04-03",
+  "shop": {
+    "url": "https://syukafriends.kr/category/SHOP/42/",
+    "total_products": 3,
+    "products": [
+      {
+        "id": 40,
+        "name": "슈친상사 제주 흑돈&백돈 모음",
+        "price": 14900,
+        "status": "품절",
+        "description": "좋은 물건! 좋은 가격! 제주도가 키우고, 슈친 상사가 엄선했습니다!",
+        "url": "https://syukafriends.kr/product/슈친상사-제주-흑돈백돈-모음/40/",
+        "detail_text": "준비된 수량이 모두 소진되어 판매를 마감합니다.\n\"고기가 정말 맛있다\"는 고객님들의 생생한 리뷰 덕분에 큰 힘을 얻었습니다.\n더 완벽하게 준비해서, 조만간 다시 맛있는 고기로 인사드리겠습니다.",
+        "gallery_images": [
+          "https://syukafriends.kr/web/product/big/202601/7252a1098d5f032f0d7190bd7c58927c.png",
+          "https://syukafriends.kr/web/product/extra/big/202601/eabc0bc712ffecb42b2981493ba26169.png",
+          "https://syukafriends.kr/web/product/extra/big/202601/541aecc04e5d41f6b430187918b8369e.png",
+          "https://syukafriends.kr/web/product/extra/big/202601/3f6db72948c6b7c3d7456c62d5eb9bc6.png",
+          "https://syukafriends.kr/web/product/extra/big/202601/52402db682057bc0e20c86812a50144c.png",
+          "https://syukafriends.kr/web/product/extra/big/202601/82d59c99566cd1310462bea4c8a32714.jpg",
+          "https://syukafriends.kr/web/product/extra/big/202601/52a4d78dee76a8583067ede075ec8433.jpg",
+          "https://syukafriends.kr/web/product/extra/big/202601/a656c4698a45da7925276db059f72858.jpg",
+          "https://syukafriends.kr/web/product/extra/big/202601/a39693588a36129433c6137bd178930c.jpg"
+        ],
+        "detail_images": [
+          "https://syukafriends.kr/%EC%8A%88%EC%B9%9C%EC%83%81%EC%82%AC_%EB%8F%BC%EC%A7%80%EA%B3%A0%EA%B8%B0_%EC%B5%9C%EC%A2%85/A.png",
+          "https://syukafriends.kr/%EC%8A%88%EC%B9%9C%EC%83%81%EC%82%AC_%EB%8F%BC%EC%A7%80%EA%B3%A0%EA%B8%B0_%EC%B5%9C%EC%A2%85/B.png",
+          "https://syukafriends.kr/%EC%8A%88%EC%B9%9C%EC%83%81%EC%82%AC_%EB%8F%BC%EC%A7%80%EA%B3%A0%EA%B8%B0_%EC%B5%9C%EC%A2%85/D.png",
+          "https://syukafriends.kr/%EC%8A%88%EC%B9%9C%EC%83%81%EC%82%AC_%EB%8F%BC%EC%A7%80%EA%B3%A0%EA%B8%B0_%EC%B5%9C%EC%A2%85/E.png",
+          "https://syukafriends.kr/%EC%8A%88%EC%B9%9C%EC%83%81%EC%82%AC_%EB%8F%BC%EC%A7%80%EA%B3%A0%EA%B8%B0_%EC%B5%9C%EC%A2%85/F.png",
+          "https://syukafriends.kr/%EC%8A%88%EC%B9%9C%EC%83%81%EC%82%AC_%EB%8F%BC%EC%A7%80%EA%B3%A0%EA%B8%B0_%EC%B5%9C%EC%A2%85/G.png",
+          "https://syukafriends.kr/%EC%8A%88%EC%B9%9C%EC%83%81%EC%82%AC_%EB%8F%BC%EC%A7%80%EA%B3%A0%EA%B8%B0_%EC%B5%9C%EC%A2%85/H.png",
+          "https://syukafriends.kr/%EC%8A%88%EC%B9%9C%EC%83%81%EC%82%AC_%EB%8F%BC%EC%A7%80%EA%B3%A0%EA%B8%B0_%EC%B5%9C%EC%A2%85/I.png",
+          "https://syukafriends.kr/%EC%8A%88%EC%B9%9C%EC%83%81%EC%82%AC_%EB%8F%BC%EC%A7%80%EA%B3%A0%EA%B8%B0_%EC%B5%9C%EC%A2%85/J.png",
+          "https://syukafriends.kr/%EC%8A%88%EC%B9%9C%EC%83%81%EC%82%AC_%EB%8F%BC%EC%A7%80%EA%B3%A0%EA%B8%B0_%EC%B5%9C%EC%A2%85/K.png"
+        ],
+        "options": {
+          "required": [
+            { "name": "제주 흑돼지 오겹살 500g", "price_diff": 4400, "status": "available" },
+            { "name": "제주 흑돼지 목살 500g", "price_diff": 3600, "status": "품절" },
+            { "name": "제주 백돼지 오겹살 500g", "price_diff": 1000, "status": "품절" },
+            { "name": "제주 백돼지 삼겹살 500g", "price_diff": 0, "status": "available" },
+            { "name": "제주 백돼지 목살 500g", "price_diff": -2000, "status": "품절" }
+          ],
+          "optional": [
+            { "name": "삼겹살 찌개고기 500g (3000원 특가)", "price_diff": -11900, "status": "품절" }
+          ]
+        },
+        "shipping": {
+          "method": "택배",
+          "fee": 3000,
+          "period": "3일 ~ 7일",
+          "region": "전국지역",
+          "return_address": "[10844] 경기 파주시 월롱면 월롱초교길 64-30 품고 파주센터"
+        },
+        "stats": {
+          "reviews": 128,
+          "qna": 234
+        }
+      },
+      {
+        "id": 31,
+        "name": "[슈카친구들 X 오롬] 2026년 다이어리 세트 슈카 다이어리 (오롬 사이트에서도 구매 가능)",
+        "price": 33000,
+        "status": "품절",
+        "description": "",
+        "url": "https://syukafriends.kr/product/슈카친구들-x-오롬-2026년-다이어리-세트-슈카-다이어리-오롬-사이트에서도-구매-가능/31/",
+        "detail_text": "[공지사항]\n안녕하세요. 슈카친구들입니다.\n와인색은 품절되었습니다. 사랑해주셔서 감사합니다.",
+        "gallery_images": [
+          "https://syukafriends.kr/web/product/big/20251208/f5bd4b88a32d6f007fadededd8977379.png",
+          "https://syukafriends.kr/web/product/big/20251208/b70df59b933580f871fdfba6ce44c9d3.png"
+        ],
+        "detail_images": [
+          "https://syukafriends.kr/251212_%EC%8A%88%EC%B9%B4%EC%B9%9C%EA%B5%AC%EB%93%A4_%EC%98%A4%EB%A1%AC_%EB%8B%A4%EC%9D%B4%EC%96%B4%EB%A6%AC_%EC%83%81%EC%84%B8%ED%8E%98%EC%9D%B4%EC%A7%80.jpg"
+        ],
+        "options": {
+          "required": [
+            { "name": "아이보리", "price_diff": 0, "status": "available" },
+            { "name": "와인", "price_diff": 0, "status": "품절" },
+            { "name": "블랙", "price_diff": 0, "status": "available" }
+          ],
+          "optional": []
+        },
+        "shipping": {
+          "method": "택배",
+          "fee": 3000,
+          "period": "3일 ~ 7일",
+          "region": "전국지역",
+          "return_address": "[10844] 경기 파주시 월롱면 월롱초교길 64-30 품고 파주센터"
+        },
+        "stats": {
+          "reviews": 14,
+          "qna": 6
+        }
+      },
+      {
+        "id": 32,
+        "name": "지식은 지금 총서 (1~3권 세트) + 키링 사은품 (3종 중 1개 랜덤 발송)",
+        "price": 53000,
+        "status": "품절",
+        "description": "시중 서점에서도 구매하실 수 있습니다. (교보문고, 알라딘, 예스24 판매 중)",
+        "url": "https://syukafriends.kr/product/지식은-지금-총서-13권-세트-키링-사은품-3종-중-1개-랜덤-발송/32/",
+        "detail_text": "시중 서점에서도 구매하실 수 있습니다.\n(교보문고, 알라딘, 예스24 판매 중)\n*시중 서점 구매 시 키링 증정 X\n\n<도서 소득공제 관련>\n소득공제 승인이 늦어지고 있습니다.\n추후 새로운 링크를 전달드릴 예정이며,\n도서 소득공제는 소급 적용이 어려우니, (취소 후 다시 결제 필요)\n소득공제를 필수로 받으실 분들은 조금만 기다려주시면 감사하겠습니다.\n불편을 드려 죄송합니다.",
+        "gallery_images": [
+          "https://syukafriends.kr/web/product/big/202512/ec03beebf3c05f489cf8c0cde81b5e69.jpg",
+          "https://syukafriends.kr/web/product/big/202512/59e91b61fbd6e091a6474f30b3669d20.jpg",
+          "https://syukafriends.kr/web/product/extra/big/202512/7a78e7504a4fda860733cdc8489a0839.jpg",
+          "https://syukafriends.kr/web/product/extra/big/202512/7512b429f8180175ce39ace640c21700.jpg",
+          "https://syukafriends.kr/web/product/extra/big/202512/192733a0e44c6c5d0e28867462c5ddd7.jpg"
+        ],
+        "detail_images": [
+          "https://syukafriends.kr/%EB%8F%84%EC%84%9C_%EC%83%81%EC%84%B8%ED%8E%98%EC%9D%B4%EC%A7%80/%EC%83%81%EC%84%B8%ED%8E%98%EC%9D%B4%EC%A7%80_%EC%B5%9C%EC%83%81%EB%8B%A8_%ED%95%84%EB%8F%85.jpg",
+          "https://syukafriends.kr/%EB%8F%84%EC%84%9C_%EC%83%81%EC%84%B8%ED%8E%98%EC%9D%B4%EC%A7%80/%EC%83%81%EC%84%B8%ED%8E%98%EC%9D%B4%EC%A7%80-1%EB%B2%88-resized.jpg",
+          "https://syukafriends.kr/%EB%8F%84%EC%84%9C_%EC%83%81%EC%84%B8%ED%8E%98%EC%9D%B4%EC%A7%80/%EC%83%81%EC%84%B8%ED%8E%98%EC%9D%B4%EC%A7%80-2%EB%B2%88-resized.jpg",
+          "https://syukafriends.kr/%EB%8F%84%EC%84%9C_%EC%83%81%EC%84%B8%ED%8E%98%EC%9D%B4%EC%A7%80/%EC%83%81%EC%84%B8%ED%8E%98%EC%9D%B4%EC%A7%80-3%EB%B2%88-resized_251217%EC%88%98%EC%A0%95.jpg"
+        ],
+        "options": {
+          "required": [
+            { "name": "와인색", "price_diff": 0, "status": "품절" },
+            { "name": "검정색", "price_diff": 0, "status": "품절" }
+          ],
+          "optional": []
+        },
+        "shipping": {
+          "method": "택배",
+          "fee": 3000,
+          "period": "3일 ~ 7일",
+          "region": "전국지역",
+          "return_address": "[10844] 경기 파주시 월롱면 월롱초교길 64-30 품고 파주센터"
+        },
+        "stats": {
+          "reviews": 243,
+          "qna": 415
+        }
+      }
+    ]
+  },
+  "magazine": {
+    "url": "https://syukafriends.kr/board/매거진/12/",
+    "total_issues": 9,
+    "note": "이미지 전용 레이아웃 (텍스트 콘텐츠 없음)",
+    "issues": [
+      {
+        "title": "26년 2월호",
+        "url": "https://syukafriends.kr/article/magazine/12/2581/",
+        "images": [
+          "https://syukafriends.kr/file_data/syukafriends/2026/01/28/8271075da16a22b237310f9eb38a5d11.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260128/70.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260128/EC8A88_3.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260128/EC8A88_4_.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260128/copy-1769585886-EC8A88_5-1.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260128/copy-1769585903-EC8A88_5.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260128/copy-1769585913-EC8A88_6-1.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260128/copy-1769585926-EC8A88_6.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260128/2.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260128/EBB095_2.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260128/EBB095_3.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260128/EBB095_4.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260128/EBB095_5.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260128/EBB095_6.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260128/4.png"
+        ]
+      },
+      {
+        "title": "26년 1월호",
+        "url": "https://syukafriends.kr/article/magazine/12/1636/",
+        "images": [
+          "https://syukafriends.kr/file_data/syukafriends/2026/01/08/b3b23227ffb4442525a1f18743d6cf12.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/1.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/ED8CAC_2.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/ED8CAC_3.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/ED8CAC_4.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/ED8CAC_5.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/ED8CAC_6.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/ED8CAC_7.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/ED8CAC_8.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/ED8CAC_9.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/ED8CAC_10.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/ED8CAC_11.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/ED8CAC_12.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/ED8CAC_13.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/ED8CAC_14.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/ED8CAC_15.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/71.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/EC958C_2.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/EC958C_3_.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/EC958C_4.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/EC958C_5.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/EC958C_6.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/EC958C_7.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/EC958C_8.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/EC958C_9.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/EC958C_10.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/73.png",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/copy-1767840321-KakaoTalk_20260102_185706595.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/copy-1767840328-KakaoTalk_20260102_185706595_01.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_02.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_04.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_03.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_05.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_06.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_07.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_08.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_11.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_12.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_10.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_09.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_13.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_14.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_15.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_16.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/KakaoTalk_20260102_185706595_17.jpg",
+          "https://syukafriends.kr/web/upload/NNEditor/20260108/72.png"
+        ]
+      },
+      {
+        "title": "25년 12월호",
+        "url": "https://syukafriends.kr/article/magazine/12/38/",
+        "images": [
+          "https://syukafriends.kr/file_data/syukafriends/4b1e39d3d183b45cd8148ef7b0f5695d.jpg",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247436-EC9584ED8AB8EBB3B4EB939C20120EBB3B5EC82AC.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247454-ED9A8C_7.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247463-ED9A8C_8.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247477-ED9A8C_9.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247485-ED9A8C_10.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247491-ED9A8C_11.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247507-EC9584ED8AB8EBB3B4EB939C20120EBB3B5EC82AC202.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247518-EB85B8_4.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247528-EB85B8_5.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247536-EB85B8_6.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247545-EB85B8_7.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247552-EB85B8_8.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247560-EB85B8_9.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247568-EB85B8_10.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247576-EB85B8_11.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247582-EB85B8_12.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247598-EB85B8_13.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247604-EB85B8_14.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251127/copy-1764247611-EC9584ED8AB8EBB3B4EB939C20120EBB3B5EC82AC203.png"
+        ]
+      },
+      {
+        "title": "25년 11월호",
+        "url": "https://syukafriends.kr/article/magazine/12/33/",
+        "images": [
+          "https://syukafriends.kr/file_data/syukafriends/0c1125f4ea474cc71bd53cefbaaa68c9.jpg",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/1.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EBB094_1.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EBB094_2.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EBB094_3.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EBB094_4.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EBB094_5.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EBB094_6.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EBB094_7.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EBB094_8.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EBB094_9.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EBB094_10.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EBB094_11.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EBB094_12.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EBB094_13.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EBB094_14.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EBB094_15.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/712028129.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EB8B88EBA994_2.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EB8B88EBA994_3.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EB8B88EBA994_4.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EB8B88EBA994_5.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EB8B88EBA994_10.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EB8B88EBA994_6.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EB8B88EBA994_8.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EB8B88EBA994_9.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/EB8B88EBAA8C_7.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20251030/copy-1761827162-Desktop20-201.png"
+        ]
+      },
+      {
+        "title": "25년 10월호",
+        "url": "https://syukafriends.kr/article/magazine/12/27/",
+        "images": [
+          "https://syukafriends.kr/file_data/syukafriends/b85203f01e7df5a67dc9d1ea8d9ccde7.jpg",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/1.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/copy-1757652936-EBA7A4_2.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EBA7A4_3.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EBA7A4_4.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EBA7A4_5.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EBA7A4_6.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/2.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EC8A88_2.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EC8A88_3.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EC8A88_4.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EC8A88_5.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EC8A88_7.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EC8A88_6.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/4.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EC84A0_1.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EC84A0_2.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EC84A0_3.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EC84A0_4.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EC84A0_5.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EC84A0_6.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/EC84A0_7.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250912/5.png"
+        ]
+      },
+      {
+        "title": "25년 9월호",
+        "url": "https://syukafriends.kr/article/magazine/12/26/",
+        "images": [
+          "https://syukafriends.kr/file_data/syukafriends/acd88ad9e1f16e60ca5f4f2076dd4c9a.jpg",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_1.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_2.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_3.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_4.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_5.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_6.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_7.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/copy-1756283560-9_8.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_9.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_10.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/copy-1756283631-EB8B88_320EBB3B5EC82AC.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/EB8B88_320EBB3B5EC82AC202.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/copy-1756283755-EB8B88_220EBB3B5EC82AC203.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/EB8B88_220EBB3B5EC82AC202.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_11.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/25.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/ED86A0_2.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_13.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_14.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_15.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_16.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_17.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_18.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_19.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250827/9_20.png"
+        ]
+      },
+      {
+        "title": "25년 8월호",
+        "url": "https://syukafriends.kr/article/magazine/12/24/",
+        "images": [
+          "https://syukafriends.kr/file_data/syukafriends/6b51eb105dac495b834d215b287c8a6a.jpg",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250807/copy-1754546090-B1.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250807/B2.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250807/B3.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250807/B4.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250807/copy-1754547041-B5.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250807/copy-1754547058-6.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250807/copy-1754547071-7.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250807/copy-1754547085-8.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250807/copy-1754547096-9.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250807/copy-1754547102-10.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250807/B6.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250807/B7.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250807/copy-1754547339-13.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250807/copy-1754547347-14.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250807/B8.png"
+        ]
+      },
+      {
+        "title": "25년 7월호",
+        "url": "https://syukafriends.kr/article/magazine/12/19/",
+        "images": [
+          "https://syukafriends.kr/file_data/syukafriends/96f232c1336e7ee5e2b8b301660c171a.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250708/1.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250708/1_2.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250708/1_3.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250708/copy-1751950235-1_4.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250708/4.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250708/5.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250708/2.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250708/3.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250708/3_1.png"
+        ]
+      },
+      {
+        "title": "25년 6월호",
+        "url": "https://syukafriends.kr/article/magazine/12/17/",
+        "images": [
+          "https://syukafriends.kr/file_data/syukafriends/308e9f48a3cddf3e348b1639f1a3f72e.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250618/Group203.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250618/Group201.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250618/3.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250618/4.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250618/copy-1750226556-5.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250618/6.png",
+          "https://ecimg.cafe24img.com/pg1551b71281791093/syukafriends/web/upload/NNEditor/20250618/Group207.png"
+        ]
+      }
+    ]
+  }
+}

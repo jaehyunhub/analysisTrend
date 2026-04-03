@@ -61,10 +61,9 @@ describe('authStore', () => {
     expect(useAuthStore.getState().checkAuth()).toBe(false);
   });
 
-  test('loginWithApi (mock 모드): 더미 유저로 로그인', async () => {
-    jest.mock('@/shared/api/mock/config', () => ({ USE_MOCK_API: true }));
-    await useAuthStore.getState().loginWithApi('user@test.com', 'password123');
-    // mock 모드에서는 에러 없이 완료
+  test('loginWithApi: API 실패 시 isLoading이 false로 복귀', async () => {
+    global.fetch = jest.fn().mockRejectedValueOnce(new Error('network error'));
+    await expect(useAuthStore.getState().loginWithApi('user@test.com', 'wrong')).rejects.toThrow();
     expect(useAuthStore.getState().isLoading).toBe(false);
   });
 });

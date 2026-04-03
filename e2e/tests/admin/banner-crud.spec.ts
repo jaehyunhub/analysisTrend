@@ -34,14 +34,47 @@ test.describe('ADMIN — 배너 관리', () => {
 
   test('배너 수정', async ({ page }) => {
     const banner = new BannerPage(page);
-    // 첫 번째 배너의 수정(편집) 버튼 클릭 — 이미지 버튼이므로 index로 접근
-    const editButton = page.getByRole('button', { name: /수정|편집|Edit/i }).first().or(
-      // 구버전: 이미지만 있는 첫 번째 버튼 (펜 아이콘)
+
+    // 수정 테스트 전용 배너를 먼저 생성하여 DB 초기 상태에 의존하지 않도록 함
+    const hasAddButton = await banner.addButton.isVisible({ timeout: 5000 }).catch(() => false);
+    if (!hasAddButton) {
+      test.skip(true, '추가 버튼 없음 — 수정 전제 조건 불충족');
+      return;
+    }
+
+    const formAppeared = await banner.clickAddAndWaitForForm();
+    if (!formAppeared) {
+      test.skip(true, '배너 추가 dialog 없음 (구버전) — 수정 불가');
+      return;
+    }
+
+    // 수정에 쓸 배너 생성
+    const seedTitle = `E2E 수정용 배너 ${Date.now()}`;
+    await banner.titleInput.fill(seedTitle);
+    await banner.linkInput.fill('https://example.com');
+    await banner.saveButton.click();
+    await page.waitForTimeout(500);
+    await expect(banner.getBannerByTitle(seedTitle)).toBeVisible({ timeout: 8000 });
+
+    // 방금 추가한 배너의 수정 버튼 클릭
+    const seedRow = banner.getBannerByTitle(seedTitle).locator('..').or(
+      page.getByText(seedTitle).locator('..')
+    );
+    const editButton = seedRow.getByRole('button', { name: /수정|편집|Edit/i }).first().or(
+      seedRow.getByRole('button').filter({ has: page.locator('img') }).first()
+    );
+
+    // 행 범위로 수정 버튼을 찾지 못할 경우 페이지 전체에서 첫 번째 수정 버튼 사용
+    const editButtonFallback = page.getByRole('button', { name: /수정|편집|Edit/i }).first().or(
       page.locator('main').getByRole('button').filter({ has: page.locator('img') }).first()
     );
 
-    if (await editButton.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await editButton.click();
+    const targetEditButton = (await editButton.isVisible({ timeout: 3000 }).catch(() => false))
+      ? editButton
+      : editButtonFallback;
+
+    if (await targetEditButton.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await targetEditButton.click();
       await page.waitForTimeout(500);
 
       const dialog = page.getByRole('dialog');
@@ -58,7 +91,7 @@ test.describe('ADMIN — 배너 관리', () => {
       await page.waitForTimeout(500);
       await expect(banner.getBannerByTitle(updatedTitle)).toBeVisible({ timeout: 5000 });
     } else {
-      test.skip(true, '수정할 배너 없음');
+      test.skip(true, '수정 버튼을 찾을 수 없음');
     }
   });
 
@@ -100,6 +133,22 @@ test.describe('ADMIN — 배너 관리', () => {
 
   test('배너 활성/비활성 토글', async ({ page }) => {
     const banner = new BannerPage(page);
+
+    // 토글 테스트 전용 배너를 먼저 생성하여 DB 초기 상태에 의존하지 않도록 함
+    const hasAddButton = await banner.addButton.isVisible({ timeout: 5000 }).catch(() => false);
+    if (hasAddButton) {
+      const formAppeared = await banner.clickAddAndWaitForForm();
+      if (formAppeared) {
+        const seedTitle = `E2E 토글용 배너 ${Date.now()}`;
+        await banner.titleInput.fill(seedTitle);
+        await banner.linkInput.fill('https://example.com');
+        await banner.saveButton.click();
+        await page.waitForTimeout(500);
+        await expect(banner.getBannerByTitle(seedTitle)).toBeVisible({ timeout: 8000 });
+      }
+    }
+
+    // 토글 버튼 확인 (배너 생성 후 반드시 존재해야 함)
     const toggleBtn = banner.toggleButton.first();
     if (await toggleBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       const beforeState = await toggleBtn.textContent().catch(() => '');

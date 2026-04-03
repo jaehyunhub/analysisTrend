@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { useModalStore } from "@/shared/model/modalStore";
+import { useRouter } from 'next/navigation';
 import { useCommunityStore } from "@/shared/model/communityStore";
 
 interface PostProps {
@@ -30,38 +30,50 @@ function formatCount(value: number | string): string {
 }
 
 export default function PostCard({ id, subreddit, author, timeAgo, title, content, upvotes, comments }: PostProps) {
-  const { openPostDetail } = useModalStore();
-  const votePost = useCommunityStore((state) => state.votePost);
+  const router = useRouter();
+  const votePostWithApi = useCommunityStore((state) => state.votePostWithApi);
+  const getVoteState = useCommunityStore((state) => state.getVoteState);
   const boardColor = BOARD_COLORS[subreddit] || 'bg-gray-500';
+  const voteState = getVoteState(id);
 
   const handleUpvote = (e: React.MouseEvent) => {
     e.stopPropagation();
-    votePost(id, 'up');
+    votePostWithApi(id, 'up');
   };
 
   const handleDownvote = (e: React.MouseEvent) => {
     e.stopPropagation();
-    votePost(id, 'down');
+    votePostWithApi(id, 'down');
   };
 
   return (
     <div
-      onClick={() => openPostDetail(id)}
+      onClick={() => router.push(`/community/board/${subreddit}/comments/${id}`)}
       className="flex cursor-pointer bg-white dark:bg-[#1A1A1B] border border-gray-200 dark:border-[#343536] rounded-xl hover:border-gray-400 dark:hover:border-[#818384] mb-2.5 overflow-hidden transition-colors"
     >
         {/* Vote Sidebar */}
         <div className="w-[44px] flex flex-col items-center bg-gray-50 dark:bg-[#151516] px-2 py-3 gap-1 shrink-0">
              <button
                 onClick={handleUpvote}
-                className="text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-[#343536] p-1 rounded-md transition-colors"
+                className={`p-1 rounded-md transition-colors ${
+                  voteState === 'up'
+                    ? 'text-orange-500 bg-orange-50 dark:bg-[#343536]'
+                    : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-[#343536]'
+                }`}
                 aria-label="추천"
              >
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 4l-8 8h6v8h4v-8h6z"/></svg>
              </button>
-             <span className="text-xs font-black text-gray-700 dark:text-gray-300">{formatCount(upvotes)}</span>
+             <span className={`text-xs font-black ${
+               voteState === 'up' ? 'text-orange-500' : voteState === 'down' ? 'text-blue-500' : 'text-gray-700 dark:text-gray-300'
+             }`}>{formatCount(upvotes)}</span>
              <button
                 onClick={handleDownvote}
-                className="text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-[#343536] p-1 rounded-md transition-colors"
+                className={`p-1 rounded-md transition-colors ${
+                  voteState === 'down'
+                    ? 'text-blue-500 bg-blue-50 dark:bg-[#343536]'
+                    : 'text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-[#343536]'
+                }`}
                 aria-label="비추천"
              >
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 20l8-8h-6v-8h-4v8h-6z"/></svg>

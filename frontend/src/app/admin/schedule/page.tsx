@@ -82,7 +82,7 @@ export default function ScheduleManagement() {
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold dark:text-white">방송 일정 관리</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">방송 일정 관리</h2>
           <p className="text-gray-500 dark:text-gray-400 text-sm">월별 일정 및 이벤트를 관리합니다.</p>
         </div>
         <button
@@ -95,7 +95,7 @@ export default function ScheduleManagement() {
 
       {isFormOpen && (
         <div className="bg-white dark:bg-[#1A1A1B] p-6 rounded-2xl border border-gray-200 dark:border-[#343536] shadow-sm">
-          <h3 className="font-bold mb-4 dark:text-white">{editTarget ? '일정 수정' : '일정 추가'}</h3>
+          <h3 className="font-bold mb-4 text-gray-900 dark:text-white">{editTarget ? '일정 수정' : '일정 추가'}</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-xs font-bold text-gray-400 mb-1">제목 *</label>
@@ -103,7 +103,7 @@ export default function ScheduleManagement() {
                 type="text"
                 value={form.title}
                 onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
             <div>
@@ -112,7 +112,7 @@ export default function ScheduleManagement() {
                 type="date"
                 value={form.scheduleDate}
                 onChange={e => setForm(f => ({ ...f, scheduleDate: e.target.value }))}
-                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
             <div>
@@ -120,7 +120,7 @@ export default function ScheduleManagement() {
               <select
                 value={form.type}
                 onChange={e => setForm(f => ({ ...f, type: e.target.value as Schedule['type'] }))}
-                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none"
               >
                 {Object.entries(TYPE_LABELS).map(([k, v]) => (
                   <option key={k} value={k}>{v}</option>
@@ -133,7 +133,7 @@ export default function ScheduleManagement() {
                 type="text"
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none"
               />
             </div>
           </div>
@@ -162,15 +162,15 @@ export default function ScheduleManagement() {
                 {schedules.map(item => (
                   <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
                     <td className="py-3 pl-2 font-mono text-gray-600 dark:text-gray-300">{item.scheduleDate}</td>
-                    <td className="py-3 font-medium dark:text-white">{item.title}</td>
+                    <td className="py-3 font-medium text-gray-900 dark:text-white">{item.title}</td>
                     <td className="py-3">
                       <span className={`px-2 py-1 rounded text-xs font-bold ${TYPE_COLORS[item.type]}`}>
                         {TYPE_LABELS[item.type]}
                       </span>
                     </td>
                     <td className="py-3 text-right pr-2">
-                      <button onClick={() => openEdit(item)} className="text-gray-400 hover:text-blue-500 mr-3 text-sm">수정</button>
-                      <button onClick={() => handleDelete(item.id)} className="text-gray-400 hover:text-red-500 text-sm">삭제</button>
+                      <button onClick={() => openEdit(item)} className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition-colors mr-2">수정</button>
+                      <button onClick={() => handleDelete(item.id)} className="px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-bold transition-colors">삭제</button>
                     </td>
                   </tr>
                 ))}

@@ -41,7 +41,7 @@ export default function CommunitySearch({ onSearch }: CommunitySearchProps) {
                 placeholder="게시물 또는 커뮤니티 검색..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] hover:bg-white hover:border-blue-500 rounded-xl h-[38px] px-4 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all dark:text-white"
+                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] hover:bg-white hover:border-blue-500 rounded-xl h-[38px] px-4 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
             />
         </form>
 

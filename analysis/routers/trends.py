@@ -1,7 +1,7 @@
 import logging
-from fastapi import APIRouter
-from typing import List
-from models.trend import TrendKeyword, TrendingVideo
+from fastapi import APIRouter, HTTPException, Query
+from typing import List, Optional
+from models.trend import TrendKeyword, TrendingVideo, NewsArticle, ChannelStats
 from services.news_collector import NewsCollector
 from services.youtube_collector import YouTubeCollector
 from services.cache import cache_get, cache_set
@@ -43,6 +43,30 @@ async def get_youtube_trending(
     )
     await cache_set(cache_key, [v.model_dump() for v in videos], ttl=_CACHE_TTL)
     return videos
+
+
+@router.get("/news/articles", response_model=List[NewsArticle])
+async def get_news_articles(limit: int = 20, query: str = "트렌드") -> List[NewsArticle]:
+    """네이버 뉴스 최신 기사 목록을 반환합니다."""
+    cache_key = f"news_articles_{query}_{limit}"
+    cached = await cache_get(cache_key)
+    if cached:
+        return [NewsArticle(**item) for item in cached]
+
+    collector = NewsCollector()
+    articles = await collector.fetch_articles(query=query, limit=limit)
+    await cache_set(cache_key, [a.model_dump() for a in articles], ttl=_CACHE_TTL)
+    return articles
+
+
+@router.get("/channel/stats", response_model=ChannelStats)
+async def get_channel_stats(channel: str = Query(..., description="채널 URL, @핸들, 또는 채널 ID")) -> ChannelStats:
+    """YouTube 채널 통계를 조회합니다."""
+    collector = YouTubeCollector()
+    stats = await collector.fetch_channel_stats(channel)
+    if stats is None:
+        raise HTTPException(status_code=404, detail="채널을 찾을 수 없습니다.")
+    return stats
 
 
 @router.get("/keywords", response_model=List[TrendKeyword])

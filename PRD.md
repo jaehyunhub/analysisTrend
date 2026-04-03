@@ -1,7 +1,7 @@
 # PRD — analysisTrend 플랫폼
 
 > **Product Requirements Document**
-> 버전: v1.1 | 작성일: 2026-03-15 | 최종 업데이트: 2026-03-25 (Phase 16 완료) | 관련 문서: [SPEC.md](./SPEC.md)
+> 버전: v2.1 | 작성일: 2026-03-15 | 최종 업데이트: 2026-04-03 (v2.1 — CHAT-10: 분석범위 N시간N분 표시, CHAT-11: hover tooltip fixed 포지션 방식으로 overflow 클리핑 해결) | 관련 문서: [SPEC.md](./SPEC.md)
 
 ---
 
@@ -199,16 +199,20 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | AUTH-02 | JWT Access Token (30분) + Redis Refresh Token (7일) | P0 | 구현 완료 |
 | AUTH-03 | 관리자/일반 사용자 역할 구분 (ADMIN / USER) | P0 | 구현 완료 |
 | AUTH-04 | 프로필 수정 (닉네임, 아바타 이미지) | P1 | UI만 존재 |
+| AUTH-05 | 로그인/로그아웃 토스트 알림 | P1 | 구현 완료 — 로그인 성공 시 "로그인 되었습니다.", 로그아웃 확인 후 "로그아웃 되었습니다." Toast 표시 |
+| AUTH-06 | 로그인 모달 입력 텍스트 가시성 개선 | P1 | 구현 완료 — 모든 입력 필드에 `text-gray-900 dark:text-white` 적용, 라이트 모드 회색 텍스트 문제 해결 |
 
 ### 5.2 홈 대시보드 (HOME)
 
 | ID | 기능 | 우선순위 | 현황 |
 |----|------|---------|------|
-| HOME-01 | Hero 배너 (관리자 CRUD 데이터 연동) | P0 | 관리자 CRUD API 연동 완료 (BE 구현, FE 연동) |
+| HOME-01 | Hero 배너 (관리자 CRUD 데이터 연동) | P0 | 구현 완료 (BE CRUD + FE `GET /api/v1/banners` 연동, active 배너 displayOrder 순 슬라이더, API 실패 시 fallback) |
 | HOME-02 | 최신 YouTube 영상 그리드 (YouTube Data API v3 연동) | P0 | 관리자 YouTube CRUD API 연동 완료 |
 | HOME-03 | 주간 방송 일정 위젯 (관리자 일정 데이터 연동) | P1 | 관리자 스케줄 CRUD API 연동 완료 |
-| HOME-04 | 커뮤니티 인기 게시물 위젯 | P1 | UI 있음, 하드코딩 |
+| HOME-04 | 커뮤니티 인기 게시물 위젯 | P1 | 구현 완료 — 각 게시글 클릭 시 `/community/board/${category}` 로 이동. `<Link>` 연결 완료 |
 | HOME-05 | 쇼핑 추천 상품 위젯 | P2 | UI 있음, 하드코딩 |
+| MAIN-01 | 방송일정 월 네비게이션 — 이전/다음 달 이동, 해당 월 스케줄 표시 | P1 | 구현 완료 (viewYear/viewMonth state, 스케줄 API year/month 파라미터 전달) |
+| MAIN-02 | 광고 플로팅 사이드바 — 우측 하단 고정 패널, 사용자 닫기 가능 | P1 | 구현 완료 (adsVisible state, localStorage persist) |
 
 ### 5.3 커뮤니티 (COMM)
 
@@ -221,6 +225,14 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | COMM-05 | 게시물 검색 (제목·본문, 디바운스) | P1 | 구현 완료 (디바운스 300ms) |
 | COMM-06 | 전문가 리포트 플레어(태그) 및 필터링 | P2 | 미구현 |
 | COMM-07 | 게시물 신고/숨기기 | P2 | 미구현 |
+| COMM-08 | 커뮤니티 목록 — API 연동 (`GET /api/v1/communities`), POPULAR_COMMUNITIES mock 제거 | P0 | 구현 완료 — 우측 사이드바 실시간 API 데이터, 검색 결과도 API 기반 |
+| COMM-09 | 커뮤니티 멤버 카운터 (가입/탈퇴 시 증감) | P1 | 구현 완료 — `memberCounts` Zustand + localStorage persist, 가입 시 `incrementMember()` 호출 |
+| COMM-10 | 커뮤니티 방문자 카운팅 — 일간/주간 방문자수 표시 | P1 | 구현 완료 — `recordVisit()` (커뮤니티 링크 클릭 시 호출), `dailyVisitorLog`/`weeklyVisitorLog` localStorage persist, 사이드바에 오늘/이번 주 방문자 표시 |
+| COMM-11 | 커뮤니티 사이드바 — 가입된 커뮤니티만 표시, 멤버순 정렬 | P1 | 구현 완료 — `joinedCommunities` 필터 + `getMemberCount` 내림차순 정렬. 미가입 시 "가입된 커뮤니티가 없습니다." 표시 |
+| COMM-12 | 커뮤니티 상세 사이드바 — Online 제거 → 멤버·일간·주간 방문자 3열 표시 | P1 | 구현 완료 — 페이지 마운트 시 `recordVisit(slug)` 자동 호출 |
+| COMM-13 | 좋아요/비추천 토글 — 재클릭 시 취소, 투표 상태 색상 표시 | P1 | 구현 완료 — `votePostWithApi` + `getVoteState` 연동. upvote 활성→주황색, downvote 활성→파란색 |
+| COMM-14 | FIXED_CATEGORIES 토픽 고정 — 경제/방송/쇼핑/자유게시판은 Sidebar 토픽 섹션에만 표시, 커뮤니티 섹션 및 가입 목록에서 제외 | P1 | 구현 완료 (2026-04-03) |
+| COMM-15 | 글 상세 페이지 Reddit 스타일 — 게시글 클릭 시 모달 대신 `/community/board/[slug]/comments/[postId]` 페이지 이동, 실제 게시물 데이터 표시 | P1 | 구현 완료 (2026-04-03) |
 
 **정렬 알고리즘 정의**
 - **New**: `createdAt DESC`
@@ -237,6 +249,9 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | SHOP-03 | 장바구니 추가/삭제/수량 변경 | P1 | 구현 완료 (/shop/cart 페이지, cartStore 연동) |
 | SHOP-04 | 주문 및 결제 플로우 (PG 연동) | P2 | 미구현 |
 | SHOP-05 | 주문 내역 조회 (마이페이지) | P2 | UI만, 하드코딩 |
+| SHOP-ADM-01 | 관리자 상품 CRUD — 등록/수정/삭제/품절 토글 (`/admin/shop/products`) | P1 | 구현 완료 (BE `POST/PUT/DELETE/PATCH /api/v1/admin/products/**`, FE 연동) |
+| SHOP-ADM-02 | Q&A 관리 — 고객 문의 목록 조회, 답변 작성 (`/admin/shop/qna`) | P1 | 구현 완료 (shopQnaStore, Zustand persist). 상품별 샘플 Q&A 5건 초기 데이터 포함. 상품별·상태별 필터링 UI |
+| SHOP-ADM-03 | 리뷰 관리 — 리뷰 목록 조회, 숨기기/삭제 (`/admin/shop/reviews`) | P1 | 구현 완료 (shopReviewStore, Zustand persist). 상품별 샘플 리뷰 7건 초기 데이터 포함. 상품별·별점별 필터링 UI |
 
 ### 5.5 마이페이지 (MY)
 
@@ -252,12 +267,62 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | ID | 기능 | 우선순위 | 현황 |
 |----|------|---------|------|
 | ADM-01 | 홈 배너 CRUD (이미지, 링크, 순서) | P0 | 구현 완료 (BE CRUD + FE 연동, 활성 토글) |
+| ADM-01a | 홈 배너 이미지 직접 첨부 (multipart upload) | P0 | ❌ 미구현 — URL 입력 방식에서 파일 업로드 방식으로 전환 필요 |
+| ADM-01b | 관리자 폼 입력 글씨 색상 수정 (배너·일정·유튜브) | P0 | 구현 완료 — `text-gray-900 dark:text-white` 적용 (트렌드 select 포함) |
+| ADM-01c | 관리자 수정 버튼 색상 수정 | P1 | 구현 완료 (Phase 16 전수 개선 포함) |
 | ADM-02 | 방송 일정 CRUD (날짜, 시간, 제목, 주제) | P0 | 구현 완료 (BE CRUD + FE 연동) |
 | ADM-03 | YouTube 영상 링크 관리 (URL, 썸네일, 설명) | P0 | 구현 완료 (BE CRUD + FE 연동) |
-| ADM-04 | 광고 슬롯 관리 | P1 | UI 구현 완료 (BE API 없음) |
-| ADM-05 | 커뮤니티 게시물 관리 (신고 처리, 강제 삭제) | P1 | UI 구현 완료 |
-| ADM-06 | 회원 관리 (역할 변경, 계정 정지) | P1 | UI 구현 완료 |
-| ADM-07 | 매거진 콘텐츠 CRUD | P2 | UI만, API 미연동 |
+| ADM-03a | YouTube 영상 썸네일 표시 버그 수정 | P0 | 구현 완료 — `extractYoutubeId()` `new URL()` 파싱 + 11자리 패턴 검증, `img.youtube.com/vi/{id}/mqdefault.jpg` 썸네일 표시 |
+| ADM-04 | 광고 슬롯 관리 | P1 | UI 구현 완료 + 홈 화면 표시 토글 추가 (BE API 없음, localStorage persist) |
+| ADM-04a | 광고 추가 시 메인 화면 반영 버그 수정 | P1 | 구현 완료 — `ads.filter(a => a.active !== false)` 조건으로 활성 광고만 홈에 표시. `Ad` 인터페이스 `active?: boolean` 추가 |
+| ADM-04b | 광고 이미지 직접 첨부 (multipart upload) | P1 | ❌ 미구현 — URL 입력 방식에서 파일 업로드 방식으로 전환 |
+| ADM-05 | 커뮤니티 게시물 관리 (신고 처리, 강제 삭제) | P1 | 구현 완료 — `fetchPosts()` → `GET /api/v1/posts` 실제 API 연동. 커뮤니티 목록 카드 (`GET /api/v1/communities`), 커뮤니티별 필터링, 검색 기능, **커뮤니티별 게시물 그룹화** (전체 보기 시 커뮤니티 헤더 + 목록) |
+| ADM-06 | 회원 관리 (역할 변경, 계정 정지) | P1 | 구현 완료 — `AdminUserController` 신규 (`GET /api/v1/admin/users`, `GET /api/v1/admin/users/search?email=`), FE API 연동, 페이지네이션 + 이메일 검색 |
+| ADM-07 | 매거진 콘텐츠 CRUD | P2 | 구현 완료 — `admin/magazine/page.tsx` 전면 재작성. MOCK_MAGAZINES 기반 목록·추가·수정·삭제. 카테고리별 통계 카드, 썸네일 미리보기, 삭제 확인 모달. (BE API 미연동, localStorage 상태관리) |
+| ADM-07a | YouTube 트렌딩 날짜 필터 (일일/일주일/한달) | P1 | 구현 완료 — `admin/trends/_content.tsx` Videos 탭에 필터 버튼 추가. `published_at` 기반 클라이언트 필터링, 해당 기간 영상 없으면 전체 표시 |
+
+### 5.6a 커뮤니티 권한 시스템 (COMM-PERM) ★ v1.3 신규
+
+> 관리자가 특정 사용자에게 특정 커뮤니티의 글쓰기 권한을 부여할 수 있는 시스템.
+> 현재 USER 역할은 커뮤니티 글쓰기가 불가능하며, 모더레이터 개념이 부재함.
+
+| ID | 기능 | 우선순위 | 현황 |
+|----|------|---------|------|
+| COMM-PERM-01 | User Role에 `COMMUNITY_MODERATOR` 추가 | P0 | ❌ 미구현 |
+| COMM-PERM-02 | 커뮤니티별 권한 테이블 (`community_permission`) DB 설계 | P0 | ❌ 미구현 |
+| COMM-PERM-03 | 관리자가 특정 사용자에게 커뮤니티 글쓰기 권한 부여 API | P0 | ❌ 미구현 |
+| COMM-PERM-04 | COMMUNITY_MODERATOR 사용자의 해당 커뮤니티 글 작성 허용 (백엔드 auth 변경) | P0 | ❌ 미구현 |
+| COMM-PERM-05 | 관리자 커뮤니티 생성 탭 (`/admin/community/create`) | P1 | FE UI 완료 (`admin/community/create/page.tsx` 신규, BE API 미구현) |
+| COMM-PERM-06 | 관리자 커뮤니티 moderator 설정 탭 | P1 | FE UI 완료 (`admin/community/moderators/page.tsx` 신규, BE API 미구현) |
+| COMM-PERM-07 | 프론트엔드 글 작성 버튼 권한 조건부 표시 (moderator 포함) | P1 | ❌ 백엔드 API 미구현 (FE 연동 불가) |
+
+**커뮤니티 권한 테이블 설계 (예시)**
+
+| 컬럼 | 타입 | 설명 |
+|------|------|------|
+| `id` | BIGINT PK | |
+| `user_id` | BIGINT FK | users.id 참조 |
+| `community_id` | BIGINT FK | communities.id 참조 |
+| `role` | ENUM | MODERATOR |
+| `granted_by` | BIGINT FK | 권한 부여한 관리자 user_id |
+| `created_at` | DATETIME | |
+
+**백엔드 인증 변경 사항**
+
+- `PostController`의 글 작성 엔드포인트: `hasRole('ADMIN') OR @communityPermissionService.hasModerator(#communityId, authentication.name)` 조건 추가
+- `communityPermissionService.hasModerator(communityId, email)` — community_permission 테이블 조회
+
+---
+
+### 5.6b 트렌드 뉴스 원문 링크 (TRD-02 개선) ★ v1.3 신규
+
+| ID | 기능 | 우선순위 | 현황 |
+|----|------|---------|------|
+| TRD-02a | 뉴스 키워드 목록에 조회수 높은 원문 기사 링크 제공 | P1 | ❌ 미구현 |
+| TRD-02b | `GET /trends/news` 응답에 `article_url` 필드 포함 | P1 | ❌ 미구현 |
+| TRD-02c | 원문 링크 클릭 시 새 탭으로 기사 원문 이동 | P1 | ❌ 미구현 |
+
+---
 
 ### 5.7 관리자 — 채널 분석 (ANA)
 
@@ -286,17 +351,22 @@ US-O-04 (P0) — 관리자 셀프 서비스
 | ID | 기능 | 우선순위 | 현황 |
 |----|------|---------|------|
 | CHAT-01 | 라이브 채팅 로그 파일 업로드 (CSV / JSON / TXT) | P1 | 구현 완료 + E2E 검증 완료 |
-| CHAT-02 | 특정 키워드 반복 시간대 목록 추출 | P1 | 구현 완료 (TF-IDF 키워드 추출) |
-| CHAT-03 | 채팅 밀도 타임라인 히트맵 시각화 | P1 | 구현 완료 (시간 버킷 히트맵 시각화) |
-| CHAT-04 | 피크 구간 자동 추출 및 편집 포인트 추천 | P1 | 구현 완료 (평균+2σ 피크 감지) |
+| CHAT-02 | 특정 키워드 반복 시간대 목록 추출 | P1 | 구현 완료 (TF-IDF 키워드 추출 + 사용자 검색 키워드 지원) |
+| CHAT-03 | 채팅 밀도 타임라인 히트맵 시각화 | P1 | 구현 완료 (1분 버킷 히트맵, 스크롤·타임라벨·피크 기준 명시) |
+| CHAT-04 | 피크 구간 자동 추출 및 편집 포인트 추천 | P1 | 구현 완료 (평균 + 1.5σ 피크 감지, 연속 구간 병합) |
 | CHAT-05 | 편집 마커 CSV 내보내기 | P1 | 구현 완료 (CSV 편집마커 다운로드) |
+| CHAT-07 | 사용자 정의 키워드 검색 — 파일 업로드 시 키워드 입력 → 해당 키워드 등장 분 단위 타임라인 + 복사 버튼 | P1 | 구현 완료 (2026-04-02) |
+| CHAT-08 | 피크 구간 정렬 및 표기 개선 — `peak_count` 내림차순 정렬, 종료 시간 `HH:MM:59` 표기 | P1 | 구현 완료 (2026-04-03) |
+| CHAT-09 | 편집 마커 키워드 기반 내보내기 — 검색 키워드 지정 시 키워드별 등장 타임스탬프 기반 테이블/CSV (`keyword, timestamp, count`) | P1 | 구현 완료 (2026-04-03) |
+| CHAT-10 | 분석범위 인간 친화적 표시 — `formatDuration()` 함수로 `N시간 N분` 형식 계산 (예: `3시간 10분`) | P2 | 구현 완료 (2026-04-03) |
+| CHAT-11 | 히트맵·키워드 타임라인 hover tooltip — React state + `position: fixed` 방식으로 overflow 클리핑 문제 해결 | P1 | 구현 완료 (2026-04-03) |
 | CHAT-06 | 시청자 감정 분석 (긍정 / 부정 / 중립) | P2 | 미구현 |
 
 ---
 
 ## 6. 핵심 기능 상세 스펙
 
-### 6.1 채팅 분석 (CHAT-01 ~ CHAT-05)
+### 6.1 채팅 분석 (CHAT-01 ~ CHAT-07)
 
 영상 편집 시간 30% 단축을 위한 핵심 기능. FastAPI 분석 서비스(`analysis/main.py`)에 구현한다.
 
@@ -304,58 +374,102 @@ US-O-04 (P0) — 관리자 셀프 서비스
 
 | 포맷 | 컬럼 구조 | 비고 |
 |------|----------|------|
-| CSV | `timestamp, username, message` | 수동 작성 또는 툴 내보내기 |
-| JSON | YouTube Live Chat 다운로드 파일 | YouTube Studio 제공 |
+| CSV | `timestamp, username, message` (헤더 자동 매핑) | 수동 작성 또는 툴 내보내기 |
+| JSON | `[{timestamp, author, message}]` 배열 또는 래핑 객체 | yt-dlp 변환 파일 등 |
 | TXT | `[HH:MM:SS] username: message` | 일반 텍스트 파싱 |
 
 **처리 파이프라인 (FastAPI `POST /analyze/chat`)**
 
 ```
-1. 파일 파싱  → (timestamp_sec, message) 레코드 배열 생성
-2. 시간 구간화 → 30초 / 1분 / 5분 버킷 선택 (기본: 1분)
-3. 키워드 카운트
-   - 사전 설정 키워드: "ㅋㅋ", "ㄷㄷ", "대박", "클립", "진짜", "와" 등
-   - TF-IDF 자동 추출: 전체 채팅에서 상위 20개 키워드 추출
-4. 밀도 계산  → 버킷별 messages-per-minute 계산
-5. 피크 감지  → 평균 + 2σ 초과 버킷을 피크 구간으로 판정
-6. 결과 반환  → JSON (히트맵 데이터 + 키워드 타임라인 + 추천 구간)
+1. 파일 파싱        → (timestamp HH:MM:SS, user, message) 레코드 배열
+2. 히트맵 구성      → 1분 단위 버킷으로 채팅 수 집계, 최댓값 기준 0~1 정규화
+3. 피크 감지        → 평균 + 1.5 × 표준편차 초과 버킷을 피크로 판정, 연속 구간 병합
+4. 키워드 추출      → soynlp 우선, fallback: 공백 분리 + 불용어 제거 빈도 상위 20개
+5. 사용자 키워드    → 요청 파라미터 search_keywords (쉼표 구분)를 추출 키워드 앞에 배치
+6. 키워드 타임라인  → 키워드별 분당 언급 횟수 + 등장한 분 단위 타임스탬프 목록
+7. 결과 캐시        → Redis (session_id 키, TTL 1시간)
 ```
 
-**API 응답 구조**
+**히트맵 시각화 상세**
+
+히트맵은 "1분 동안 채팅이 몇 개 올라왔는지"를 막대 그래프로 표현한다.
+
+| 색상 | 정규화 범위 | 의미 |
+|------|-----------|------|
+| 🔵 파란색 | 0 ~ 20% | 채팅 적음 |
+| 🟢 초록색 | 20 ~ 40% | 보통 |
+| 🟡 노란색 | 40 ~ 60% | 활발 |
+| 🟠 주황색 | 60 ~ 80% | 매우 활발 |
+| 🔴 빨간색 | 80 ~ 100% | 피크 |
+
+- 정규화 기준: 해당 방송에서 가장 채팅이 많은 1분 = 100% (방송 내 상대 비교)
+- 스크롤 지원: 버킷 수가 많은 장시간 방송도 좌우 스크롤로 전체 확인 가능
+- X축 타임라벨: 버킷 수에 따라 5~30분 간격으로 시간 표시
+- 분석 범위 표시: "전체 범위: HH:MM ~ HH:MM · N분 분석" 헤더
+
+**피크 감지 기준**
+
+- 임계값: `평균 채팅 수/분 + 1.5 × 표준편차`
+- 임계값 초과 구간 = 피크 버킷 / 연속된 피크 버킷은 하나의 구간으로 병합
+- 편집 포인트 해석: 빨간 막대 = 시청자가 동시에 폭발적으로 반응한 순간 (발언·사건·반전 등)
+
+**사용자 정의 키워드 검색 (CHAT-07)**
+
+- 업로드 폼에서 `search_keywords` 파라미터 (쉼표 구분) 함께 전송
+- 검색 키워드가 자동 추출 키워드보다 우선 배치
+- 결과: 키워드별 분당 언급 차트 + 등장 구간 타임스탬프 목록 (`HH:MM ×N회` 형식)
+- 전체 복사 버튼으로 타임스탬프를 클립보드에 복사 → 편집 소프트웨어에 바로 활용
+
+**API 응답 구조 (실제 구현)**
 
 ```json
 {
-  "duration_sec": 7200,
+  "session_id": "uuid",
+  "total_messages": 23943,
   "heatmap": [
-    { "bucket_start": 0, "bucket_end": 60, "count": 42, "density": "low" },
-    { "bucket_start": 8640, "bucket_end": 8700, "count": 450, "density": "peak" }
+    { "timestamp": "00:00", "count": 42, "normalized": 0.09 },
+    { "timestamp": "01:23", "count": 450, "normalized": 1.0 }
   ],
-  "keywords": [
-    { "word": "대박", "occurrences": [154, 8645, 9102] },
-    { "word": "클립", "occurrences": [8641, 8659] }
+  "peaks": [
+    { "start": "01:23", "end": "01:25", "peak_count": 450, "keywords": ["대박", "클립"] }
   ],
-  "highlights": [
+  "top_keywords": ["대박", "클립", "경제", "슈하"],
+  "keyword_timelines": [
     {
-      "start": "02:24:00", "end": "02:26:00",
-      "peak_count": 450, "label": "피크 구간 (분당 450채팅)"
+      "keyword": "대박",
+      "timeline": [{ "timestamp": "00:00", "count": 0, "normalized": 0 }, ...],
+      "timestamps": ["01:23", "01:45", "02:10"]
     }
   ]
 }
 ```
 
-**프론트엔드 시각화 (`/admin/analysis` — 새 탭 또는 별도 페이지)**
+**외부 채팅 데이터 획득 방법**
 
-- 타임라인 히트맵: Recharts `BarChart` (x축: 시간, y축: 채팅 수, 피크 구간 강조 색상)
-- 키워드 탭: 키워드 선택 → 해당 등장 시간대 하이라이트
-- 추천 구간 카드: 클릭 시 해당 시간대 채팅 샘플 10개 표시
-- 다운로드 버튼: 편집 마커 CSV (`timestamp, label` 형식)
+YouTube 라이브 아카이브에서 채팅 리플레이가 활성화된 영상의 경우 `yt-dlp`로 추출 후 변환:
+```bash
+yt-dlp --write-subs --sub-lang live_chat --skip-download "영상URL"
+# 생성된 .live_chat.json → videoOffsetTimeMsec 기준 HH:MM:SS 변환 후 업로드
+```
+※ 채널 설정에서 채팅 리플레이를 비활성화한 경우 추출 불가 (Money Comics 채널 등)
+
+**피크 구간 정렬 및 표기 (CHAT-08)**
+
+- 피크 구간 탭은 `peak_count` 내림차순으로 정렬하여 반응이 가장 폭발적인 구간을 상단 표시
+- 종료 시간 표기: `toHMSEnd()` 헬퍼 적용 → `HH:MM:00` 대신 `HH:MM:59` 표기로 1분 단위 구간임을 명시 (예: `15:00 ~ 15:59`)
+
+**편집 마커 키워드 기반 내보내기 (CHAT-09)**
+
+- 검색 키워드(`search_keywords`) 지정 시: 편집 마커 테이블/CSV가 키워드별 등장 타임스탬프 기반으로 전환
+  - 형식: `keyword, timestamp(HH:MM:SS), count`
+  - 검색 키워드 없으면 기존 피크 기반 테이블 유지
+- 테이블에 `max-h-80 overflow-y-auto` 스크롤 처리 (긴 타임스탬프 목록 대응)
 
 **수용 기준**
 
 - 50MB 이하 파일 분석 완료 30초 이내
-- 파일 업로드 직후 진행률 표시 (polling 또는 WebSocket)
-- 키워드 검색창에서 단어 입력 시 해당 구간만 하이라이트
-- 히트맵 구간 클릭 → 해당 시간대 채팅 샘플 모달 표시
+- 장시간 방송(2~3시간) 히트맵도 스크롤로 전체 확인 가능
+- 키워드 검색 결과에서 타임스탬프 목록 전체 복사 지원
 
 ---
 
@@ -565,20 +679,23 @@ Twitch Helix API는 별도 심사 없이 가입 즉시 무료 사용 가능하�
 
 ## 9. MVP vs Phase 2
 
-### MVP ✅ 완료 (2026-03-25 기준 — Phase 16 포함)
+### MVP ✅ 완료 (2026-03-31 기준 — Phase 20 포함)
 
 | 영역 | 포함 기능 | 상태 |
 |------|---------|------|
-| 인증 | AUTH-01, AUTH-02, AUTH-03 | ✅ E2E 검증 완료 |
-| 홈 | HOME-01, HOME-02, HOME-03 | ✅ E2E 검증 완료 |
-| 커뮤니티 | COMM-01~05 | ✅ E2E 검증 완료 |
-| 쇼핑 | SHOP-01, SHOP-02, SHOP-03 | ✅ E2E 검증 완료 |
-| 관리자 콘텐츠 | ADM-01, ADM-02, ADM-03 | ✅ E2E 검증 완료 |
+| 인증 | AUTH-01, AUTH-02, AUTH-03 | ✅ E2E 검증 완료 (실 DB, 2026-03-26) |
+| 홈 | HOME-01, HOME-02, HOME-03 | ✅ E2E 검증 완료 + Phase 20 배너 API 연동 (실 DB) |
+| 커뮤니티 | COMM-01~05 | ✅ E2E 검증 완료 (실 DB, 2026-03-26) |
+| 쇼핑 | SHOP-01, SHOP-02, SHOP-03 | ✅ E2E 검증 완료 (실 DB, 2026-03-26) |
+| 관리자 콘텐츠 | ADM-01, ADM-02, ADM-03 | ✅ E2E 검증 완료 + Phase 20 YouTube videoId 파싱 개선 |
+| 관리자 광고 | ADM-04, ADM-04a | ✅ Phase 20 — 광고 활성 필터 + 홈 표시 토글 완료 |
+| 관리자 회원관리 | ADM-06 | ✅ Phase 20 — AdminUserController 신규 + FE 실 API 연동 |
 | 채널 분석 | ANA-01, ANA-02, ANA-03 | ✅ Mock 데이터 UI (YouTube Analytics API 연동 예정) |
-| 트렌드 분석 | TRD-01, TRD-02 | ✅ E2E 검증 완료 (API 키 없으면 mock 반환) |
-| 채팅 분석 | CHAT-01~05 | ✅ E2E 검증 완료 (당초 Phase 2였으나 MVP에 포함 구현) |
-| UI 가시성 | 관리자 페이지 전체 light/dark mode | ✅ Phase 16 — 텍스트 대비 전수 개선 완료 |
+| 트렌드 분석 | TRD-01, TRD-02 | ✅ E2E 검증 완료 + Phase 20 select 색상 수정 |
+| 채팅 분석 | CHAT-01~05 | ✅ E2E 검증 완료 (실 DB, 2026-03-26) |
+| UI 가시성 | 관리자 페이지 전체 light/dark mode | ✅ Phase 16 + Phase 20 트렌드 select 추가 수정 |
 | 인프라 보안 | Google One Tap FedCM 차단 | ✅ Permissions-Policy 헤더 (Nginx + Next.js) |
+| Mock 제거 | 프론트엔드 전체 실 DB 연동 | ✅ Phase 17 — `NEXT_PUBLIC_USE_MOCK=false`, Phase 20 회원관리 API 연동 추가 |
 
 ### Phase 2 (남은 작업 — 우선순위 순)
 
@@ -591,7 +708,8 @@ Twitch Helix API는 별도 심사 없이 가입 즉시 무료 사용 가능하�
 | 5 | **ANA-05** (최적 업로드 시간) | 없음 (scikit-learn) | YouTube Analytics 시청자 활동 패턴 → 통계 분석 |
 | 6 | **SHOP-04~05** (결제 + 주문 내역) | 없음 (PG 연동) | 수익 모델 완성 |
 | 7 | **TRD-07** (Twitch 인기 스트림·클립) | 없음 (Twitch Helix API) | YouTube 외 플랫폼 트렌딩 확장 — 무료, 즉시 사용 가능 |
-| 8 | **COMM-06** (전문가 플레어) | 없음 | 커뮤니티 품질 향상 |
+| 8 | **COMM-PERM-01~04** (커뮤니티 권한 시스템 백엔드) | 없음 | FE UI 완료, BE 미구현 — `community_permission` 테이블 + API 개발 필요 |
+| 9 | **COMM-06** (전문가 플레어) | 없음 | 커뮤니티 품질 향상 |
 
 ---
 
@@ -638,4 +756,10 @@ Twitch Helix API는 별도 심사 없이 가입 즉시 무료 사용 가능하�
 | Phase 8 (인프라) | Nginx 리버스 프록시, docker-compose 운영 수준 개선 |
 | Phase 9 (분석 서비스) | CHAT-01~05 (완료), TRD-01~02 (완료) |
 | Phase 10 (E2E 테스트) | 73개 테스트 케이스 — 64 통과 / 9 skip / 0 실패 |
-| **Phase 11 (v2 — 미구현)** | TRD-03~07, ANA-04~05, SHOP-04~05, COMM-06~07, CHAT-06 |
+| Phase 11~17 (UI/UX·연동·Mock 제거) | COMM-06~09, UI-01~02, MY-01~04, ADM-01~06 개선 완료 |
+| Phase 18~19 (관리자 개선·커뮤니티 권한 UI) | ADM-01b~c, ADM-03a, ADM-04, COMM-PERM-05~06 FE UI 완료 |
+| Phase 20 (버그 수정·API 연동·AdminUserController) | HOME-01 배너 연동, ADM-04a 광고 활성 필터, ADM-06 회원관리 실 API, YouTube videoId 파싱 개선, 트렌드 select 색상, 커뮤니티 검색 개선 |
+| Phase 18 (pytest 수정·E2E 안정화) | pytest 48/48 통과, E2E 61 passed / 12 skipped / 0 failed |
+| Phase 19 (관리자 UI 버그·커뮤니티 권한) | ADM-01a~c, ADM-03a, ADM-04a~b, COMM-PERM-01~07, TRD-02a~c — 전 항목 미구현 |
+| Phase 20~21 (쇼핑몰 관리자·메인페이지 개선) | SHOP-ADM-01~03, MAIN-01~02 — 구현 완료, E2E 미구현 (❌) |
+| **v2 미구현** | TRD-03~07, ANA-04~05, SHOP-04~05, CHAT-06, Order/Magazine 도메인, COMM-PERM 전체 |

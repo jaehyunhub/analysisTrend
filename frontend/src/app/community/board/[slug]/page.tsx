@@ -8,14 +8,26 @@ import { useToastStore } from "@/shared/model/toastStore";
 import Header from "@/widgets/Header/ui/Header";
 import Sidebar from "@/widgets/Sidebar/ui/Sidebar";
 import PostCard from "@/entities/post/ui/PostCard";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+
+const FIXED_CATEGORIES = ['경제', '방송', '쇼핑', '자유게시판'];
 
 export default function CommunityPage() {
   const params = useParams();
-  const slug = params.slug as string; // e.g., 'AnalysisTrend', 'KoreaIT'
+  const slug = decodeURIComponent(params.slug as string); // URL 인코딩된 한글 slug 디코딩
   const communityName = `r/${slug}`;
+
   const { openCreatePost } = useModalStore();
-  const { isMember, joinCommunity, posts: allPosts } = useCommunityStore();
+  const { isMember, joinCommunity, incrementMember, getMemberCount, getDailyVisitors, getWeeklyVisitors, recordVisit, posts: allPosts } = useCommunityStore();
+
+  // 방문 기록 및 최근 방문 저장
+  useEffect(() => {
+    recordVisit(slug);
+    if (FIXED_CATEGORIES.includes(slug)) return;
+    const stored: string[] = JSON.parse(localStorage.getItem('recentCommunities') || '[]');
+    const updated = [slug, ...stored.filter(s => s !== slug)].slice(0, 5);
+    localStorage.setItem('recentCommunities', JSON.stringify(updated));
+  }, [slug, recordVisit]);
   const { isAuthenticated } = useAuthStore();
   const toastSuccess = useToastStore((state) => state.success);
   const toastError = useToastStore((state) => state.error);
@@ -30,11 +42,8 @@ export default function CommunityPage() {
       description: `Welcome to the ${communityName} community! Discuss everything related to ${slug} here.`
   };
 
-  // 현재 slug에 해당하는 게시물만 필터링 (URL 인코딩된 slug도 처리)
-  const decodedSlug = decodeURIComponent(slug);
-  const filteredPosts = allPosts.filter(
-    p => p.community === slug || p.community === decodedSlug
-  );
+  // 현재 slug에 해당하는 게시물만 필터링
+  const filteredPosts = allPosts.filter(p => p.community === slug);
 
   // PostCard가 요구하는 형태로 변환
   const mappedFilteredPosts = filteredPosts.map(p => ({
@@ -84,6 +93,7 @@ export default function CommunityPage() {
 
   const handleJoinConfirm = () => {
     joinCommunity(slug);
+    incrementMember(slug);
     setShowJoinConfirm(false);
     toastSuccess(`'${slug}' 커뮤니티에 가입했습니다.`);
   };
@@ -94,14 +104,14 @@ export default function CommunityPage() {
     <div className="bg-[#DAE0E6] dark:bg-[#030303] min-h-screen">
       <Header />
       
-      <div className="flex justify-center px-4 pt-4">
+      <div className="flex justify-center">
         <div className="flex w-full max-w-[1200px] gap-6">
-             
+
              {/* Left Sidebar (Global Nav) - Now sits on the left of everything */}
              <Sidebar />
 
              {/* Main Content Area (Banner + Feed + Right Sidebar) */}
-             <div className="flex-1 min-w-0">
+             <div className="flex-1 min-w-0 py-5">
                  
                  {/* Community Header Section (Moved Inside) */}
                  <div className="mb-4">
@@ -125,17 +135,19 @@ export default function CommunityPage() {
                                     <h1 className="text-2xl font-bold text-[#1C1C1C] dark:text-[#D7DADC]">{communityName}</h1>
                                     <p className="text-sm text-gray-500">{communityName}</p>
                                  </div>
-                                 <button
-                                    onClick={handleJoinClick}
-                                    disabled={joined}
-                                    className={`px-8 py-2 font-bold rounded-full text-sm transition-colors mb-1 ${
-                                      joined
-                                        ? 'bg-gray-100 dark:bg-[#272729] text-gray-500 dark:text-gray-400 cursor-default border border-gray-300 dark:border-[#343536]'
-                                        : 'bg-[#0079D3] hover:bg-[#006CBB] text-white'
-                                    }`}
-                                 >
-                                    {joined ? '가입됨' : 'Join'}
-                                 </button>
+                                 {!FIXED_CATEGORIES.includes(slug) && (
+                                   <button
+                                      onClick={handleJoinClick}
+                                      disabled={joined}
+                                      className={`px-8 py-2 font-bold rounded-full text-sm transition-colors mb-1 ${
+                                        joined
+                                          ? 'bg-gray-100 dark:bg-[#272729] text-gray-500 dark:text-gray-400 cursor-default border border-gray-300 dark:border-[#343536]'
+                                          : 'bg-[#0079D3] hover:bg-[#006CBB] text-white'
+                                      }`}
+                                   >
+                                      {joined ? '가입됨' : 'Join'}
+                                   </button>
+                                 )}
                              </div>
                         </div>
                     </div>
@@ -172,17 +184,18 @@ export default function CommunityPage() {
                                     {communityInfo.description}
                                 </div>
                                 
-                                <div className="flex gap-10 mb-4 border-b border-[#EDEFF1] dark:border-[#343536] pb-4">
+                                <div className="flex gap-6 mb-4 border-b border-[#EDEFF1] dark:border-[#343536] pb-4">
                                     <div>
-                                        <div className="text-[16px] font-bold text-[#1C1C1C] dark:text-[#D7DADC]">{communityInfo.members}</div>
-                                        <div className="text-[12px] font-bold text-[#7C878A] dark:text-[#818384]">Members</div>
+                                        <div className="text-[16px] font-bold text-[#1C1C1C] dark:text-[#D7DADC]">{getMemberCount(slug)}</div>
+                                        <div className="text-[12px] font-bold text-[#7C878A] dark:text-[#818384]">멤버</div>
                                     </div>
                                     <div>
-                                        <div className="flex items-center gap-1">
-                                            <span className="h-2 w-2 rounded-full bg-[#46D160]"></span>
-                                            <div className="text-[16px] font-bold text-[#1C1C1C] dark:text-[#D7DADC]">{communityInfo.online}</div>
-                                        </div>
-                                        <div className="text-[12px] font-bold text-[#7C878A] dark:text-[#818384]">Online</div>
+                                        <div className="text-[16px] font-bold text-[#1C1C1C] dark:text-[#D7DADC]">{getDailyVisitors(slug)}</div>
+                                        <div className="text-[12px] font-bold text-[#7C878A] dark:text-[#818384]">일간 방문자</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[16px] font-bold text-[#1C1C1C] dark:text-[#D7DADC]">{getWeeklyVisitors(slug)}</div>
+                                        <div className="text-[12px] font-bold text-[#7C878A] dark:text-[#818384]">주간 방문자</div>
                                     </div>
                                 </div>
 

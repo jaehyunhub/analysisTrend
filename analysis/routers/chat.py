@@ -1,5 +1,6 @@
 import logging
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from typing import Optional
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from models.chat import ChatAnalysisResult
 from parsers.csv_parser import CSVParser
 from parsers.json_parser import JSONParser
@@ -29,11 +30,15 @@ def _get_parser(filename: str):
 
 
 @router.post("/chat", response_model=ChatAnalysisResult)
-async def analyze_chat(file: UploadFile = File(...)) -> ChatAnalysisResult:
+async def analyze_chat(
+    file: UploadFile = File(...),
+    search_keywords: Optional[str] = Form(None),
+) -> ChatAnalysisResult:
     """
     채팅 파일을 업로드하여 분석 결과를 반환합니다.
 
     지원 형식: CSV, JSON, TXT
+    search_keywords: 쉼표로 구분된 검색 키워드 (선택사항, 예: "ㅋㅋㅋ,경제,주식")
     """
     parser = _get_parser(file.filename or "upload.txt")
 
@@ -47,8 +52,14 @@ async def analyze_chat(file: UploadFile = File(...)) -> ChatAnalysisResult:
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
+    kw_list = (
+        [k.strip() for k in search_keywords.split(",") if k.strip()]
+        if search_keywords
+        else []
+    )
+
     analyzer = ChatAnalyzer()
-    result = await analyzer.analyze(records)
+    result = await analyzer.analyze(records, search_keywords=kw_list)
 
     # Redis 캐시 저장 (session_id 키, TTL 1시간)
     try:

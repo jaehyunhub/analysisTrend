@@ -1,6 +1,8 @@
 package backend.user.repository;
 
 import java.util.Optional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import backend.user.domain.AuthProvider;
@@ -15,4 +17,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
 
     boolean existsByEmail(String email);
+
+    // 관리자 이메일 검색용 (대소문자 무시, 포함 검색)
+    Page<User> findByEmailContainingIgnoreCase(String email, Pageable pageable);
 }

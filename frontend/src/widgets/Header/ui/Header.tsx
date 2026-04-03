@@ -6,6 +6,7 @@ import { LoginModal } from '@/features/auth/ui/LoginModal';
 import { useThemeStore } from '@/shared/model/themeStore';
 import { useAuthStore } from '@/shared/model/authStore';
 import { useCartStore } from '@/shared/model/cartStore';
+import { useToastStore } from '@/shared/model/toastStore';
 
 const NAV_LINKS = [
   { href: '/community', label: '커뮤니티' },
@@ -23,6 +24,7 @@ export default function Header() {
   const { theme, toggleTheme } = useThemeStore();
   const { user, isAuthenticated, logout } = useAuthStore();
   const { items } = useCartStore();
+  const toastSuccess = useToastStore((state) => state.success);
 
   useEffect(() => {
     setMounted(true);
@@ -260,7 +262,7 @@ export default function Header() {
                 취소
               </button>
               <button
-                onClick={() => { logout(); setLogoutConfirmOpen(false); }}
+                onClick={() => { logout(); setLogoutConfirmOpen(false); toastSuccess('로그아웃 되었습니다.'); }}
                 className="flex-1 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-sm font-semibold text-white transition-colors"
               >
                 로그아웃

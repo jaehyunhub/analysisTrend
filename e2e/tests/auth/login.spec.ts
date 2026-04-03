@@ -55,7 +55,12 @@ test.describe('AUTH — 로그인', () => {
       await expect(modal.loginButton).toBeVisible({ timeout: 5000 });
     } else {
       await logoutButton.click();
-      await expect(modal.loginButton).toBeVisible({ timeout: 5000 });
+      // 로그아웃 확인 모달이 뜨면 오버레이 내부의 "로그아웃" 버튼 클릭
+      const confirmOverlay = page.locator('.fixed.inset-0');
+      if (await confirmOverlay.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await confirmOverlay.getByRole('button', { name: '로그아웃' }).click();
+      }
+      await expect(modal.loginButton).toBeVisible({ timeout: 8000 });
     }
   });
 

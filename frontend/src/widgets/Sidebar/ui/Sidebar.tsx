@@ -3,11 +3,11 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { Community } from '@/shared/types/community';
-import { MOCK_COMMUNITIES } from '@/shared/mocks/communities';
-import { USE_MOCK_API } from '@/shared/api/mock/config';
 import { apiGet } from '@/shared/api/client';
 import { COMMUNITIES } from '@/shared/api/endpoints';
 import { useAuthStore } from '@/shared/model/authStore';
+
+const FIXED_CATEGORIES = ['경제', '방송', '쇼핑', '자유게시판'];
 
 const TOPIC_ICONS = {
   경제: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
@@ -23,28 +23,30 @@ const COMMUNITY_COLORS = [
 
 export default function Sidebar() {
   const [isMyCommunitiesExpanded, setIsMyCommunitiesExpanded] = useState(false);
-  const [communities, setCommunities] = useState<Community[]>(MOCK_COMMUNITIES);
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [recentVisits, setRecentVisits] = useState<string[]>([]);
   const { isAuthenticated, user } = useAuthStore();
 
   useEffect(() => {
-    if (USE_MOCK_API) {
-      setCommunities(MOCK_COMMUNITIES);
-      return;
-    }
     apiGet<Community[]>(COMMUNITIES.LIST)
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) setCommunities(data);
       })
       .catch(() => {
-        setCommunities(MOCK_COMMUNITIES);
+        setCommunities([]);
       });
+
+    const stored: string[] = JSON.parse(localStorage.getItem('recentCommunities') || '[]');
+    setRecentVisits(stored);
   }, []);
 
-  const communitiesWithColor = communities.map((c, i) => ({
-    name: c.name,
-    slug: c.name,
-    icon: c.color ?? COMMUNITY_COLORS[i % COMMUNITY_COLORS.length],
-  }));
+  const communitiesWithColor = communities
+    .filter(c => !FIXED_CATEGORIES.includes(c.name))
+    .map((c, i) => ({
+      name: c.name,
+      slug: c.name,
+      icon: c.color ?? COMMUNITY_COLORS[i % COMMUNITY_COLORS.length],
+    }));
 
   const visibleCommunities = isMyCommunitiesExpanded
     ? communitiesWithColor
@@ -54,23 +56,23 @@ export default function Sidebar() {
     <div className="hidden lg:block w-[240px] shrink-0 h-[calc(100vh-52px)] overflow-y-auto sticky top-[52px] py-4 pr-3 bg-white dark:bg-[#1A1A1B] border-r border-[#EDEFF1] dark:border-[#343536]">
 
       {/* 1. Recent */}
-      <div className="pl-5 mb-5">
-         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">최근 방문</p>
-         <ul className="space-y-0.5">
-           <li>
-             <Link href="/community/board/경제" className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-lg cursor-pointer transition-colors">
-                <div className="h-5 w-5 bg-blue-500 rounded-full flex items-center justify-center text-[9px] text-white font-bold shrink-0">경</div>
-                경제
-             </Link>
-           </li>
-           <li>
-             <Link href="/community/board/방송" className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-lg cursor-pointer transition-colors">
-                <div className="h-5 w-5 bg-red-500 rounded-full flex items-center justify-center text-[9px] text-white font-bold shrink-0">방</div>
-                방송
-             </Link>
-           </li>
-         </ul>
-      </div>
+      {recentVisits.length > 0 && (
+        <div className="pl-5 mb-5">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">최근 방문</p>
+          <ul className="space-y-0.5">
+            {recentVisits.map((name, i) => (
+              <li key={name}>
+                <Link href={`/community/board/${encodeURIComponent(name)}`} className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-lg cursor-pointer transition-colors">
+                  <div className={`h-5 w-5 ${COMMUNITY_COLORS[i % COMMUNITY_COLORS.length]} rounded-full flex items-center justify-center text-[9px] text-white font-bold shrink-0`}>
+                    {name[0]}
+                  </div>
+                  {name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* 2. My Communities */}
       <div className="pl-5 mb-5">

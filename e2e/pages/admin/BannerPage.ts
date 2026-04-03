@@ -35,6 +35,8 @@ export class BannerPage {
   async goto(): Promise<void> {
     await this.page.goto('/admin/banner');
     await this.page.waitForLoadState('domcontentloaded');
+    // Wait for admin layout to hydrate (_hasHydrated guard)
+    await this.page.waitForSelector('h2, [role="main"] button', { state: 'visible', timeout: 8000 }).catch(() => {});
     await this.page.waitForTimeout(300);
   }
 
