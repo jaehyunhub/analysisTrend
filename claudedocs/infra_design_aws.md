@@ -1,845 +1,1075 @@
-# analysisTrend — AWS 인프라 설계서
+# analysisTrend — AWS 인프라 최종 설계서
 
-> 대상 독자: 인프라 입문 엔지니어
+> 대상: 인프라 입문 엔지니어
 > 작성일: 2026-04-05
-> 목표: "이 문서 하나만 보고 AWS에 올릴 수 있다"
+> 목표: 이 문서 하나로 AWS 배포부터 장애 대응, 확장 계획까지 전부 커버
 
 ---
 
-## 0. 이 문서를 읽기 전에 알아야 할 개념 3가지
+## 목차
 
-### 가용영역(AZ, Availability Zone)이란?
-AWS는 전 세계에 **리전(Region)**이 있고, 리전 안에 **가용영역**이 여러 개 있다.
-가용영역은 **물리적으로 분리된 데이터센터**라고 생각하면 된다.
-
-```
-서울 리전 (ap-northeast-2)
-├── AZ-a (서울 데이터센터 A동)
-├── AZ-b (서울 데이터센터 B동)  ← 화재/정전이 나도 B, C는 살아있음
-└── AZ-c (서울 데이터센터 C동)
-```
-
-### 왜 Multi-AZ가 중요한가?
-- 서버 1대: AZ-a가 죽으면 서비스 전체 다운 → **단일 장애점(SPOF)**
-- Multi-AZ: AZ-a가 죽어도 AZ-b, AZ-c로 자동 전환 → **고가용성(HA)**
-
-### 컨테이너 vs 서버
-- **EC2**: 가상 서버(VM). 직접 SSH 접속해서 설치/관리. 관리 부담 있음.
-- **ECS Fargate**: 컨테이너만 올리면 서버 관리는 AWS가 함. 권장.
-- **EKS**: Kubernetes. 대규모일 때. 초기엔 오버엔지니어링.
+1. [한 줄 요약](#1-한-줄-요약)
+2. [전체 구조 한눈에 보기](#2-전체-구조-한눈에-보기)
+3. [서비스 배치 전략](#3-서비스-배치-전략)
+4. [네트워크 설계 VPC](#4-네트워크-설계-vpc)
+5. [서버 자동 확장 Auto Scaling](#5-서버-자동-확장-auto-scaling)
+6. [트래픽 폭발 대응 전략](#6-트래픽-폭발-대응-전략)
+7. [데이터베이스 전략](#7-데이터베이스-전략)
+8. [Redis 캐싱 전략](#8-redis-캐싱-전략)
+9. [CI/CD 파이프라인](#9-cicd-파이프라인)
+10. [모니터링 설계](#10-모니터링-설계)
+11. [보안 설계](#11-보안-설계)
+12. [비용 계획](#12-비용-계획)
+13. [제약사항 및 한계](#13-제약사항-및-한계)
+14. [단계별 확장 로드맵](#14-단계별-확장-로드맵)
+15. [초기 세팅 체크리스트](#15-초기-세팅-체크리스트)
+16. [장애 대응 매뉴얼 Runbook](#16-장애-대응-매뉴얼-runbook)
 
 ---
 
-## 1. 전체 아키텍처 다이어그램
+## 1. 한 줄 요약
+
+> **"지금은 Auto Scaling으로 버티고, 트래픽 보고 쪼갠다"**
+
+- 지금: Vercel(프론트) + AWS ECS(백엔드+분석) + RDS + ElastiCache
+- 트래픽 스파이크: ECS Auto Scaling이 자동으로 서버 늘림
+- 나중에: 쇼핑/커뮤니티 서비스 분리 (MSA)
+
+---
+
+## 2. 전체 구조 한눈에 보기
 
 ```
-[사용자 브라우저]
-       │ HTTPS
-       ▼
-[Route 53] ── DNS 쿼리 → IP 반환
-       │
-       ▼
-[CloudFront] ── 정적 자산 캐시 (JS/CSS/이미지)
-       │         └── S3 버킷 (정적 파일 origin)
-       │ 동적 요청
-       ▼
-[ACM] ── SSL/TLS 인증서 자동 발급/갱신
-       │
-       ▼
-[ALB: Application Load Balancer]
-  ap-northeast-2 / Multi-AZ
-       │
-       ├─────────────────────────────────────┐
-       │                                     │
-       ▼                                     ▼
-[ECS Fargate: frontend]             [ECS Fargate: backend]
-  Next.js :3000                      Spring Boot :8080
-  태스크 최소 2개 (AZ-a, AZ-b)        태스크 최소 2개 (AZ-a, AZ-b)
-  Auto Scaling (CPU 60% 기준)         Auto Scaling (CPU 60% 기준)
-       │                                     │
-       │                          [ECS Fargate: analysis]
-       │                           FastAPI :8000
-       │                           태스크 최소 1개
-       │                                     │
-       └──────────────┬──────────────────────┘
-                      │
-          ┌───────────┴────────────┐
-          │                        │
-          ▼                        ▼
-[RDS Aurora MySQL]         [ElastiCache Redis]
-  Multi-AZ (자동 페일오버)    클러스터 모드
-  Primary (AZ-a)              (캐시 / 세션)
-  Replica (AZ-b) ← 읽기 분산
-          │
-          ▼
-[S3] ── 이미지/파일 업로드 저장소
-[ECR] ── Docker 이미지 레지스트리
-[Secrets Manager] ── DB 패스워드, JWT 시크릿 등
-[CloudWatch] ── 로그, 메트릭, 알람
-[SNS + Lambda] ── 알람 → Slack 연동
+[사용자]
+   │ HTTPS
+   ▼
+[Route 53] ← DNS. "analysistrend.com이 어디 있지?" 찾아주는 전화번호부
+   │
+   ▼
+[Vercel] ← Next.js 프론트엔드. git push 하면 자동 배포
+   │ /api/* 요청만 아래로
+   ▼
+[AWS ALB] ← 로드밸런서. 트래픽을 컨테이너들에 나눠줌
+   │
+   ├──→ [ECS: backend]  Spring Boot :8080  (컨테이너 최소 2개)
+   │         │
+   └──→ [ECS: analysis] FastAPI    :8000  (컨테이너 최소 1개)
+             │
+    ┌────────┴────────┐
+    │                 │
+[RDS Aurora]   [ElastiCache]
+ MySQL 8.0      Redis 7.x
+ Multi-AZ       캐시/세션
+    │
+   [S3] ← 이미지, 파일 저장
+   [ECR] ← Docker 이미지 저장소
+   [Secrets Manager] ← DB 패스워드, JWT 키 등
+   [CloudWatch] ← 로그, 메트릭, 알람
 ```
 
 ---
 
-## 2. AWS 서비스별 역할 설명
+## 3. 서비스 배치 전략
 
-| 서비스 | 역할 | 왜 이걸 쓰나 |
-|--------|------|-------------|
-| **Route 53** | DNS 서비스. `analysistrend.com` → IP 변환 | AWS 통합, 헬스체크 자동 장애조치 |
-| **CloudFront** | CDN. 전 세계 엣지 서버에서 정적 자산 제공 | 로딩 속도 향상, DDoS 방어, HTTPS 강제 |
-| **ACM** | SSL 인증서 발급/자동 갱신 | 무료, 자동 갱신 (Let's Encrypt 대체) |
-| **ALB** | 트래픽을 여러 컨테이너로 분산 | 헬스체크, 경로 기반 라우팅 (`/api/*` → backend) |
-| **ECS Fargate** | 컨테이너 실행 (서버리스) | EC2 관리 불필요, 자동 스케일링 |
-| **ECR** | Docker 이미지 저장소 | CI/CD 파이프라인과 통합 |
-| **RDS Aurora** | MySQL 호환 관계형 DB | 자동 Multi-AZ, Replica 자동 페일오버 |
-| **ElastiCache** | Redis 관리형 서비스 | 세션, 캐시. 직접 Redis 운영 불필요 |
-| **S3** | 파일/이미지 오브젝트 스토리지 | 무제한 확장, 99.99% 내구성 |
-| **Secrets Manager** | 민감정보 관리 | 코드에 패스워드 하드코딩 방지 |
-| **CloudWatch** | 로그 수집, 메트릭, 알람 | AWS 기본 제공, 별도 설치 불필요 |
-| **SNS** | 알람 메시지 발송 (Slack/이메일) | CloudWatch 알람과 연동 |
+### 왜 프론트만 Vercel인가?
+
+```
+선택지 A: 전부 AWS
+  비용: 월 $200~250
+  프론트 배포: 복잡함 (ECS + CloudFront 직접 설정)
+  관리: 힘듦
+
+선택지 B: Vercel + AWS  ← 이걸 선택
+  비용: 월 $70~100 (Vercel 무료 플랜 사용 시)
+  프론트 배포: git push 하면 자동 완료
+  관리: 쉬움
+  실무: 이 패턴이 스타트업 표준
+```
+
+**Next.js는 Vercel이 만들어서 궁합이 완벽**
+- 자동 CDN (전 세계 빠름)
+- 자동 HTTPS
+- 자동 미리보기 URL (PR마다 별도 URL 생성)
+- 무료 플랜: 트래픽 100GB/월
+
+### Analysis 서비스를 항상 켜야 하나?
+
+```
+Analysis 서비스가 하는 일:
+  - 채팅 파일 분석 → 사람이 파일 올릴 때만 실행
+  - 트렌드 수집    → 30분마다 한 번
+
+→ 24시간 켜둘 필요가 없음
+
+선택지:
+  ECS 상시 실행: 월 $15~30 (항상 켜져 있음)
+  ECS 최소 실행: 태스크 1개만 유지 (비용 절감)
+
+→ 지금은 ECS 태스크 1개 유지, 나중에 Lambda 전환 고려
+```
 
 ---
 
-## 3. 네트워크 구성 (VPC 설계)
+## 4. 네트워크 설계 VPC
 
-**VPC = 우리만의 가상 사설 네트워크**. 외부에서 직접 접근 불가.
+**VPC = 우리만의 사설 네트워크. 외부에서 직접 못 들어옴.**
 
 ```
-VPC: 10.0.0.0/16
+VPC: 10.0.0.0/16  (서울 리전: ap-northeast-2)
 │
-├── Public Subnet (인터넷에서 직접 접근 가능)
-│   ├── 10.0.1.0/24 (AZ-a) ── ALB 배치
-│   └── 10.0.2.0/24 (AZ-b) ── ALB 배치
+├── Public Subnet  ← 인터넷에서 직접 접근 가능
+│   ├── 10.0.1.0/24 (AZ-a) → ALB 배치
+│   └── 10.0.2.0/24 (AZ-b) → ALB 배치
 │
-└── Private Subnet (인터넷에서 직접 접근 불가 ← 보안)
-    ├── 10.0.11.0/24 (AZ-a) ── ECS 컨테이너, RDS Primary
-    └── 10.0.12.0/24 (AZ-b) ── ECS 컨테이너, RDS Replica
+└── Private Subnet ← 인터넷에서 직접 접근 불가 (보안)
+    ├── 10.0.11.0/24 (AZ-a) → ECS 컨테이너, RDS Primary
+    └── 10.0.12.0/24 (AZ-b) → ECS 컨테이너, RDS Replica
 ```
 
-**포인트**:
-- ALB만 Public에 노출, 컨테이너/DB는 모두 Private
-- Private Subnet의 컨테이너가 인터넷에 나가려면 **NAT Gateway** 경유
-- 보안그룹(Security Group): ALB → ECS 포트만 열기, ECS → RDS 포트만 열기
+**핵심 규칙: ALB만 Public, 나머지는 전부 Private**
 
-### 보안그룹 설정 예시
+```
+잘못된 예시 (절대 하면 안 됨):
+  RDS를 Public Subnet에 배치 → 인터넷에서 DB 직접 접근 가능 → 해킹 위험
+
+올바른 예시:
+  사용자 → ALB(Public) → ECS(Private) → RDS(Private)
+  외부에서 DB에 직접 접근하는 경로 자체가 없음
+```
+
+### 보안그룹 설정 (방화벽 규칙)
 
 ```
 sg-alb (ALB용)
-  Inbound:  80, 443 from 0.0.0.0/0 (인터넷 전체)
-  Outbound: 3000 to sg-frontend
-            8080 to sg-backend
+  들어오는 트래픽: 443 (HTTPS) — 인터넷 전체 허용
+  나가는 트래픽:  3000 → ECS frontend
+                  8080 → ECS backend
 
-sg-frontend (Next.js 컨테이너)
-  Inbound:  3000 from sg-alb only  ← ALB에서만 접근 가능
-  Outbound: 8080 to sg-backend, 443 to 0.0.0.0/0
+sg-backend (Spring Boot)
+  들어오는 트래픽: 8080 — ALB에서만 허용
+  나가는 트래픽:  3306 → RDS
+                  6379 → Redis
+                  8000 → Analysis 서비스
 
-sg-backend (Spring Boot 컨테이너)
-  Inbound:  8080 from sg-alb, sg-frontend
-  Outbound: 3306 to sg-rds, 6379 to sg-redis
+sg-analysis (FastAPI)
+  들어오는 트래픽: 8000 — Backend에서만 허용
+  나가는 트래픽:  443 → 외부 API (뉴스, YouTube API)
 
 sg-rds (RDS)
-  Inbound:  3306 from sg-backend only ← 백엔드에서만 접근
+  들어오는 트래픽: 3306 — Backend에서만 허용
+  나가는 트래픽:  없음
 
 sg-redis (ElastiCache)
-  Inbound:  6379 from sg-backend only
+  들어오는 트래픽: 6379 — Backend에서만 허용
+  나가는 트래픽:  없음
 ```
 
 ---
 
-## 4. ALB 라우팅 규칙
+## 5. 서버 자동 확장 Auto Scaling
 
-현재 Nginx가 하는 역할을 ALB가 대체한다.
+**쇼핑이나 커뮤니티에 트래픽이 갑자기 몰려도 자동으로 서버가 늘어남**
 
 ```
-ALB Listener: 443 (HTTPS)
-│
-├── /api/*       → backend Target Group (Spring Boot :8080)
-├── /oauth2/*    → backend Target Group
-├── /analysis/*  → analysis Target Group (FastAPI :8000)
-└── /*           → frontend Target Group (Next.js :3000)
+평소 (낮):
+  Backend 컨테이너 2개
+  CPU 30%, 메모리 40%
+
+이벤트/트래픽 폭발:
+  CPU 60% 초과 감지
+      │
+      ▼ (60초 이내)
+  Backend 컨테이너 2개 → 4개 자동 추가
+      │
+  CPU 정상화
+
+트래픽 빠짐:
+  CPU 20% 이하 5분 유지
+      │
+      ▼ (300초 후)
+  Backend 컨테이너 6개 → 2개로 자동 감소
+  (비용 자동 절감)
 ```
 
-**Target Group 헬스체크 설정**:
-```
-frontend: GET / → 200 응답 확인 (10초 간격)
-backend:  GET /actuator/health → 200 응답 확인
-analysis: GET /health → 200 응답 확인
-```
-헬스체크 2회 실패 시 해당 태스크 자동 제외 → 트래픽 다른 태스크로 이동
+### ECS Auto Scaling 설정값
 
----
+```yaml
+# backend 서비스 기준
+MinCapacity: 2    # 최소 2개 (AZ-a, AZ-b 각 1개씩 — 이중화)
+MaxCapacity: 10   # 최대 10개까지 자동 확장
+TargetCPU: 60%    # CPU 60% 넘으면 확장 시작
+ScaleOutCooldown: 60초   # 너무 빠른 확장 방지 (60초 기다림)
+ScaleInCooldown:  300초  # 너무 빠른 축소 방지 (5분 기다림)
 
-## 5. ECS Task Definition (컨테이너 설정)
-
-Task Definition = "이 컨테이너를 어떻게 실행할지" 명세서
-
-### frontend (Next.js)
-```json
-{
-  "family": "analysistrend-frontend",
-  "cpu": "512",
-  "memory": "1024",
-  "networkMode": "awsvpc",
-  "containerDefinitions": [{
-    "name": "frontend",
-    "image": "123456789.dkr.ecr.ap-northeast-2.amazonaws.com/frontend:latest",
-    "portMappings": [{"containerPort": 3000}],
-    "environment": [
-      {"name": "NEXT_PUBLIC_API_URL", "value": "https://api.analysistrend.com"}
-    ],
-    "logConfiguration": {
-      "logDriver": "awslogs",
-      "options": {
-        "awslogs-group": "/ecs/analysistrend-frontend",
-        "awslogs-region": "ap-northeast-2",
-        "awslogs-stream-prefix": "ecs"
-      }
-    }
-  }]
-}
+# analysis 서비스 기준 (덜 중요)
+MinCapacity: 1
+MaxCapacity: 3
+TargetCPU: 70%
 ```
 
-### backend (Spring Boot)
-```json
-{
-  "family": "analysistrend-backend",
-  "cpu": "1024",
-  "memory": "2048",
-  "containerDefinitions": [{
-    "name": "backend",
-    "image": "123456789.dkr.ecr.ap-northeast-2.amazonaws.com/backend:latest",
-    "portMappings": [{"containerPort": 8080}],
-    "secrets": [
-      {"name": "SPRING_DATASOURCE_PASSWORD",
-       "valueFrom": "arn:aws:secretsmanager:...:db-password"},
-      {"name": "JWT_SECRET",
-       "valueFrom": "arn:aws:secretsmanager:...:jwt-secret"}
-    ],
-    "environment": [
-      {"name": "SPRING_DATASOURCE_URL",
-       "value": "jdbc:mysql://rds-endpoint:3306/analysis_trend"},
-      {"name": "SPRING_REDIS_HOST", "value": "redis-endpoint"}
-    ]
-  }]
-}
+### ALB 헬스체크 (죽은 컨테이너 자동 제외)
+
+```
+ALB가 30초마다 체크:
+  GET /actuator/health → 200 OK면 정상
+  2번 연속 실패        → 해당 컨테이너 트래픽 제외
+  3번 연속 성공        → 다시 트래픽 포함
+
+컨테이너 1개 죽어도:
+  - ALB가 30초 내 감지
+  - 나머지 컨테이너로 트래픽 전환
+  - 사용자는 잠깐 느려짐 or 아예 모름
 ```
 
 ---
 
-## 6. Auto Scaling 설정
+## 6. 트래픽 폭발 대응 전략
 
-**언제 스케일 아웃(늘리나)?**
-- CPU 사용률 60% 이상 → 새 태스크 추가
-- 메모리 사용률 80% 이상 → 새 태스크 추가
-
-**언제 스케일 인(줄이나)?**
-- CPU 사용률 20% 이하 5분 지속 → 태스크 제거
+### 현재 문제 (모놀리식의 한계)
 
 ```
-Service: analysistrend-backend
-  MinCapacity: 2  ← 최소 2개 (AZ-a, AZ-b 각 1개)
-  MaxCapacity: 10 ← 최대 10개까지 자동 확장
-  ScalingPolicy:
-    - CPU Target 60%
-    - ScaleOut cooldown: 60초 (너무 빠른 확장 방지)
-    - ScaleIn cooldown: 300초 (너무 빠른 축소 방지)
+지금 백엔드 구조:
+┌─────────────────────────────────┐
+│  쇼핑 API + 커뮤니티 API + 인증  │  ← 한 덩어리
+└─────────────────────────────────┘
+
+쇼핑 이벤트로 트래픽 폭발
+       │
+       ▼
+백엔드 전체 CPU 100%
+       │
+       ▼
+커뮤니티도 느려짐
+인증도 느려짐      ← 쇼핑 때문에 전체가 피해
+```
+
+### 단계별 대응
+
+#### 1단계: 지금 — Auto Scaling + 캐싱
+
+```
+추가 비용: $0 (설정만)
+효과: 트래픽 3~5배 감당 가능
+
+- ECS Auto Scaling: 트래픽 오면 서버 자동 증가
+- Redis 캐싱:       상품 목록 캐싱 → DB 부하 70% 감소
+- RDS Read Replica: 읽기는 Replica로 분산
+```
+
+#### 2단계: DAU 1만 이상 — DB 분리
+
+```
+추가 비용: +$30~50/월
+효과: DB 병목 제거
+
+쇼핑/커뮤니티 코드는 그대로,
+DB 스키마만 분리해서 다른 RDS로
+
+Backend (Spring Boot 1개)
+    │
+    ├── 쇼핑 관련 → shop_db (RDS-1)
+    └── 커뮤니티  → community_db (RDS-2)
+
+→ 쇼핑 DB 과부하가 커뮤니티 DB에 영향 없음
+```
+
+#### 3단계: DAU 10만 이상 — 서비스 분리 (MSA)
+
+```
+추가 비용: +$100~200/월
+효과: 완전한 격리
+
+┌──────────────┐  ┌──────────────┐  ┌──────────┐
+│ 쇼핑 서비스  │  │ 커뮤니티     │  │ 인증     │
+│ (Spring)     │  │ 서비스       │  │ 서비스   │
+└──────────────┘  └──────────────┘  └──────────┘
+       │                 │                │
+   shop_db          community_db      auth_db
+   (독립 RDS)       (독립 RDS)       (독립 RDS)
+
+장점:
+  쇼핑 트래픽 폭발 → 쇼핑 컨테이너만 10개로 증가
+  커뮤니티는 영향 없음 → 그대로 2개
+
+단점:
+  서비스 간 통신 복잡 (HTTP API or 메시지 큐)
+  배포/운영 복잡도 3배 증가
+  → 팀 규모 크거나 트래픽 충분할 때만 고려
+```
+
+### MSA 언제 고려하나? 판단 기준
+
+```
+아래 중 2개 이상 해당되면 MSA 검토:
+
+□ 특정 기능만 따로 배포하고 싶다
+  (쇼핑 기능 업데이트에 전체 서버 재시작이 아깝다)
+
+□ 팀이 기능별로 완전히 나뉘어 있다
+  (쇼핑팀 5명 vs 커뮤니티팀 3명 — 코드 충돌 빈번)
+
+□ 서비스별 트래픽 패턴이 극단적으로 다르다
+  (쇼핑: 이벤트 때 100배 / 커뮤니티: 항상 일정)
+
+□ 하나의 서비스 장애가 전체를 죽이는 일이 반복된다
+
+해당 안 되면: 지금은 모놀리식 + Auto Scaling으로 충분
+"섣부른 MSA는 모놀리식보다 나쁘다" — 실무 격언
 ```
 
 ---
 
-## 7. CI/CD 파이프라인 — GitHub Actions
+## 7. 데이터베이스 전략
+
+### RDS Aurora MySQL 구성
+
+```
+인스턴스: db.t3.medium (초기)
+  vCPU: 2, RAM: 4GB
+
+Multi-AZ 구성:
+  Primary (AZ-a): 읽기 + 쓰기 전담
+  Replica (AZ-b): 읽기 전용 + 페일오버 대기
+       │
+  Primary 장애 발생
+       │
+       ▼ (자동, 30~60초)
+  Replica → Primary 자동 승격
+  앱 재연결 → 정상 동작
+
+백업:
+  자동 스냅샷: 매일 새벽 3시
+  보존 기간:   7일
+  복구:        5분 단위 Point-in-Time Recovery 가능
+```
+
+### Read Replica 활용 (2단계부터)
+
+```
+트래픽의 80~90%는 읽기 요청
+(상품 목록, 게시글 목록, 댓글 조회 등)
+
+쓰기:  Primary DB에만 (주문, 댓글 작성, 회원가입)
+읽기:  Read Replica로 분산 (목록 조회, 상세 페이지)
+
+Spring Boot 설정:
+  @Transactional(readOnly = true) → Replica로 자동 라우팅
+  @Transactional                  → Primary로 자동 라우팅
+```
+
+### DB 연결 관리 주의사항
+
+```
+ECS 태스크 2개 × 연결 풀 10개 = DB에 최대 20개 연결
+ECS 태스크 10개로 늘어나면  = DB에 최대 100개 연결
+
+RDS t3.medium max_connections ≈ 170개
+→ Auto Scaling으로 태스크가 늘어나면 연결 수 초과 위험
+
+해결책: PgBouncer / RDS Proxy 사용
+  앱 → RDS Proxy → RDS
+  RDS Proxy가 연결 풀링 관리
+  태스크 100개여도 DB 연결은 20개 유지
+  비용: +$20~30/월
+```
+
+---
+
+## 8. Redis 캐싱 전략
+
+**캐싱 = 자주 쓰는 데이터를 빠른 곳에 미리 저장**
+
+```
+캐싱 없을 때:
+  사용자 → 백엔드 → DB 쿼리 → 응답  (50~200ms)
+
+캐싱 있을 때:
+  사용자 → 백엔드 → Redis 조회 → 응답  (1~5ms)
+                       └── 없으면 DB 쿼리 후 Redis에 저장
+```
+
+### 이 프로젝트에서 캐싱할 것들
+
+```
+캐싱 대상 (자주 읽히고 가끔 바뀌는 것):
+  상품 목록      → TTL 5분  (재고 변경이 많지 않음)
+  인기 게시글    → TTL 1분  (홈화면 위젯)
+  배너 목록      → TTL 10분 (관리자가 수정 시 캐시 삭제)
+  유튜브 영상    → TTL 30분
+  뉴스 트렌드    → TTL 30분 (analysis 서비스 결과)
+
+캐싱하면 안 되는 것:
+  로그인 사용자별 데이터  (장바구니, 주문 내역)
+  실시간 재고             (주문 시 정확한 재고 확인 필수)
+  관리자 페이지 데이터    (항상 최신 데이터 필요)
+```
+
+### 캐시 전략 패턴
+
+```
+Cache-Aside 패턴 (가장 많이 씀):
+
+1. 앱이 Redis 먼저 확인
+2. 있으면 → 바로 반환 (Cache Hit)
+3. 없으면 → DB에서 조회 → Redis에 저장 → 반환 (Cache Miss)
+4. 데이터 변경 시 → Redis에서 해당 키 삭제
+
+Spring Boot 코드:
+  @Cacheable("products")        → 조회 시 캐싱
+  @CacheEvict("products")       → 수정/삭제 시 캐시 삭제
+  @CachePut("products")         → 수정 후 캐시 업데이트
+```
+
+### 캐시 주의사항 (Cache Stampede)
+
+```
+문제 상황:
+  상품 목록 캐시 TTL 만료
+       │
+  동시에 1000명이 상품 목록 요청
+       │
+  전부 DB로 쿼리 몰림 → DB 과부하 → 장애
+
+해결책: Jitter (랜덤 TTL)
+  TTL을 5분 고정 → 5분 ± 30초 랜덤
+  모든 캐시가 동시에 만료되지 않음
+
+또는: 캐시 갱신을 백그라운드 스케줄러가 미리 수행
+  만료 30초 전에 미리 DB 조회 → Redis 갱신
+  사용자는 항상 캐시에서 응답받음
+```
+
+---
+
+## 9. CI/CD 파이프라인
 
 ### 전체 흐름
 
 ```
-개발자 로컬
-  │
-  ├── git push origin feature/xxx
-  │         │
-  │    [GitHub Actions: CI]
-  │    ├── Jest (frontend)
-  │    ├── tsc --noEmit (타입 검사)
-  │    ├── ./gradlew test (backend)
-  │    ├── pytest (analysis)
-  │    └── 실패 시 → PR 머지 차단
-  │
-  └── PR → main 머지
-              │
-         [GitHub Actions: CD]
-         ├── Docker build × 3 (frontend/backend/analysis)
-         ├── ECR push (태그: git SHA)
-         ├── ECS Task Definition 업데이트
-         ├── ECS Staging 자동 배포
-         │         │
-         │    Slack: "Staging 배포 완료 — 확인 부탁드립니다"
-         │         │
-         │    (수동 승인 — GitHub Environments)
-         │         │
-         └── ECS Production 배포 (Rolling Update)
-                   │
-              Slack: "Production 배포 완료 ✅"
+개발자 로컬에서 코드 작성
+       │
+       ├── git push → PR 생성
+       │
+       ▼
+[GitHub Actions: CI] ← PR 올라가면 자동 실행
+  ├── Jest 테스트 (frontend)
+  ├── tsc --noEmit (타입 검사)
+  ├── ./gradlew test (backend)
+  ├── pytest (analysis)
+  └── 실패하면 → PR 머지 물리적으로 차단
+
+       │ 전부 통과
+       ▼
+PR 머지 → main 브랜치
+       │
+       ▼
+[GitHub Actions: CD Staging]
+  ├── Docker 이미지 빌드 × 2 (backend, analysis)
+  ├── ECR에 이미지 푸시 (태그: git SHA)
+  ├── ECS Staging 자동 배포
+  ├── Vercel Staging 자동 배포 (프론트 자동)
+  └── Slack 알림: "Staging 배포 완료. 확인해주세요 🔍"
+
+       │
+ QA/팀장 Staging 확인
+       │ 승인 버튼 클릭
+       ▼
+[GitHub Actions: CD Production]
+  ├── ECS Production 배포 (Rolling Update)
+  ├── Vercel Production 자동 반영
+  └── Slack 알림: "Production 배포 완료 ✅"
 ```
 
-### GitHub Actions 파일 구조
+### 왜 git SHA를 이미지 태그로 쓰나?
 
 ```
-.github/
-└── workflows/
-    ├── ci.yml          ← PR 시 자동 실행 (테스트)
-    ├── cd-staging.yml  ← main 머지 시 Staging 자동 배포
-    └── cd-prod.yml     ← 수동 승인 후 Production 배포
+잘못된 방법:
+  이미지 태그를 항상 "latest"로 사용
+  → 언제 어떤 코드가 배포됐는지 추적 불가
+  → 롤백 시 "latest"가 뭔지 모름
+
+올바른 방법:
+  이미지 태그 = git commit SHA (예: a3f9c12)
+  → "이 이미지 = 이 커밋" 1:1 매핑
+  → 문제 발생 → SHA 확인 → 해당 커밋 코드 바로 확인
+  → 롤백 = 이전 SHA 태그 이미지로 ECS 업데이트
 ```
 
-### ci.yml (테스트 파이프라인)
+### 배포 전략: Rolling Update
 
-```yaml
-name: CI
+```
+컨테이너 4개 운영 중:
+  [v1][v1][v1][v1]
 
-on:
-  pull_request:
-    branches: [main]
+배포 시작 (순서대로 교체):
+  [v2][v1][v1][v1]  ← 1번 교체됨, 헬스체크 통과 후 다음
+  [v2][v2][v1][v1]
+  [v2][v2][v2][v1]
+  [v2][v2][v2][v2]  ← 완료
 
-jobs:
-  frontend-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-      - run: cd frontend && npm ci
-      - run: cd frontend && npm run lint
-      - run: cd frontend && node_modules/.bin/tsc --noEmit
-      - run: cd frontend && npm test -- --passWithNoTests
-
-  backend-test:
-    runs-on: ubuntu-latest
-    services:
-      mysql:
-        image: mysql:8.0
-        env:
-          MYSQL_ROOT_PASSWORD: test
-          MYSQL_DATABASE: analysis_trend_test
-        ports: ['3306:3306']
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'gradle'
-      - run: cd backend && ./gradlew test
-
-  analysis-test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      - run: cd analysis && pip install -r requirements.txt
-      - run: cd analysis && pytest tests/ -v
+특징:
+  - 배포 중에도 서비스 무중단
+  - v1/v2 동시 운영 구간 존재 (API 호환성 유지 필요)
+  - 롤백: 이전 Task Definition 리비전으로 재배포 (5분)
 ```
 
-### cd-staging.yml (Staging 자동 배포)
+### GitHub Secrets 등록 목록
 
-```yaml
-name: CD — Staging
-
-on:
-  push:
-    branches: [main]
-
-env:
-  AWS_REGION: ap-northeast-2
-  ECR_REGISTRY: 123456789.dkr.ecr.ap-northeast-2.amazonaws.com
-
-jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      # AWS 인증 (GitHub Secrets에 저장된 키 사용)
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      # ECR 로그인
-      - uses: aws-actions/amazon-ecr-login@v2
-
-      # 이미지 빌드 & 푸시 (태그: git SHA 사용 → 롤백 가능)
-      - name: Build & Push frontend
-        run: |
-          docker build -t $ECR_REGISTRY/frontend:${{ github.sha }} ./frontend
-          docker push $ECR_REGISTRY/frontend:${{ github.sha }}
-
-      - name: Build & Push backend
-        run: |
-          docker build -t $ECR_REGISTRY/backend:${{ github.sha }} ./backend
-          docker push $ECR_REGISTRY/backend:${{ github.sha }}
-
-      - name: Build & Push analysis
-        run: |
-          docker build -t $ECR_REGISTRY/analysis:${{ github.sha }} ./analysis
-          docker push $ECR_REGISTRY/analysis:${{ github.sha }}
-
-      # ECS Task Definition 이미지 태그 업데이트
-      - name: Update ECS Task Definition
-        id: task-def
-        uses: aws-actions/amazon-ecs-render-task-definition@v1
-        with:
-          task-definition: .aws/task-definition-staging.json
-          container-name: frontend
-          image: ${{ env.ECR_REGISTRY }}/frontend:${{ github.sha }}
-
-      # ECS 서비스 배포
-      - name: Deploy to ECS Staging
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: ${{ steps.task-def.outputs.task-definition }}
-          service: analysistrend-staging
-          cluster: analysistrend-cluster
-          wait-for-service-stability: true  # 배포 완료까지 대기
-
-      # Slack 알림
-      - name: Notify Slack
-        uses: 8398a7/action-slack@v3
-        with:
-          status: ${{ job.status }}
-          text: "Staging 배포 완료 — ${{ github.sha }} by ${{ github.actor }}"
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 ```
-
-### cd-prod.yml (Production 수동 승인 배포)
-
-```yaml
-name: CD — Production
-
-on:
-  workflow_dispatch:  # 수동 실행만 (버튼 클릭)
-    inputs:
-      image_tag:
-        description: '배포할 이미지 태그 (git SHA)'
-        required: true
-
-# GitHub Environments "production" 설정에서
-# Required Reviewers 지정 → 승인자가 OK 눌러야 실행
-environment: production
-
-jobs:
-  deploy-production:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-northeast-2
-
-      - name: Deploy to Production
-        run: |
-          aws ecs update-service \
-            --cluster analysistrend-cluster \
-            --service analysistrend-prod \
-            --force-new-deployment
-
-      - name: Notify Slack
-        uses: 8398a7/action-slack@v3
-        with:
-          text: "🚀 Production 배포 완료 — ${{ github.event.inputs.image_tag }}"
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+AWS_ACCESS_KEY_ID        ← GitHub Actions용 IAM 키
+AWS_SECRET_ACCESS_KEY    ← GitHub Actions용 IAM 시크릿
+SLACK_WEBHOOK_URL        ← Slack 알림 웹훅
+VERCEL_TOKEN             ← Vercel 배포 토큰 (자동)
 ```
 
 ---
 
-## 8. 롤백 전략
+## 10. 모니터링 설계
 
-배포 후 에러 발생 시 즉각 대응.
-
-### 방법 1: ECS 이전 Task Definition으로 롤백
-
-```bash
-# 현재 실행 중인 Task Definition 리비전 확인
-aws ecs describe-services \
-  --cluster analysistrend-cluster \
-  --services analysistrend-prod \
-  --query 'services[0].taskDefinition'
-
-# 이전 리비전으로 강제 배포 (예: revision 42 → 41)
-aws ecs update-service \
-  --cluster analysistrend-cluster \
-  --service analysistrend-prod \
-  --task-definition analysistrend-backend:41  # ← 이전 버전 번호
-```
-
-### 방법 2: GitHub Actions에서 특정 SHA 재배포
-
-```bash
-# Staging에서 검증됐던 SHA로 Production 수동 배포
-# workflow_dispatch → image_tag 입력창에 SHA 입력
-```
-
-### 롤백 의사결정 기준
+### 모니터링이 없으면 생기는 일
 
 ```
-배포 후 10분 이내 체크:
-  ├── 에러율 > 1%    → 즉시 롤백
-  ├── P99 응답시간 > 3초 → 즉시 롤백
-  ├── CPU > 90% 지속 → 롤백 검토
-  └── 정상           → 모니터링 30분 더
+에러 발생
+    │
+사용자 신고 접수 (1~2시간 후)
+    │
+팀 인지
+    │
+원인 파악 시작 (이미 늦음)
+
+모니터링 있으면:
+에러 발생
+    │ 1분 이내
+CloudWatch 감지
+    │
+Slack 알림
+    │
+담당자가 사용자보다 먼저 앎
 ```
-
----
-
-## 9. 모니터링 설계
-
-### 3가지 황금 지표 (Google SRE 기준)
-
-| 지표 | 설명 | 임계값 |
-|------|------|--------|
-| **Latency (응답속도)** | P99 응답시간 | > 2초 → 경고, > 5초 → 긴급 |
-| **Error Rate (에러율)** | 5xx 응답 비율 | > 0.1% → 경고, > 1% → 긴급 |
-| **Traffic (트래픽)** | RPS (초당 요청수) | 급격한 변화 → 확인 필요 |
 
 ### CloudWatch 대시보드 구성
 
 ```
 대시보드: analysisTrend-Operations
 │
-├── [행 1] 서비스 헬스 요약
-│   ├── ALB 5xx 에러율 (%)
-│   ├── ALB 요청/초 (RPS)
-│   └── ALB 평균 응답시간 (ms)
+├── 행 1: 서비스 상태 (가장 중요)
+│   ├── 5xx 에러율 (%) ← 0%가 정상. 올라가면 즉시 대응
+│   ├── 초당 요청수 (RPS) ← 평소 대비 급변하면 확인
+│   └── P99 응답시간 (ms) ← 2초 넘으면 사용자 이탈
 │
-├── [행 2] ECS 리소스
-│   ├── Frontend CPU/Memory 사용률
-│   ├── Backend CPU/Memory 사용률
-│   └── Analysis CPU/Memory 사용률
+├── 행 2: ECS 리소스
+│   ├── Backend CPU/메모리 사용률
+│   ├── Analysis CPU/메모리 사용률
+│   └── 실행 중인 태스크 수 (Auto Scaling 확인)
 │
-├── [행 3] 데이터베이스
+├── 행 3: 데이터베이스
 │   ├── RDS CPU 사용률
-│   ├── RDS 연결 수
-│   ├── RDS 읽기/쓰기 IOPS
-│   └── RDS Replication Lag (ms) ← 0에 가까워야 함
+│   ├── RDS 동시 연결 수
+│   ├── RDS 읽기/쓰기 응답시간
+│   └── Replica Lag (ms) ← 0에 가까워야 함
 │
-├── [행 4] 캐시
-│   ├── ElastiCache 히트율 (%) ← 80% 이상 목표
-│   ├── ElastiCache 연결 수
-│   └── ElastiCache 메모리 사용률
+├── 행 4: 캐시
+│   ├── Redis 히트율 (%) ← 80% 이상 목표
+│   ├── Redis 메모리 사용률
+│   └── Redis 연결 수
 │
-└── [행 5] 애플리케이션 로그
-    ├── ERROR 로그 카운트 (1분 집계)
-    └── 최근 에러 로그 목록
+└── 행 5: 비용 모니터링
+    └── 일별 예상 비용 추이
 ```
 
-### CloudWatch 알람 설정
+### 알람 7개 (필수 설정)
 
 ```
 알람 1: 에러율 경고
-  조건: ALB 5xx > 전체의 0.5% (5분 평균)
-  액션: SNS → Slack #alert-warning
+  조건: 5xx 에러 > 0.5% (5분 평균)
+  알림: Slack #alert-warning
+  의미: 일부 요청 실패 중. 확인 필요.
 
-알람 2: 에러율 긴급
-  조건: ALB 5xx > 전체의 2% (1분 평균)
-  액션: SNS → Slack #alert-critical + 담당자 SMS
+알람 2: 에러율 심각
+  조건: 5xx 에러 > 2% (1분 평균)
+  알림: Slack #alert-critical + 담당자 SMS
+  의미: 서비스 장애 수준. 즉시 대응.
 
-알람 3: 응답시간 경고
-  조건: ALB P99 > 2000ms (5분 평균)
-  액션: SNS → Slack #alert-warning
+알람 3: 응답속도 저하
+  조건: P99 응답시간 > 2초 (5분 평균)
+  알림: Slack #alert-warning
+  의미: 사용자가 느림을 체감하는 수준.
 
 알람 4: CPU 과부하
   조건: ECS Backend CPU > 85% (3분 지속)
-  액션: SNS → Slack (Auto Scaling이 먼저 동작하는지 확인)
+  알림: Slack #alert-warning
+  의미: Auto Scaling 동작 중이거나 곧 동작 예정. 확인.
 
-알람 5: DB 연결 과부하
-  조건: RDS DatabaseConnections > 80% of max_connections
-  액션: SNS → Slack #alert-critical
+알람 5: DB 연결 부족
+  조건: RDS 연결 수 > max_connections의 80%
+  알림: Slack #alert-critical
+  의미: DB 연결 포화 임박. RDS Proxy 추가 필요.
 
-알람 6: 디스크 부족
-  조건: RDS FreeStorageSpace < 10GB
-  액션: SNS → 이메일 알림
+알람 6: DB 저장공간 부족
+  조건: RDS 여유 공간 < 10GB
+  알림: 이메일
+  의미: 스토리지 확장 예약 필요.
 
-알람 7: ECS 태스크 수 감소
-  조건: Running Task Count < MinCapacity
-  액션: SNS → Slack #alert-critical (서비스 이상 가능성)
+알람 7: ECS 태스크 수 비정상
+  조건: Running Task < MinCapacity
+  알림: Slack #alert-critical
+  의미: 컨테이너가 계속 죽는 중. 즉시 로그 확인.
 ```
 
-### Slack 알람 포맷 (Lambda로 가공)
+### Slack 알람 포맷
 
 ```
 🚨 [CRITICAL] analysisTrend Production
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-알람: ALB 5xx 에러율 2.3% 초과
-현재값: 2.3% (임계값: 2%)
-시작: 2026-04-05 14:32:00 KST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+알람명: ALB 5xx 에러율 2% 초과
+현재값: 2.8%  (임계값: 2%)
+발생:   2026-04-05 14:32 KST
 서비스: analysistrend-backend
-━━━━━━━━━━━━━━━━━━━━━━━━━━
-[CloudWatch 바로가기] [Runbook 보기]
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👉 CloudWatch 로그 보기
+👉 Runbook 보기
 ```
 
-### 로그 구조 (애플리케이션에서 JSON 포맷 출력)
+### 로그 수집 전략
 
-```json
-// Spring Boot 로그 포맷 (logback-spring.xml)
+```
+모든 컨테이너 로그 → CloudWatch Logs → 분석/검색
+
+JSON 포맷으로 출력 (구조화된 로그):
 {
-  "timestamp": "2026-04-05T14:32:00.000Z",
+  "timestamp": "2026-04-05T14:32:00Z",
   "level": "ERROR",
   "service": "backend",
-  "traceId": "abc123",   ← 요청 추적 ID (frontend-backend-analysis 연결)
+  "traceId": "abc123",    ← 요청 추적 ID
   "userId": 42,
   "message": "DB 연결 실패",
-  "exception": "com.mysql.jdbc.exceptions.jdbc4.CommunicationsException"
+  "duration_ms": 5000
 }
-```
 
-**CloudWatch Logs Insights 쿼리 예시**:
-```sql
--- 최근 1시간 에러 집계
-fields @timestamp, level, message, userId
-| filter level = "ERROR"
-| stats count(*) as errorCount by message
-| sort errorCount desc
-| limit 20
+→ CloudWatch Logs Insights로 검색:
+  에러만 모아보기, 특정 유저 요청 추적, 느린 API 찾기
 ```
 
 ---
 
-## 10. 데이터베이스 설계
+## 11. 보안 설계
 
-### RDS Aurora MySQL 설정
-
-```
-인스턴스: db.r6g.large (운영 초기)
-  ├── vCPU: 2
-  ├── RAM: 16GB
-  └── 스토리지: 자동 확장 (20GB ~ 128TB)
-
-Multi-AZ: 활성화
-  ├── Primary (AZ-a): 읽기/쓰기
-  └── Replica (AZ-b): 읽기 전용 + 페일오버 대기
-      └── Primary 장애 시 약 30초 내 자동 승격
-
-백업:
-  ├── 자동 스냅샷: 매일 새벽 3시 (서울 시간)
-  ├── 보존 기간: 7일
-  └── Point-In-Time Recovery: 5분 단위 복구 가능
-```
-
-### 연결 설정 (Spring Boot)
-
-```yaml
-# application-prod.yml
-spring:
-  datasource:
-    url: jdbc:mysql://${RDS_ENDPOINT}:3306/analysis_trend
-         ?useSSL=true
-         &characterEncoding=UTF-8
-         &serverTimezone=Asia/Seoul
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}  # Secrets Manager에서 주입
-  jpa:
-    properties:
-      hibernate:
-        connection:
-          pool_size: 10        # 컨테이너당 최대 연결 수
-```
-
-> 주의: ECS 태스크 2개 × 연결 10개 = DB에 최대 20개 연결
-> RDS 최대 연결 수(max_connections) 초과하면 연결 거부 → 알람 필수
-
----
-
-## 11. 비용 예측 (월 기준, 서울 리전)
-
-### 최소 운영 구성 (소규모 트래픽)
-
-| 서비스 | 스펙 | 월 비용 |
-|--------|------|---------|
-| ECS Fargate (frontend × 2) | 0.5 vCPU, 1GB | ~$15 |
-| ECS Fargate (backend × 2) | 1 vCPU, 2GB | ~$50 |
-| ECS Fargate (analysis × 1) | 0.5 vCPU, 1GB | ~$8 |
-| RDS Aurora (db.t3.medium) | Multi-AZ | ~$80 |
-| ElastiCache (cache.t3.micro) | 단일 노드 | ~$15 |
-| ALB | 기본 요금 | ~$20 |
-| CloudFront | 10GB/월 | ~$3 |
-| Route 53 | Hosted Zone | ~$1 |
-| NAT Gateway | 2개 (AZ-a, b) | ~$65 |
-| **합계** | | **~$257/월** |
-
-> NAT Gateway가 비싼 이유: Private Subnet → 인터넷 통신마다 과금
-> 절감 방법: VPC Endpoint 사용 (ECR, S3, CloudWatch는 VPC 내 통신)
-
-### 트래픽 증가 시 스케일업 포인트
+### 기본 원칙: 최소 권한
 
 ```
-DAU 1,000명  → 현재 구성으로 충분
-DAU 10,000명 → backend 태스크 4개, RDS Read Replica 추가
-DAU 100,000명 → RDS 샤딩 검토, CDN 캐시 비율 최대화
+잘못된 예: GitHub Actions에 AdministratorAccess 부여
+  → 키 유출 시 AWS 계정 전체 탈취 가능
+
+올바른 예: GitHub Actions에 필요한 권한만
+  - ECR: 이미지 push/pull
+  - ECS: 서비스 업데이트
+  - Secrets Manager: 읽기만
+  - 나머지: 전부 차단
+```
+
+### Secrets Manager 활용
+
+```
+코드에 절대 넣으면 안 되는 것들:
+  DB 패스워드
+  JWT 시크릿 키
+  OAuth2 클라이언트 시크릿
+  외부 API 키 (YouTube API 등)
+
+→ 전부 AWS Secrets Manager에 저장
+→ ECS 태스크 실행 시 자동으로 환경변수로 주입
+→ 코드/GitHub에는 절대 노출 안 됨
+
+.env 파일은 로컬 개발용으로만.
+절대 git에 커밋하지 말 것 (.gitignore 필수)
+```
+
+### HTTPS 강제
+
+```
+HTTP 요청 → ALB가 301 리다이렉트 → HTTPS로 전환
+SSL 인증서: ACM (AWS Certificate Manager)
+  - 무료
+  - 자동 갱신 (Let's Encrypt 같은 개념)
+  - 발급: 도메인 소유 확인 후 즉시
+```
+
+### 추가 보안 옵션 (선택)
+
+```
+WAF (Web Application Firewall): 월 $10~
+  - SQL Injection, XSS 자동 차단
+  - DDoS 완화
+  - 봇 트래픽 차단
+
+GuardDuty: 월 $10~
+  - 이상한 접근 패턴 자동 탐지
+  - "처음 보는 IP에서 DB 접근 시도" 알람
+
+CloudTrail: 무료 (기본)
+  - 모든 AWS API 호출 기록
+  - "누가 언제 뭘 바꿨는지" 감사 로그
 ```
 
 ---
 
-## 12. 초기 세팅 순서 (체크리스트)
+## 12. 비용 계획
 
-### Phase 1: 기반 인프라 (1~2일)
+### 초기 구성 (월 예상 비용)
 
 ```
-□ AWS 계정 생성 + MFA 설정
-□ IAM 사용자 생성 (GitHub Actions용 — 최소 권한)
-  └── 권한: ECR 풀/푸시, ECS 배포, Secrets Manager 읽기
+서비스                     스펙                  월 비용
+─────────────────────────────────────────────────────
+Vercel (Frontend)          무료 플랜               $0
+ECS Fargate (Backend×2)    1 vCPU, 2GB × 2태스크  $50
+ECS Fargate (Analysis×1)   0.5 vCPU, 1GB × 1태스크 $10
+RDS Aurora (db.t3.medium)  Multi-AZ               $80
+ElastiCache (cache.t3.micro) 단일 노드             $15
+ALB                        기본 요금               $20
+NAT Gateway × 2            AZ-a, AZ-b             $65
+Route 53                   Hosted Zone              $1
+S3 + 데이터 전송            10GB/월                 $3
+CloudWatch                 로그/메트릭              $5
+ECR                        이미지 저장              $2
+─────────────────────────────────────────────────────
+합계                                            약 $251/월
+```
+
+**NAT Gateway가 비싼 이유:**
+Private Subnet에서 인터넷 나갈 때마다 과금. AZ당 하나 필요.
+
+```
+NAT Gateway 비용 절감 방법:
+  ECR, S3, CloudWatch → VPC Endpoint 사용 시 NAT 불필요
+  → NAT 트래픽 70% 감소 → 월 $20~30 절감 가능
+```
+
+### 트래픽 증가 시 비용 변화
+
+```
+DAU 1,000명   → $250/월   (현재 구성)
+DAU 10,000명  → $400/월   (RDS Read Replica 추가, ECS 태스크 증가)
+DAU 100,000명 → $1,500/월 (MSA 전환, ElastiCache 클러스터 확장)
+```
+
+---
+
+## 13. 제약사항 및 한계
+
+### 현재 아키텍처의 한계
+
+```
+한계 1: 백엔드가 하나라서 서비스 격리 불가
+  증상: 쇼핑 트래픽 폭발 → 커뮤니티도 같이 느려짐
+  해결 시점: DAU 3만 이상 or 팀 규모 커질 때 MSA 전환
+
+한계 2: 파일 업로드가 컨테이너 메모리 사용
+  증상: 큰 파일 업로드 시 Analysis 컨테이너 메모리 부족
+  해결: S3 Presigned URL 방식 전환 (클라이언트가 S3에 직접 업로드)
+
+한계 3: 세션 공유가 Redis 의존
+  증상: Redis 장애 시 로그인 세션 전부 끊김
+  해결: JWT 방식은 이미 Stateless라 괜찮음 (확인 필요)
+
+한계 4: Analysis 서비스 응답이 느림 (AI 처리)
+  증상: 채팅 분석 30초~5분 소요 → 사용자 대기
+  해결: 비동기 처리 (SQS + Lambda or Celery)
+         요청 → 큐에 넣기 → 완료되면 웹소켓/폴링으로 알림
+
+한계 5: 단일 리전
+  증상: 서울 리전 전체 장애 시 서비스 불가 (극히 드문 경우)
+  해결: Multi-Region은 비용/복잡도가 너무 큼 → 지금은 불필요
+```
+
+### 현재 Docker Compose와의 차이점
+
+```
+Docker Compose (지금):        AWS (이후):
+  단일 서버                     Multi-AZ (2개 가용영역)
+  수동 재시작                   자동 헬스체크 + 재시작
+  로컬 볼륨 (이미지 저장)        S3 (무제한 확장)
+  .env 파일 (보안 취약)          Secrets Manager
+  모니터링 없음                  CloudWatch + 알람
+  배포 = 수동 SSH               배포 = git push 자동
+  HTTPS 없음 (Nginx 설정 필요)   ACM 자동 발급/갱신
+  단일 장애점                    이중화 (한 서버 죽어도 유지)
+```
+
+---
+
+## 14. 단계별 확장 로드맵
+
+### 현재 → 1년 후
+
+```
+지금 (2026 Q2):
+  Vercel + ECS (Backend+Analysis) + RDS + ElastiCache
+  Auto Scaling 설정 완료
+  모니터링 기본 셋업
+  예상 비용: $250/월
+
+6개월 후 (2026 Q3~Q4):
+  RDS Read Replica 추가 (읽기 부하 분산)
+  Redis 캐싱 본격 적용 (상품/게시글/배너)
+  CloudFront → API 캐싱 추가
+  RDS Proxy 도입 (연결 풀링)
+  예상 비용: $350/월
+
+1년 후 (2027 Q1~Q2):
+  트래픽 보고 MSA 전환 여부 결정
+  쇼핑 서비스 분리 (가장 트래픽 많을 것)
+  Analysis → SQS 비동기 처리 전환
+  예상 비용: $500~800/월 (트래픽 비례)
+```
+
+### MSA 전환 순서 (나중에 한다면)
+
+```
+1. 인증 서비스 먼저 분리 (가장 독립적)
+2. Analysis 서비스 분리 (이미 별도 코드베이스)
+3. 쇼핑 서비스 분리 (트래픽이 가장 많음)
+4. 커뮤니티 서비스 분리 (가장 복잡 — 마지막)
+
+한 번에 다 바꾸면 안 됨. 하나씩, 검증하면서.
+```
+
+### 기술 스택 업그레이드 계획
+
+```
+현재 → 미래
+  Spring Boot 단일 → Spring Cloud MSA (Eureka, Gateway)
+  직접 Redis 관리  → ElastiCache Cluster Mode (자동 샤딩)
+  단순 CloudWatch  → Grafana + Prometheus (더 강력한 시각화)
+  Rolling Update   → Blue/Green (무중단 더 확실)
+  GitHub Actions   → ArgoCD (K8s GitOps)
+```
+
+---
+
+## 15. 초기 세팅 체크리스트
+
+### Phase 1 기반 인프라 (1~2일)
+
+```
+□ AWS 계정 생성
+□ 루트 계정 MFA 설정 (필수)
+□ IAM 사용자 생성
+  ├── 개발팀용 (콘솔 접근)
+  └── GitHub Actions용 (API 접근만, 최소 권한)
+□ 서울 리전 (ap-northeast-2) 설정
 □ VPC 생성 (10.0.0.0/16)
-  ├── Public Subnet × 2 (AZ-a, AZ-b)
-  └── Private Subnet × 2 (AZ-a, AZ-b)
+  ├── Public Subnet 2개 (AZ-a, AZ-b)
+  └── Private Subnet 2개 (AZ-a, AZ-b)
+□ Internet Gateway 연결 (Public용)
 □ NAT Gateway 생성 (AZ-a, AZ-b 각 1개)
-□ 보안그룹 4개 생성 (alb, frontend, backend, rds)
+□ 라우팅 테이블 설정
+□ 보안그룹 4개 생성 (sg-alb, sg-backend, sg-rds, sg-redis)
 ```
 
-### Phase 2: 데이터베이스 & 캐시 (반나절)
+### Phase 2 데이터베이스 (반나절)
 
 ```
 □ RDS Aurora MySQL 생성
+  ├── 버전: MySQL 8.0 호환
+  ├── 인스턴스: db.t3.medium
   ├── Multi-AZ: ON
-  ├── Private Subnet에 배치
-  └── 파라미터 그룹: character_set_server=utf8mb4
+  ├── Private Subnet 배치
+  ├── 보안그룹: sg-rds
+  └── 초기 DB 이름: analysis_trend
 □ ElastiCache Redis 생성
-  ├── Private Subnet에 배치
-  └── 버전: Redis 7.x
-□ Secrets Manager에 민감정보 저장
-  ├── DB 패스워드
-  ├── JWT 시크릿
-  └── OAuth2 클라이언트 시크릿
+  ├── 버전: Redis 7.x
+  ├── 노드: cache.t3.micro (초기)
+  └── Private Subnet 배치
+□ Secrets Manager 등록
+  ├── /analysistrend/db-password
+  ├── /analysistrend/jwt-secret
+  ├── /analysistrend/oauth2-google-secret
+  └── /analysistrend/youtube-api-key
 ```
 
-### Phase 3: 컨테이너 인프라 (1일)
+### Phase 3 컨테이너 인프라 (1일)
 
 ```
-□ ECR 레포지토리 3개 생성 (frontend, backend, analysis)
+□ ECR 레포지토리 2개 생성
+  ├── analysistrend-backend
+  └── analysistrend-analysis
 □ ECS 클러스터 생성 (Fargate 타입)
-□ Task Definition 작성 (3개)
-□ ECS Service 생성 (frontend, backend, analysis)
-□ ALB 생성 + Target Group + 라우팅 규칙 설정
-□ ACM 인증서 발급 (도메인 검증)
-□ Route 53 도메인 설정
-□ CloudFront 배포 생성
+□ Task Definition 작성
+  ├── backend: 1 vCPU, 2GB, 포트 8080
+  └── analysis: 0.5 vCPU, 1GB, 포트 8000
+□ ECS Service 생성
+  ├── backend: MinCapacity 2, MaxCapacity 10
+  └── analysis: MinCapacity 1, MaxCapacity 3
+□ Auto Scaling 정책 설정 (CPU 60%)
+□ ALB 생성
+  ├── Public Subnet에 배치
+  ├── Target Group 2개 (backend, analysis)
+  └── 라우팅 규칙: /api/* → backend, /analysis/* → analysis
+□ ACM 인증서 발급 (api.analysistrend.com)
+□ Route 53 도메인 등록 및 ALB 연결
 ```
 
-### Phase 4: CI/CD 파이프라인 (반나절)
+### Phase 4 프론트엔드 Vercel (30분)
+
+```
+□ Vercel 계정 생성
+□ GitHub 레포 연결
+□ 환경변수 설정
+  ├── NEXT_PUBLIC_API_URL=https://api.analysistrend.com
+  └── NEXT_PUBLIC_ANALYSIS_URL=https://api.analysistrend.com/analysis
+□ 커스텀 도메인 연결 (analysistrend.com)
+□ 첫 배포 확인
+```
+
+### Phase 5 CI/CD (반나절)
 
 ```
 □ GitHub Secrets 등록
   ├── AWS_ACCESS_KEY_ID
   ├── AWS_SECRET_ACCESS_KEY
   └── SLACK_WEBHOOK_URL
-□ .github/workflows/ 파일 작성 (ci.yml, cd-staging.yml, cd-prod.yml)
+□ .github/workflows/ 파일 3개 작성
+  ├── ci.yml (PR 시 테스트)
+  ├── cd-staging.yml (main 머지 시 Staging 자동 배포)
+  └── cd-prod.yml (수동 승인 후 Production 배포)
 □ GitHub Environments 설정
   └── production: Required Reviewers 지정
-□ 첫 배포 테스트
+□ 테스트 배포 실행 및 Slack 알람 확인
 ```
 
-### Phase 5: 모니터링 (반나절)
+### Phase 6 모니터링 (반나절)
 
 ```
-□ CloudWatch 로그 그룹 생성 (서비스별)
+□ CloudWatch 로그 그룹 생성
+  ├── /ecs/analysistrend-backend
+  └── /ecs/analysistrend-analysis
 □ CloudWatch 대시보드 생성
-□ CloudWatch 알람 7개 생성
-□ SNS 토픽 생성 + Slack Lambda 연결
-□ 알람 동작 테스트 (임계값 일시 조정 후 확인)
+□ 알람 7개 생성 (10번 항목 참고)
+□ SNS 토픽 생성
+□ Lambda 함수 생성 (SNS → Slack 포맷 변환)
+□ 알람 동작 테스트 (임계값 낮춰서 트리거 확인)
+□ 비용 알람 추가 (월 $300 초과 시 알림)
 ```
 
 ---
 
-## 13. 운영 Runbook (장애 대응 매뉴얼)
+## 16. 장애 대응 매뉴얼 Runbook
 
-### 장애 유형별 대응
-
-#### 케이스 1: ECS 태스크 계속 재시작됨
+### 장애 발생 시 첫 5분 체크리스트
 
 ```
-증상: CloudWatch에서 Task 상태가 RUNNING → STOPPED 반복
+1. CloudWatch 대시보드 열기
+   └── 5xx 에러율, 응답시간, CPU 확인
+
+2. 언제부터 생겼는지 확인
+   └── 배포 시각과 에러 시작 시각 비교
+   └── 일치하면 → 즉시 롤백 (아래 케이스 3 참고)
+
+3. ECS 태스크 상태 확인
+   └── AWS 콘솔 → ECS → 서비스 → Tasks 탭
+   └── STOPPED 태스크 있으면 → 로그 확인
+
+4. CloudWatch 로그에서 에러 검색
+   └── /ecs/analysistrend-backend → ERROR 레벨 필터
+```
+
+### 케이스 1: ECS 태스크가 계속 죽을 때
+
+```
+증상: CloudWatch 알람 → "ECS Running Task < 2"
 원인 파악:
-  1. ECS 서비스 이벤트 확인
-     → AWS 콘솔 ECS → 서비스 → Events 탭
-  2. CloudWatch 로그 확인
-     → /ecs/analysistrend-backend 로그 그룹
-  3. 태스크 종료 코드 확인
-     → Exit Code 1: 앱 크래시 (로그 확인)
-     → Exit Code 137: OOM (메모리 부족 → Task 메모리 증가)
+  ECS → 서비스 → Events 탭 → 종료 이유 확인
+  CloudWatch 로그 → 앱 시작 실패 로그 확인
+
+자주 있는 원인:
+  - Exit Code 1: 앱 크래시 (로그에서 에러 찾기)
+  - Exit Code 137: 메모리 초과 (Task Memory 늘리기)
+  - DB 연결 실패: 보안그룹, Secrets Manager 확인
+  - 환경변수 없음: Task Definition 환경변수 확인
 
 해결:
-  - 앱 에러: 코드 수정 후 재배포
-  - 메모리 부족: Task Definition 메모리 값 증가 후 배포
-  - DB 연결 실패: RDS 보안그룹, Secrets Manager 확인
+  메모리: Task Definition 수정 (2GB → 4GB) 후 재배포
+  코드 에러: 핫픽스 PR → 빠른 배포 or 이전 버전 롤백
 ```
 
-#### 케이스 2: DB 연결 오류
+### 케이스 2: DB 연결 오류
 
 ```
-증상: 백엔드 로그에 "Connection refused" 또는 "Too many connections"
+증상: 백엔드 로그에 "Communications link failure" 반복
 원인 파악:
-  1. RDS 상태 확인: AWS 콘솔 RDS → 인스턴스 상태
-  2. 연결 수 확인: CloudWatch → DatabaseConnections 메트릭
-  3. 보안그룹 확인: backend SG → RDS SG 3306 허용 여부
+  1. RDS 콘솔 → 인스턴스 상태 확인 (Available?)
+  2. CloudWatch → DatabaseConnections 메트릭 확인
+  3. 보안그룹 확인 (sg-backend → sg-rds 3306 허용?)
 
 해결:
-  - 연결 수 초과: 앱 connection pool 설정 줄이기 or RDS 스케일업
-  - RDS 장애: Multi-AZ Failover 자동 진행 중 (약 30초 대기)
-  - 수동 페일오버: RDS 콘솔 → "Failover" 버튼
+  RDS 장애 → Multi-AZ Failover 진행 중 (30~60초 대기)
+  연결 수 초과 → 앱 connection pool 크기 줄이기
+  보안그룹 문제 → 규칙 추가
+
+수동 Failover 방법:
+  RDS 콘솔 → 인스턴스 선택 → Actions → Failover
 ```
 
-#### 케이스 3: 배포 후 에러율 급증
+### 케이스 3: 배포 후 에러율 급증 → 롤백
 
 ```
-증상: CloudWatch 알람 → Slack "5xx 에러율 2% 초과"
-즉각 대응 (5분 이내):
-  1. 직전 배포가 원인인지 확인
-     → ECS 서비스 이벤트에서 배포 시각 확인
-     → 에러율 급증 시각과 일치하면 → 즉시 롤백
-  2. 롤백 실행
-     aws ecs update-service \
-       --cluster analysistrend-cluster \
-       --service analysistrend-prod \
-       --task-definition analysistrend-backend:[이전 리비전 번호]
-  3. 에러율 정상화 확인 (2~3분 후)
-  4. 원인 분석 후 핫픽스 배포
+증상: 배포 직후 5xx 에러율 급증
+
+즉각 롤백 (5분 이내 목표):
+
+# 이전 Task Definition 리비전 확인
+aws ecs describe-services \
+  --cluster analysistrend-cluster \
+  --services analysistrend-backend \
+  --query 'services[0].taskDefinition'
+
+# 이전 리비전으로 롤백 (예: :42 → :41)
+aws ecs update-service \
+  --cluster analysistrend-cluster \
+  --service analysistrend-backend \
+  --task-definition analysistrend-backend:41
+
+# 2~3분 후 에러율 정상화 확인
+# Slack: "롤백 완료. 원인 파악 중..."
+```
+
+### 케이스 4: 트래픽 폭발 (쇼핑 이벤트 등)
+
+```
+증상: CPU 90%+, 응답시간 급증, Auto Scaling 동작 중
+
+Auto Scaling이 자동 대응 중 (1~3분):
+  → 컨테이너 자동 추가
+  → 보통 5분 내 정상화
+
+자동 대응 안 될 때 수동 조치:
+  ECS 서비스 → 원하는 태스크 수 직접 올리기
+  aws ecs update-service \
+    --cluster analysistrend-cluster \
+    --service analysistrend-backend \
+    --desired-count 8  ← 즉시 8개로 증가
+
+Redis 캐싱이 있다면:
+  → 상품 목록 조회는 캐시에서 처리
+  → DB 부하 대폭 감소
+  → Auto Scaling 없어도 버틸 수 있음
 ```
 
 ---
 
-## 14. 보안 체크리스트
+## 참고: 현재 docker-compose와 AWS 대응표
 
-```
-□ 루트 계정 사용 금지 (IAM 사용자만 사용)
-□ MFA 전 계정 활성화
-□ IAM 최소 권한 원칙 (GitHub Actions 전용 키는 배포 권한만)
-□ 모든 S3 버킷 Public 접근 차단
-□ RDS 퍼블릭 엔드포인트 비활성화
-□ SSL/TLS 강제 (HTTP → HTTPS 리다이렉트)
-□ WAF (Web Application Firewall) 연결 (선택사항)
-□ CloudTrail 활성화 (모든 API 호출 감사 로그)
-□ GuardDuty 활성화 (이상 행위 자동 탐지)
-□ 정기 보안 패치: ECR 이미지 취약점 스캔 (ECR Enhanced Scanning)
-```
-
----
-
-## 참고: 현재 docker-compose vs AWS 대응표
-
-| docker-compose | AWS |
-|----------------|-----|
-| `nginx` | ALB + CloudFront |
-| `frontend` 컨테이너 | ECS Fargate (frontend 서비스) |
-| `backend` 컨테이너 | ECS Fargate (backend 서비스) |
-| `analysis` 컨테이너 | ECS Fargate (analysis 서비스) |
-| `mysql` 컨테이너 | RDS Aurora MySQL |
-| `redis` 컨테이너 | ElastiCache Redis |
-| 로컬 볼륨 (이미지) | S3 |
-| `.env` 파일 | Secrets Manager + Systems Manager Parameter Store |
-| 없음 | CloudWatch (로그/메트릭) |
-| 없음 | ALB 헬스체크 + Auto Scaling |
+| docker-compose 서비스 | AWS 서비스 | 비고 |
+|----------------------|-----------|------|
+| nginx | ALB + Vercel | 라우팅/프록시 역할 |
+| frontend (Next.js) | Vercel | git push 자동 배포 |
+| backend (Spring) | ECS Fargate | 최소 2 태스크 |
+| analysis (FastAPI) | ECS Fargate | 최소 1 태스크 |
+| mysql | RDS Aurora Multi-AZ | 자동 페일오버 |
+| redis | ElastiCache | 관리형 서비스 |
+| 로컬 파일 볼륨 | S3 | 이미지/파일 |
+| .env 파일 | Secrets Manager | 보안 강화 |
+| 없음 | CloudWatch | 로그/메트릭/알람 |
+| 없음 | Auto Scaling | 자동 서버 증감 |
+| 없음 | ACM | SSL 자동 관리 |
+| 없음 | WAF | 선택사항 |
