@@ -125,6 +125,10 @@ export default function ResumePage() {
                     <span className="text-gray-700 dark:text-gray-300">순천향대 영어영문학과 졸업</span>
                   </div>
                   <div className="flex gap-2">
+                    <span className="text-gray-400 w-14 shrink-0">연락처</span>
+                    <span className="text-gray-700 dark:text-gray-300">010-4301-0451</span>
+                  </div>
+                  <div className="flex gap-2">
                     <span className="text-gray-400 w-14 shrink-0">운전</span>
                     <span className="text-gray-700 dark:text-gray-300">1종 보통 (소지)</span>
                   </div>
