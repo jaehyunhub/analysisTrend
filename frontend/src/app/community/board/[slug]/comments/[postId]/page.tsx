@@ -9,6 +9,7 @@ import { LoginModal } from '@/features/auth/ui/LoginModal';
 import { useCommunityStore } from '@/shared/model/communityStore';
 import { useAuthStore } from '@/shared/model/authStore';
 import { apiGet } from '@/shared/api/client';
+import { getCommunityTheme, type CommunityTheme } from '@/shared/lib/communityThemes';
 
 // ────────────────────────────────────────────────────────────
 // Types
@@ -30,6 +31,7 @@ interface CommentNode extends BackendComment {
 // Constants / Helpers
 // ────────────────────────────────────────────────────────────
 const FIXED_CATEGORIES = ['경제', '방송', '쇼핑', '자유게시판'];
+
 
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -89,14 +91,18 @@ function CommentItem({
   comment,
   depth,
   currentUser,
+  postAuthor,
   isMember,
+  theme,
   onReplySubmit,
   onLoginRequest,
 }: {
   comment: CommentNode;
   depth: number;
   currentUser: string | null;
+  postAuthor: string;
   isMember: boolean;
+  theme: CommunityTheme;
   onReplySubmit: (parentId: number, content: string) => Promise<void>;
   onLoginRequest: () => void;
 }) {
@@ -135,12 +141,12 @@ function CommentItem({
       {/* Thread line */}
       {indent > 0 && (
         <div
-          className="absolute left-0 top-0 bottom-0 w-[2px] bg-gray-200 dark:bg-[#2D2F3A] hover:bg-blue-400 dark:hover:bg-blue-500 cursor-pointer transition-colors rounded-full"
+          className={`absolute left-0 top-0 bottom-0 w-[2px] bg-gray-200 dark:bg-[#2D2F3A] ${theme.threadHover} cursor-pointer transition-colors rounded-full`}
           onClick={() => setCollapsed(c => !c)}
         />
       )}
 
-      <div className="py-2">
+      <div className={collapsed ? 'py-0.5' : 'py-2'}>
         {/* Comment header */}
         <div className="flex items-center gap-2 mb-1.5">
           <Avatar name={comment.author} size="xs" />
@@ -149,8 +155,8 @@ function CommentItem({
           >
             u/{comment.author}
           </button>
-          {comment.author === currentUser && (
-            <span className="text-[10px] bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-1.5 py-0.5 rounded font-bold">작성자</span>
+          {comment.author === postAuthor && (
+            <span className={`text-[10px] ${theme.lightBg} ${theme.lightText} px-1.5 py-0.5 rounded font-bold`}>작성자</span>
           )}
           <span className="text-[11px] text-gray-400 dark:text-gray-500">{timeAgo(comment.createdAt)}</span>
           <button
@@ -222,7 +228,7 @@ function CommentItem({
             {/* Reply Input */}
             {showReply && currentUser && (
               <div className="mt-3 ml-2">
-                <div className="border border-gray-200 dark:border-[#2D2F3A] rounded-xl overflow-hidden focus-within:border-blue-400 transition-colors">
+                <div className={`border border-gray-200 dark:border-[#2D2F3A] rounded-xl overflow-hidden ${theme.focusBorder} transition-colors`}>
                   <textarea
                     className="w-full text-sm p-3 h-24 focus:outline-none bg-white dark:bg-[#1E2028] text-gray-900 dark:text-gray-100 resize-none"
                     placeholder={`u/${comment.author}에게 답글 작성...`}
@@ -239,7 +245,7 @@ function CommentItem({
                     <button
                       onClick={handleReply}
                       disabled={!replyText.trim() || submitting}
-                      className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl disabled:opacity-50 transition-colors"
+                      className={`px-4 py-1.5 ${theme.btnBg} ${theme.btnHover} text-white font-semibold text-sm rounded-xl disabled:opacity-50 transition-colors`}
                     >
                       답글 작성
                     </button>
@@ -257,7 +263,9 @@ function CommentItem({
                     comment={reply}
                     depth={depth + 1}
                     currentUser={currentUser}
+                    postAuthor={postAuthor}
                     isMember={isMember}
+                    theme={theme}
                     onReplySubmit={onReplySubmit}
                     onLoginRequest={onLoginRequest}
                   />
@@ -277,7 +285,7 @@ function CommentItem({
 export default function PostDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const slug = params.slug as string;
+  const slug = decodeURIComponent(params.slug as string);
   const postId = params.postId as string;
 
   const { posts: allPosts, addComment, votePostWithApi, getVoteState, isMember, joinCommunity, getMemberCount } = useCommunityStore();
@@ -300,17 +308,20 @@ export default function PostDetailPage() {
 
   const [comments, setComments] = useState<CommentNode[]>([]);
   const [commentText, setCommentText] = useState('');
-  const [commentSort] = useState<'인기' | '최신' | '오래된'>('최신');
+  const [commentSort, setCommentSort] = useState<'인기' | '최신' | '오래된'>('최신');
   const [submitting, setSubmitting] = useState(false);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [shareToast, setShareToast] = useState(false);
+  const [saveToast, setSaveToast] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
 
   const isFixedCategory = FIXED_CATEGORIES.includes(slug);
   const member = isFixedCategory || isMember(slug);
   const voteState = getVoteState(post.id);
   const memberCount = getMemberCount(slug);
+  const theme = getCommunityTheme(slug);
 
   // Load comments
   const loadComments = useCallback(async () => {
@@ -383,9 +394,22 @@ export default function PostDetailPage() {
     setTimeout(() => setShareToast(false), 2000);
   };
 
+  const handleSave = () => {
+    if (!isAuthenticated) { setIsLoginOpen(true); return; }
+    setSaveToast(true);
+    setTimeout(() => setSaveToast(false), 2000);
+  };
+
   const totalComments = comments.reduce(function countAll(sum: number, c: CommentNode): number {
     return sum + 1 + c.replies.reduce(countAll, 0);
   }, 0);
+
+  const sortedComments = [...comments].sort((a, b) => {
+    if (commentSort === '최신') return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    if (commentSort === '오래된') return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    // 인기: replies 수로 정렬
+    return b.replies.length - a.replies.length;
+  });
 
   return (
     <div className="bg-gray-50 dark:bg-[#0F1117] min-h-screen">
@@ -395,6 +419,13 @@ export default function PostDetailPage() {
       {shareToast && (
         <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm px-4 py-2 rounded-full z-50 shadow-lg animate-fade-in">
           링크가 복사되었습니다
+        </div>
+      )}
+
+      {/* Save toast */}
+      {saveToast && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-sm px-4 py-2 rounded-full z-50 shadow-lg animate-fade-in">
+          저장되었습니다
         </div>
       )}
 
@@ -461,7 +492,7 @@ export default function PostDetailPage() {
                   </span>
                   <span className="text-gray-400">{timeAgo(post.createdAt)}</span>
                   {post.tags && post.tags.map(tag => (
-                    <span key={tag} className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                    <span key={tag} className={`${theme.lightBg} ${theme.lightText} px-2 py-0.5 rounded-full text-[10px] font-bold`}>
                       {tag}
                     </span>
                   ))}
@@ -474,7 +505,7 @@ export default function PostDetailPage() {
 
                 {/* Body */}
                 {post.content && (
-                  <div className="text-sm text-[#1C1C1C] dark:text-[#D7DADC] leading-relaxed mb-4 whitespace-pre-wrap max-h-[500px] overflow-y-auto">
+                  <div className="text-sm text-[#1C1C1C] dark:text-[#D7DADC] leading-relaxed mb-4 whitespace-pre-wrap">
                     {post.content}
                   </div>
                 )}
@@ -501,19 +532,37 @@ export default function PostDetailPage() {
                     공유
                   </button>
 
-                  <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-[#2D2F3A] transition-colors">
+                  <button
+                    onClick={handleSave}
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-[#2D2F3A] transition-colors"
+                  >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
                     </svg>
                     저장
                   </button>
 
-                  <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-[#2D2F3A] transition-colors">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
-                    </svg>
-                    더보기
-                  </button>
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowMoreMenu(m => !m)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-[#2D2F3A] transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"/>
+                      </svg>
+                      더보기
+                    </button>
+                    {showMoreMenu && (
+                      <div className="absolute left-0 top-full mt-1 w-28 bg-white dark:bg-[#1E2028] border border-gray-100 dark:border-[#2D2F3A] rounded-xl shadow-lg z-10">
+                        <button
+                          onClick={() => setShowMoreMenu(false)}
+                          className="w-full text-left px-3 py-2 text-xs text-red-500 hover:bg-gray-50 dark:hover:bg-[#2D2F3A] rounded-xl transition-colors"
+                        >
+                          신고하기
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
@@ -532,7 +581,7 @@ export default function PostDetailPage() {
                   </p>
                   <button
                     onClick={() => setIsLoginOpen(true)}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shrink-0 transition-colors"
+                    className={`px-4 py-2 ${theme.btnBg} ${theme.btnHover} text-white font-bold text-sm rounded-xl shrink-0 transition-colors`}
                   >
                     로그인
                   </button>
@@ -548,7 +597,7 @@ export default function PostDetailPage() {
                   </div>
                   <button
                     onClick={() => joinCommunity(slug)}
-                    className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl shrink-0 transition-colors"
+                    className={`px-5 py-2 ${theme.btnBg} ${theme.btnHover} text-white font-bold text-sm rounded-xl shrink-0 transition-colors`}
                   >
                     가입하기
                   </button>
@@ -557,9 +606,9 @@ export default function PostDetailPage() {
                 // Member — show comment box
                 <div className="mb-4">
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-1.5">
-                    <span className="text-[#0079D3] font-bold">u/{user?.nickname}</span> 으로 댓글 작성
+                    <span className={`${theme.textColor} font-bold`}>u/{user?.nickname}</span> 으로 댓글 작성
                   </p>
-                  <div className="border border-gray-200 dark:border-[#2D2F3A] rounded-xl overflow-hidden focus-within:border-blue-400 dark:focus-within:border-blue-500 transition-colors">
+                  <div className={`border border-gray-200 dark:border-[#2D2F3A] rounded-xl overflow-hidden ${theme.focusBorder} transition-colors`}>
                     <textarea
                       ref={commentInputRef}
                       className="w-full text-sm p-3 h-28 focus:outline-none bg-white dark:bg-[#1E2028] text-gray-900 dark:text-gray-100 resize-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
@@ -569,7 +618,7 @@ export default function PostDetailPage() {
                     />
                     {/* Formatting toolbar */}
                     <div className="bg-gray-50 dark:bg-[#191B22] px-3 py-2 flex items-center justify-between border-t border-gray-100 dark:border-[#2D2F3A]">
-                      <div className="flex gap-1 text-gray-500">
+                      <div className="flex gap-1 text-gray-500 hidden">
                         {['B', 'I', '"'].map(fmt => (
                           <button key={fmt} className="w-6 h-6 text-xs font-bold hover:bg-gray-200 dark:hover:bg-[#343536] rounded flex items-center justify-center transition-colors">
                             {fmt}
@@ -579,7 +628,7 @@ export default function PostDetailPage() {
                       <button
                         onClick={handleSubmitComment}
                         disabled={!commentText.trim() || submitting}
-                        className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-xl disabled:opacity-50 transition-colors"
+                        className={`px-4 py-1.5 ${theme.btnBg} ${theme.btnHover} text-white font-semibold text-sm rounded-xl disabled:opacity-50 transition-colors`}
                       >
                         {submitting ? '작성 중...' : '댓글 작성'}
                       </button>
@@ -597,7 +646,8 @@ export default function PostDetailPage() {
                 {(['최신', '인기', '오래된'] as const).map(s => (
                   <button
                     key={s}
-                    className={`text-xs font-bold px-2 py-1 rounded-full transition-colors ${commentSort === s ? 'bg-[#0079D3] text-white' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-[#272729]'}`}
+                    onClick={() => setCommentSort(s)}
+                    className={`text-xs font-bold px-2 py-1 rounded-full transition-colors ${commentSort === s ? `${theme.sortActiveBg} text-white` : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-[#272729]'}`}
                   >
                     {s}
                   </button>
@@ -634,13 +684,15 @@ export default function PostDetailPage() {
                 </div>
               ) : (
                 <div className="space-y-1 pb-4">
-                  {comments.map(comment => (
+                  {sortedComments.map(comment => (
                     <CommentItem
                       key={comment.id}
                       comment={comment}
                       depth={0}
                       currentUser={user?.nickname ?? null}
+                      postAuthor={post.author}
                       isMember={member}
+                      theme={theme}
                       onReplySubmit={handleReplySubmit}
                       onLoginRequest={() => setIsLoginOpen(true)}
                     />
@@ -656,12 +708,12 @@ export default function PostDetailPage() {
           {/* Community About */}
           <div className="bg-white dark:bg-[#1E2028] rounded-2xl border border-gray-100 dark:border-[#2D2F3A] mb-3 overflow-hidden sticky top-[65px] shadow-sm">
             {/* Banner */}
-            <div className="h-[60px] bg-gradient-to-r from-blue-600 to-indigo-500" />
+            <div className={`h-[60px] bg-gradient-to-r ${theme.gradient}`} />
 
             {/* Community icon */}
             <div className="px-3 pb-3">
               <div className="-mt-5 mb-2">
-                <div className="w-[54px] h-[54px] rounded-2xl border-4 border-white dark:border-[#1E2028] bg-gradient-to-br from-blue-600 to-indigo-500 flex items-center justify-center text-white text-xl font-black shadow-lg">
+                <div className={`w-[54px] h-[54px] rounded-2xl border-4 border-white dark:border-[#1E2028] bg-gradient-to-br ${theme.gradient} flex items-center justify-center text-white text-xl font-black shadow-lg`}>
                   r/
                 </div>
               </div>
@@ -692,7 +744,7 @@ export default function PostDetailPage() {
                   <div className="space-y-2">
                     <Link
                       href={`/community/board/${encodeURIComponent(slug)}`}
-                      className="block w-full text-center py-2 border-2 border-blue-600 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/10 font-bold text-sm rounded-xl transition-colors"
+                      className={`block w-full text-center py-2 border-2 ${theme.borderColor} ${theme.textColor} hover:opacity-80 font-bold text-sm rounded-xl transition-colors`}
                     >
                       글 작성하기
                     </Link>
@@ -700,7 +752,7 @@ export default function PostDetailPage() {
                 ) : (
                   <button
                     onClick={() => joinCommunity(slug)}
-                    className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm rounded-xl transition-colors"
+                    className={`w-full py-2 ${theme.btnBg} ${theme.btnHover} text-white font-bold text-sm rounded-xl transition-colors`}
                   >
                     커뮤니티 가입
                   </button>

@@ -85,7 +85,7 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-black text-gray-900 dark:text-white">대시보드</h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">AnalysisTrend 관리자 콘솔에 오신 것을 환영합니다.</p>
+          <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">SyukaUniverse 관리자 콘솔에 오신 것을 환영합니다.</p>
         </div>
         <span className="text-sm text-gray-400">2026년 3월 15일</span>
       </div>

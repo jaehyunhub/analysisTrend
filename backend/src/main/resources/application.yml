@@ -27,16 +27,16 @@ spring:
         registration:
           # 1. 구글 (provider 설정 불필요)
           google:
-            client-id: ${GOOGLE_CLIENT_ID}
-            client-secret: ${GOOGLE_CLIENT_SECRET}
+            client-id: ${GOOGLE_CLIENT_ID:disabled}
+            client-secret: ${GOOGLE_CLIENT_SECRET:disabled}
             scope:
               - email
               - profile
 
           # 2. 카카오
           kakao:
-            client-id: ${KAKAO_CLIENT_ID}
-            client-secret: ${KAKAO_CLIENT_SECRET}
+            client-id: ${KAKAO_CLIENT_ID:disabled}
+            client-secret: ${KAKAO_CLIENT_SECRET:disabled}
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
             client-authentication-method: client_secret_post
             authorization-grant-type: authorization_code
@@ -47,8 +47,8 @@ spring:
 
           # 3. 네이버
           naver:
-            client-id: ${NAVER_CLIENT_ID}
-            client-secret: ${NAVER_CLIENT_SECRET}
+            client-id: ${NAVER_CLIENT_ID:disabled}
+            client-secret: ${NAVER_CLIENT_SECRET:disabled}
             redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
             authorization-grant-type: authorization_code
             scope:

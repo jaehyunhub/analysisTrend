@@ -46,6 +46,7 @@ public class ProductService {
                 .category(request.category())
                 .isSoldOut(request.isSoldOut())
                 .imageUrl(request.imageUrl())
+                .thumbnailImages(request.thumbnailImages())
                 .description(request.description())
                 .detailContent(request.detailContent())
                 .build();
@@ -57,7 +58,7 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND));
         product.update(request.name(), request.price(), request.originalPrice(), request.discount(),
-                request.category(), request.isSoldOut(), request.imageUrl(), request.description(), request.detailContent());
+                request.category(), request.isSoldOut(), request.imageUrl(), request.thumbnailImages(), request.description(), request.detailContent());
         return ProductResponse.from(product);
     }
 
@@ -73,7 +74,7 @@ public class ProductService {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND));
         product.update(product.getName(), product.getPrice(), product.getOriginalPrice(), product.getDiscount(),
-                product.getCategory(), !product.isSoldOut(), product.getImageUrl(), product.getDescription(), product.getDetailContent());
+                product.getCategory(), !product.isSoldOut(), product.getImageUrl(), product.getThumbnailImages(), product.getDescription(), product.getDetailContent());
         return ProductResponse.from(product);
     }
 }

@@ -1,7 +1,7 @@
 # PRD — analysisTrend 플랫폼
 
 > **Product Requirements Document**
-> 버전: v2.5 | 작성일: 2026-03-15 | 최종 업데이트: 2026-04-04 (v2.5 — COMMUNITY-UI: 커뮤니티 UI 리디자인 — 모던 카드 스타일 전환) | 관련 문서: [SPEC.md](./SPEC.md)
+> 버전: v2.6 | 작성일: 2026-03-15 | 최종 업데이트: 2026-04-04 (v2.6 — BUGFIX: 게시글 삭제 API·인기글 수정·CDN 이미지 대응) | 관련 문서: [SPEC.md](./SPEC.md)
 
 ---
 
@@ -786,6 +786,7 @@ Twitch Helix API는 별도 심사 없이 가입 즉시 무료 사용 가능하�
 | Phase 18 (pytest 수정·E2E 안정화) | pytest 48/48 통과, E2E 61 passed / 12 skipped / 0 failed |
 | Phase 19 (관리자 UI 버그·커뮤니티 권한) | ADM-01a~c, ADM-03a, ADM-04a~b, COMM-PERM-01~07, TRD-02a~c — 전 항목 미구현 |
 | Phase 20~21 (쇼핑몰 관리자·메인페이지 개선) | SHOP-ADM-01~03, MAIN-01~02 — 구현 완료, E2E 미구현 (❌) |
+| Phase 22 (버그 수정·CDN 대응) | POST-DEL-01: 게시글 삭제 API (DELETE /api/v1/posts/{id} + cascade), HOME-POP-01: 인기글 방송/쇼핑 카테고리 노출 수정, HOME-POP-02: 인기글 댓글 수 실데이터 연동, SHOP-ADM-04: 상품 삭제 inline confirm UI, CDN-01: syukafriends.kr /big/ → /medium/ 이미지 경로 대응 |
 | **v2 미구현** | TRD-03~07, ANA-04~05, SHOP-04~05, CHAT-06, Order/Magazine 도메인, COMM-PERM 전체 |
 
 ---

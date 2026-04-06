@@ -76,6 +76,20 @@ e2e/tests/workflows/               ← 최종 테스트 파일 (6개)
 
 테스트 계획 상세: `e2e/TEST_PLAN.md` · 가이드: `e2e/CLAUDE.md`
 
+## 외부 CDN 주의사항
+
+### syukafriends.kr (Cafe24)
+- 이미지 CDN 경로: `/web/product/big/` → `/web/product/medium/` 으로 이전 완료 (**`/big/` URL은 404**)
+- `representative_images` 일부 파일은 CDN에서 완전 삭제 — `/medium/` 에도 존재하지 않음
+- 상품 복원 시 `site_update/syukafriends_products.json` 참고; `image` 필드는 `/medium/` 경로, `representative_images`는 빈 배열
+- `detail_images` (URL-encoded `/슈친상사_돼지고기_최종/A.png` 형식)는 정상 200
+
+### Next.js remotePatterns
+외부 이미지 추가 시 `frontend/next.config.ts`의 `images.remotePatterns` 업데이트 필수.
+현재 허용: `syukafriends.kr`, `img.youtube.com`, `ecimg.cafe24img.com`, `i.ytimg.com`
+
+---
+
 ## MCP 서버 (`.mcp.json`)
 
 | 서버 | 패키지 | 연결 |

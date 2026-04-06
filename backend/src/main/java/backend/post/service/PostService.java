@@ -36,12 +36,13 @@ public class PostService {
     private final CommunityRepository communityRepository;
 
     public Page<PostResponse> findAll(int page, int size, String sort) {
+        Page<Post> posts;
         if ("hot".equals(sort) || "top".equals(sort)) {
-            return postRepository.findAllOrderByUpvotes(PageRequest.of(page, size))
-                    .map(PostResponse::from);
+            posts = postRepository.findAllOrderByUpvotes(PageRequest.of(page, size));
+        } else {
+            posts = postRepository.findAll(PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt")));
         }
-        PageRequest pageRequest = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        return postRepository.findAll(pageRequest).map(PostResponse::from);
+        return posts.map(post -> PostResponse.from(post, commentRepository.countByPostId(post.getId())));
     }
 
     public PostResponse findById(Long id) {
@@ -82,8 +83,13 @@ public class PostService {
         if (existingVote.isPresent()) {
             Vote vote = existingVote.get();
             if (vote.getVoteType() == type) {
-                throw new BusinessException(ErrorCode.DUPLICATE_VOTE);
+                // 같은 방향 재투표 → 취소 (토글)
+                if (type == Vote.VoteType.UP) post.cancelUpvote();
+                else post.cancelDownvote();
+                voteRepository.delete(vote);
+                return PostResponse.from(post);
             }
+            // 반대 방향 → 기존 취소 + 새 방향 추가
             if (type == Vote.VoteType.UP) {
                 post.upvote();
                 post.cancelDownvote();
@@ -102,10 +108,19 @@ public class PostService {
     }
 
     public List<CommentResponse> findComments(Long postId) {
-        return commentRepository.findByPostIdAndParentCommentIsNull(postId)
+        return commentRepository.findByPostId(postId)
                 .stream()
                 .map(CommentResponse::from)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public void delete(Long postId) {
+        Post post = postRepository.findById(postId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.POST_NOT_FOUND));
+        commentRepository.deleteByPostId(postId);
+        voteRepository.deleteByPostId(postId);
+        postRepository.delete(post);
     }
 
     @Transactional

@@ -1,5 +1,6 @@
 import logging
 from collections import Counter
+from datetime import datetime, timedelta, timezone
 from typing import Any, Optional
 from urllib.parse import urlparse, parse_qs
 import httpx
@@ -10,20 +11,31 @@ logger = logging.getLogger(__name__)
 
 YOUTUBE_TRENDING_URL = "https://www.googleapis.com/youtube/v3/videos"
 
-_MOCK_VIDEOS = [
-    TrendingVideo(
-        video_id=f"mock_{i}",
-        title=f"[급상승] 2025년 트렌드 영상 {i + 1} | 채널분석 인사이트",
-        channel_title=f"채널{i + 1}",
-        view_count=max(0, (20 - i)) * 1_000_000,
-        like_count=max(0, (20 - i)) * 50_000,
-        comment_count=max(0, (20 - i)) * 2_000,
-        published_at="2025-03-15T09:00:00Z",
-        thumbnail_url=f"https://picsum.photos/seed/{i + 1}/320/180",
-        tags=["트렌드", "AI", "유튜브", f"키워드{i + 1}"],
-    )
-    for i in range(20)
-]
+def _iso(days_ago: float) -> str:
+    """현재 시각에서 days_ago일 전 ISO 8601 문자열 반환."""
+    dt = datetime.now(timezone.utc) - timedelta(days=days_ago)
+    return dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+# 일일(≤1일): 0~5번, 일주일(≤7일): 6~11번, 한달(≤31일): 12~19번
+_DAYS_AGO = [0.2, 0.5, 0.8, 0.9, 1.0, 0.3,
+             2, 3, 4, 5, 6, 7,
+             10, 14, 18, 22, 25, 28, 30, 31]
+
+def _build_mock_videos() -> list[TrendingVideo]:
+    return [
+        TrendingVideo(
+            video_id=f"mock_{i}",
+            title=f"[급상승] 트렌드 영상 {i + 1} | 채널분석 인사이트",
+            channel_title=f"채널{i + 1}",
+            view_count=max(0, (20 - i)) * 1_000_000,
+            like_count=max(0, (20 - i)) * 50_000,
+            comment_count=max(0, (20 - i)) * 2_000,
+            published_at=_iso(_DAYS_AGO[i]),
+            thumbnail_url=f"https://picsum.photos/seed/{i + 1}/320/180",
+            tags=["트렌드", "AI", "유튜브", f"키워드{i + 1}"],
+        )
+        for i in range(20)
+    ]
 
 
 class YouTubeCollector:
@@ -40,7 +52,7 @@ class YouTubeCollector:
     ) -> list[TrendingVideo]:
         if not self._api_key:
             logger.info("YouTube API 키 없음 — mock 데이터 반환")
-            return _MOCK_VIDEOS[:limit]
+            return _build_mock_videos()[:limit]
 
         try:
             items = await self._call_api(
@@ -57,7 +69,7 @@ class YouTubeCollector:
             return [self._parse_video(item) for item in items if item]
         except Exception as e:
             logger.warning("YouTubeCollector.fetch_trending 실패, mock fallback: %s", e)
-            return _MOCK_VIDEOS[:limit]
+            return _build_mock_videos()[:limit]
 
     async def fetch_keywords(self, limit: int = 20) -> list[TrendKeyword]:
         videos = await self.fetch_trending(limit=50)

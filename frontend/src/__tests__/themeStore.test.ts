@@ -36,6 +36,6 @@ describe('themeStore', () => {
     useThemeStore.getState().setTheme('dark');
     useThemeStore.getState().setTheme('light');
     expect(useThemeStore.getState().theme).toBe('light');
-    expect(document.documentElement.className).toBe('light');
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
   });
 });

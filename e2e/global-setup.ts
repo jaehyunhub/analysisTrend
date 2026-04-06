@@ -106,6 +106,10 @@ async function globalSetup(config: FullConfig) {
         localStorage.setItem('accessToken', at);
         if (rt) localStorage.setItem('refreshToken', rt);
         localStorage.setItem('auth-storage', authStorage);
+        // authStore는 sessionStorage persist를 사용하므로 sessionStorage에도 저장
+        sessionStorage.setItem('accessToken', at);
+        if (rt) sessionStorage.setItem('refreshToken', rt);
+        sessionStorage.setItem('auth-storage', authStorage);
       },
       { at: accessToken, rt: refreshToken, authStorage: authStorageValue },
     );
@@ -113,6 +117,10 @@ async function globalSetup(config: FullConfig) {
     await context.storageState({ path: filePath });
     await context.close();
     await browser.close();
+
+    // authStore는 sessionStorage persist를 사용하므로, addInitScript 주입용 세션 데이터 별도 저장
+    const sessionFilePath = filePath.replace('.json', '-session.json');
+    fs.writeFileSync(sessionFilePath, authStorageValue);
   }
 
   // --- 일반 사용자 storageState 저장 ---

@@ -24,6 +24,7 @@
 14. [단계별 확장 로드맵](#14-단계별-확장-로드맵)
 15. [초기 세팅 체크리스트](#15-초기-세팅-체크리스트)
 16. [장애 대응 매뉴얼 Runbook](#16-장애-대응-매뉴얼-runbook)
+17. [포트폴리오 즉시 배포: Railway + Cloudflare](#17-포트폴리오-즉시-배포-railway--cloudflare)
 
 ---
 
@@ -1053,6 +1054,265 @@ Redis 캐싱이 있다면:
   → 상품 목록 조회는 캐시에서 처리
   → DB 부하 대폭 감소
   → Auto Scaling 없어도 버틸 수 있음
+```
+
+---
+
+---
+
+## 17. 포트폴리오 즉시 배포: Railway + Cloudflare
+
+> **"AWS는 나중에, 지금은 포트폴리오용으로 빠르게 띄운다"**
+>
+> 도메인: Cloudflare Registrar | 프론트: Vercel | 백엔드+DB+Redis: Railway
+
+---
+
+### 전체 구조
+
+```
+[사용자]
+   │ HTTPS
+   ▼
+[Cloudflare DNS]  ← 도메인 구매 + DNS 관리 + 자동 DDoS 방어 (무료)
+   │
+   ├── yourdomain.com      → [Vercel] Next.js 프론트엔드
+   │
+   └── api.yourdomain.com  → [Railway] 백엔드 서비스들
+                                  │
+                          ┌───────┼───────┐
+                          │       │       │
+                     [Spring]  [FastAPI] [MySQL] [Redis]
+                     :8080     :8000    (Railway 내부)
+```
+
+---
+
+### Cloudflare 도메인 설정
+
+#### 도메인 구매 (Cloudflare Registrar)
+
+```
+Cloudflare Registrar 특징:
+  - .com 도메인 $9.15/년 (원가, 마진 없음)
+  - 갱신도 동일 가격 (GoDaddy처럼 첫해만 싼 트릭 없음)
+  - DNS 서버가 자동으로 Cloudflare NS로 설정됨
+  - 도메인 구매 → DNS 관리 → HTTPS → 전부 한 곳에서
+
+구매 절차:
+  1. cloudflare.com → Domain Registration
+  2. 원하는 도메인 검색
+  3. 결제 (신용카드/페이팔)
+  4. 자동으로 Cloudflare DNS Zone 생성됨
+```
+
+#### DNS 레코드 설정 (Railway 연결)
+
+```
+타입    이름              값                          목적
+──────────────────────────────────────────────────────────────
+CNAME   @                vercel-dns...               yourdomain.com → Vercel
+CNAME   www              vercel-dns...               www → Vercel
+CNAME   api              *.up.railway.app             api.yourdomain.com → Railway
+
+※ Proxy 설정 (주황 구름 아이콘):
+  yourdomain.com, www → Proxied ON  (Cloudflare CDN + DDoS 방어 적용)
+  api.yourdomain.com  → Proxied OFF (백엔드는 DNS only — WebSocket 등 호환)
+```
+
+#### Cloudflare 무료 플랜에서 얻는 것
+
+```
+□ 전 세계 CDN (프론트 정적 자산 빠르게)
+□ DDoS 자동 방어 (L3/L4)
+□ 자동 HTTPS (인증서 자동 발급·갱신)
+□ 방화벽 기본 규칙
+□ Analytics (방문자 수, 트래픽)
+→ 전부 무료. 추가 비용 없음.
+```
+
+---
+
+### Railway 배포 설정
+
+#### 서비스 구성
+
+```
+Railway 프로젝트 1개 안에:
+┌────────────────────────────────────────────────┐
+│  Railway Project: analysistrend                │
+│                                                │
+│  [Service: backend]    Spring Boot :8080       │
+│  [Service: analysis]   FastAPI    :8000        │
+│  [Service: mysql]      MySQL 8.0  :3306        │
+│  [Service: redis]      Redis 7.x  :6379        │
+└────────────────────────────────────────────────┘
+
+내부 통신: Railway Private Network (무료)
+  backend → mysql: mysql.railway.internal:3306
+  backend → redis: redis.railway.internal:6379
+  backend → analysis: analysis.railway.internal:8000
+```
+
+#### 배포 방법
+
+```bash
+# Railway CLI 설치
+npm install -g @railway/cli
+
+# 로그인
+railway login
+
+# 프로젝트 초기화 (기존 디렉토리에서)
+railway init
+
+# 서비스 배포 (docker-compose.yml 자동 인식)
+railway up
+
+# 도메인 연결
+railway domain  # 기본 .railway.app 도메인 발급
+# → Cloudflare DNS에서 CNAME으로 커스텀 도메인 연결
+```
+
+#### 환경변수 설정
+
+```
+Railway 대시보드 → 서비스 → Variables:
+
+[backend 서비스]
+  SPRING_DATASOURCE_URL=jdbc:mysql://mysql.railway.internal:3306/analysis_trend
+  SPRING_DATASOURCE_PASSWORD=${{mysql.MYSQL_PASSWORD}}  ← Railway 참조 변수
+  SPRING_REDIS_HOST=redis.railway.internal
+  JWT_SECRET=...
+  YOUTUBE_API_KEY=...
+
+[analysis 서비스]
+  DATABASE_URL=mysql://...@mysql.railway.internal/analysis_trend
+  REDIS_URL=redis://redis.railway.internal:6379
+
+※ ${{서비스명.변수명}} 문법으로 다른 서비스 변수 참조 가능
+   (DB 패스워드를 직접 복붙 안 해도 됨)
+```
+
+---
+
+### Railway 모니터링
+
+> AWS CloudWatch에 비해 단순하지만 포트폴리오 용도로는 충분
+
+#### 기본 제공 메트릭
+
+```
+Railway 대시보드 → 서비스 → Metrics:
+
+제공 항목:
+  ├── CPU 사용률 (%)
+  ├── 메모리 사용률 (MB/%)
+  ├── 네트워크 In/Out (MB)
+  └── 배포 이력 (언제 배포됐는지 타임라인)
+
+제한:
+  - 로그는 최근 7일만 보관
+  - P99 응답시간 같은 APM 메트릭은 없음
+  - 알람 기능 없음 (이메일 알림은 있음)
+```
+
+#### 추가 모니터링 (무료 외부 서비스 조합)
+
+```
+목적              서비스              무료 한도
+────────────────────────────────────────────────────
+서비스 다운 감지   UptimeRobot         50개 모니터, 5분 간격
+에러 추적          Sentry              5,000 이벤트/월
+APM (응답시간)     Grafana Cloud       3개 시트, 10K 메트릭
+────────────────────────────────────────────────────
+
+연동 방법 (Sentry 예시):
+  1. sentry.io 가입 → Spring Boot 프로젝트 생성
+  2. DSN 발급 → Railway 환경변수 SENTRY_DSN 등록
+  3. build.gradle에 sentry 의존성 추가
+  → 에러 발생 시 이메일 + 슬랙 알림 자동
+
+UptimeRobot:
+  1. uptimerobot.com 가입
+  2. api.yourdomain.com/actuator/health 등록
+  3. 5분마다 헬스체크 → 다운 시 이메일/SMS 알림
+```
+
+#### 로그 조회
+
+```bash
+# Railway CLI로 실시간 로그
+railway logs --service backend --tail
+
+# 특정 서비스 로그 필터
+railway logs --service backend | grep ERROR
+```
+
+---
+
+### AWS vs Railway 비교
+
+```
+항목              AWS (운영)                  Railway (포트폴리오)
+───────────────────────────────────────────────────────────────────
+월 비용           $250/월                     $5~15/월
+셋업 시간         2~3일                       30분~1시간
+고가용성          Multi-AZ (자동 페일오버)     단일 인스턴스 (다운타임 있음)
+Auto Scaling      CPU 기반 자동 확장           수동 조정
+모니터링          CloudWatch 풀셋              기본 메트릭 + 외부 무료 툴
+도메인 DNS        Route 53 ($1/월)             Cloudflare (무료)
+SSL 인증서        ACM (무료, 자동갱신)          Railway 자동 + Cloudflare
+DB               RDS Aurora Multi-AZ          Railway MySQL (단일 노드)
+Redis            ElastiCache                  Railway Redis (단일 노드)
+파일 저장         S3                           Railway Volume (1GB 무료)
+CI/CD             GitHub Actions → ECR → ECS  GitHub Actions → Railway 직접
+적합한 상황       실서비스, 트래픽 있는 서비스  포트폴리오, 데모, 개인 프로젝트
+```
+
+---
+
+### 포트폴리오 배포 체크리스트
+
+```
+□ Cloudflare에서 도메인 구매
+□ Railway 프로젝트 생성
+  □ MySQL 서비스 추가
+  □ Redis 서비스 추가
+  □ Backend(Spring Boot) 서비스 추가
+  □ Analysis(FastAPI) 서비스 추가
+□ 환경변수 설정 (Railway Variables)
+□ Railway 기본 도메인 확인 (*.up.railway.app)
+□ Cloudflare DNS CNAME 레코드 등록
+  □ @ → Vercel (프론트)
+  □ api → Railway (백엔드)
+□ Vercel에 프론트엔드 배포
+  □ 커스텀 도메인 연결 (yourdomain.com)
+  □ NEXT_PUBLIC_API_URL=https://api.yourdomain.com 환경변수 설정
+□ UptimeRobot 헬스체크 등록
+□ 최종 동작 확인
+  □ https://yourdomain.com 접속
+  □ https://api.yourdomain.com/actuator/health 확인
+  □ 로그인/쇼핑/커뮤니티 기능 테스트
+```
+
+---
+
+### 예상 비용 (포트폴리오 기준)
+
+```
+항목                         비용
+──────────────────────────────────────
+Cloudflare 도메인 (.com)     $9.15/년 ≈ $0.76/월
+Cloudflare DNS/CDN/HTTPS     $0 (무료 플랜)
+Vercel (프론트엔드)           $0 (무료 플랜)
+Railway (백엔드 전체)         $5~15/월
+  └── Hobby 플랜: $5 크레딧/월 포함
+  └── 초과 시 사용량 기준 과금
+UptimeRobot                  $0 (무료 플랜)
+Sentry                       $0 (무료 플랜)
+──────────────────────────────────────
+합계                         약 $6~16/월
 ```
 
 ---

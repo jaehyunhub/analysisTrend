@@ -183,6 +183,7 @@ export const useCommunityStore = create<CommunityState & CommunityActions>()(
         try {
           await apiPost(`/api/v1/posts/${postId}/comments`, {
             content: comment.content,
+            ...(comment.parentId ? { parentCommentId: comment.parentId } : {}),
           });
         } catch {
           set((state) => ({

@@ -3,6 +3,21 @@ import { useToastStore } from '@/shared/model/toastStore';
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 const ANALYSIS_BASE_URL = process.env.NEXT_PUBLIC_ANALYSIS_URL || 'http://localhost:8000';
 
+/** authStore는 sessionStorage에 persist (key: auth-storage).
+ *  login() 시 sessionStorage.accessToken도 직접 세팅하지만
+ *  Zustand hydration(페이지 새로고침/E2E inject) 시에는 auth-storage 블롭만 있으므로
+ *  두 경로 모두 확인한다. */
+function getStoredToken(key: 'accessToken' | 'refreshToken'): string | null {
+  if (typeof window === 'undefined') return null;
+  const direct = sessionStorage.getItem(key);
+  if (direct) return direct;
+  try {
+    const blob = sessionStorage.getItem('auth-storage');
+    if (blob) return JSON.parse(blob)?.state?.[key] ?? null;
+  } catch { /* ignore */ }
+  return null;
+}
+
 function showErrorToast(message: string): void {
   if (typeof window === 'undefined') return;
   useToastStore.getState().error(message);
@@ -24,8 +39,7 @@ async function attemptTokenRefresh(): Promise<string | null> {
   isRefreshing = true;
   refreshPromise = (async () => {
     try {
-      const refreshToken =
-        typeof window !== 'undefined' ? localStorage.getItem('refreshToken') : null;
+      const refreshToken = getStoredToken('refreshToken');
 
       if (!refreshToken) return null;
 
@@ -37,8 +51,8 @@ async function attemptTokenRefresh(): Promise<string | null> {
 
       if (!res.ok) {
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
+          sessionStorage.removeItem('accessToken');
+          sessionStorage.removeItem('refreshToken');
         }
         return null;
       }
@@ -48,8 +62,8 @@ async function attemptTokenRefresh(): Promise<string | null> {
       const newRefreshToken = json.data?.refreshToken;
 
       if (newAccessToken && typeof window !== 'undefined') {
-        localStorage.setItem('accessToken', newAccessToken);
-        if (newRefreshToken) localStorage.setItem('refreshToken', newRefreshToken);
+        sessionStorage.setItem('accessToken', newAccessToken);
+        if (newRefreshToken) sessionStorage.setItem('refreshToken', newRefreshToken);
       }
 
       return newAccessToken ?? null;
@@ -73,8 +87,7 @@ async function fetchWithAuth(url: string, options: FetchOptions = {}): Promise<R
   };
 
   if (!skipAuth) {
-    const token =
-      typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    const token = getStoredToken('accessToken');
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }

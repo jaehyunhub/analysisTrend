@@ -15,12 +15,26 @@ interface SelectedItem {
   quantity: number;
 }
 
+function parseThumbnails(product: Product): string[] {
+  const urls: string[] = [];
+  if (product.imageUrl) urls.push(product.imageUrl);
+  else if (product.image) urls.push(product.image);
+  try {
+    if (product.thumbnailImages) {
+      const extra: string[] = JSON.parse(product.thumbnailImages);
+      extra.forEach((url) => { if (!urls.includes(url)) urls.push(url); });
+    }
+  } catch { /* ignore */ }
+  return urls;
+}
+
 export default function ProductDetailPage() {
   const params = useParams();
   const [product, setProduct] = useState<Product | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('detail');
   const [selectedItems, setSelectedItems] = useState<SelectedItem[]>([]);
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
   const { addItem } = useCartStore();
   const { addToast } = useToastStore();
 
@@ -100,6 +114,8 @@ export default function ProductDetailPage() {
 
   const isSoldOut = product.isSoldOut || product.soldOut;
   const discountPct = product.discount ?? product.discountRate;
+  const thumbnails = parseThumbnails(product);
+  const activeImage = thumbnails[activeImageIdx] ?? null;
 
   return (
     <div className="bg-white dark:bg-black min-h-screen">
@@ -120,12 +136,13 @@ export default function ProductDetailPage() {
           {/* Top Section */}
           <div className="flex flex-col md:flex-row gap-12 mb-20">
 
-            {/* Left: Image */}
+            {/* Left: Image Slider */}
             <div className="flex-1">
-              <div className="relative aspect-square w-full rounded-2xl overflow-hidden mb-4 bg-gray-100 dark:bg-[#1A1A1B]">
-                {(product.imageUrl || product.image) ? (
+              {/* Main Image */}
+              <div className="relative aspect-square w-full rounded-2xl overflow-hidden mb-3 bg-gray-100 dark:bg-[#1A1A1B]">
+                {activeImage ? (
                   <img
-                    src={product.imageUrl ?? product.image}
+                    src={activeImage}
                     alt={product.name}
                     className="w-full h-full object-cover"
                   />
@@ -136,12 +153,55 @@ export default function ProductDetailPage() {
                     </svg>
                   </div>
                 )}
+                {/* Prev/Next arrows */}
+                {thumbnails.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setActiveImageIdx((i) => (i - 1 + thumbnails.length) % thumbnails.length)}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 dark:bg-black/60 flex items-center justify-center shadow hover:bg-white dark:hover:bg-black transition-colors text-gray-700 dark:text-gray-200 text-lg"
+                      aria-label="이전 이미지"
+                    >‹</button>
+                    <button
+                      onClick={() => setActiveImageIdx((i) => (i + 1) % thumbnails.length)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-white/80 dark:bg-black/60 flex items-center justify-center shadow hover:bg-white dark:hover:bg-black transition-colors text-gray-700 dark:text-gray-200 text-lg"
+                      aria-label="다음 이미지"
+                    >›</button>
+                    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {thumbnails.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => setActiveImageIdx(i)}
+                          className={`w-2 h-2 rounded-full transition-colors ${i === activeImageIdx ? 'bg-white' : 'bg-white/50'}`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
                 {isSoldOut && (
                   <div className="absolute inset-0 bg-white/70 dark:bg-black/70 flex items-center justify-center">
                     <span className="text-gray-600 dark:text-gray-300 font-bold border border-gray-500 px-6 py-3 rounded-xl text-lg tracking-wider">품절</span>
                   </div>
                 )}
               </div>
+
+              {/* Thumbnail Strip */}
+              {thumbnails.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {thumbnails.map((url, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveImageIdx(i)}
+                      className={`flex-shrink-0 w-16 h-16 rounded-xl overflow-hidden border-2 transition-colors ${
+                        i === activeImageIdx
+                          ? 'border-blue-600'
+                          : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600'
+                      }`}
+                    >
+                      <img src={url} alt={`썸네일 ${i + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Right: Info */}

@@ -9,16 +9,10 @@ import Header from "@/widgets/Header/ui/Header";
 import Sidebar from "@/widgets/Sidebar/ui/Sidebar";
 import PostCard from "@/entities/post/ui/PostCard";
 import { useState, useEffect } from 'react';
+import { getCommunityTheme } from '@/shared/lib/communityThemes';
 
 const FIXED_CATEGORIES = ['경제', '방송', '쇼핑', '자유게시판'];
 
-const BANNER_GRADIENTS: Record<string, string> = {
-  '경제':     'from-blue-600 to-blue-400',
-  '방송':     'from-red-600 to-rose-400',
-  '쇼핑':     'from-orange-500 to-amber-400',
-  '자유게시판': 'from-green-600 to-emerald-400',
-};
-const DEFAULT_GRADIENT = 'from-purple-600 to-violet-400';
 
 const CATEGORY_ICONS: Record<string, string> = {
   '경제':     'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
@@ -55,7 +49,8 @@ export default function CommunityPage() {
   const toastError = useToastStore((state) => state.error);
   const [showJoinConfirm, setShowJoinConfirm] = useState(false);
 
-  const gradient = BANNER_GRADIENTS[slug] ?? DEFAULT_GRADIENT;
+  const theme = getCommunityTheme(slug);
+  const gradient = theme.gradient;
   const iconPath = CATEGORY_ICONS[slug];
 
   const filteredPosts = allPosts.filter(p => p.community === slug);
@@ -164,7 +159,7 @@ export default function CommunityPage() {
                         className={`px-5 py-2 text-sm font-bold rounded-xl transition-colors ${
                           joined
                             ? 'bg-gray-100 dark:bg-[#2D2F3A] text-gray-500 dark:text-gray-400 cursor-default border border-gray-200 dark:border-[#3D3F4A]'
-                            : 'bg-blue-600 hover:bg-blue-700 text-white shadow-sm'
+                            : `${theme.btnBg} ${theme.btnHover} text-white shadow-sm`
                         }`}
                       >
                         {joined ? '✓ 가입됨' : '가입하기'}
@@ -186,7 +181,7 @@ export default function CommunityPage() {
                       onClick={() => setSort(tab.key)}
                       className={`flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-[13px] font-semibold transition-all ${
                         sort === tab.key
-                          ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
+                          ? `${theme.lightBg} ${theme.lightText}`
                           : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#2D2F3A] hover:text-gray-700 dark:hover:text-gray-200'
                       }`}
                     >
@@ -219,7 +214,7 @@ export default function CommunityPage() {
                     <p className="text-[13px] text-gray-400 dark:text-gray-500 mt-1">첫 번째 글을 작성해보세요!</p>
                     <button
                       onClick={openCreatePost}
-                      className="mt-4 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                      className={`mt-4 px-5 py-2 ${theme.btnBg} ${theme.btnHover} text-white text-sm font-semibold rounded-xl transition-colors`}
                     >
                       글 작성하기
                     </button>
@@ -256,7 +251,7 @@ export default function CommunityPage() {
                       <ul className="space-y-1.5">
                         {['서로 존중하기', '관련 주제만 게시', '허위 정보 금지'].map((rule, i) => (
                           <li key={i} className="flex items-start gap-2 text-[12px] text-gray-600 dark:text-gray-400">
-                            <span className="text-blue-500 font-bold mt-0.5">{i + 1}.</span>
+                            <span className={`${theme.ruleNumberColor} font-bold mt-0.5`}>{i + 1}.</span>
                             {rule}
                           </li>
                         ))}
@@ -264,7 +259,7 @@ export default function CommunityPage() {
                     </div>
                     <button
                       onClick={openCreatePost}
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-xl text-sm mb-2 transition-colors"
+                      className={`w-full ${theme.btnBg} ${theme.btnHover} text-white font-bold py-2.5 rounded-xl text-sm mb-2 transition-colors`}
                     >
                       + 새 글 작성
                     </button>
@@ -307,7 +302,7 @@ export default function CommunityPage() {
               </button>
               <button
                 onClick={handleJoinConfirm}
-                className="px-5 py-2 text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-colors"
+                className={`px-5 py-2 text-sm font-bold ${theme.btnBg} ${theme.btnHover} text-white rounded-xl transition-colors`}
               >
                 가입하기
               </button>

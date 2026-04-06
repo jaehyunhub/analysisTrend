@@ -23,15 +23,12 @@ interface AdsState {
 export const useAdsStore = create<AdsState>()(
   persist(
     (set, get) => ({
-      ads: [
-        { id: 1, title: 'PRO Analysis', subtitle: '프리미엄 분석 서비스', type: 'gradient', color: 'from-blue-600 to-purple-600', link: '/shop', active: true },
-        { id: 2, title: 'AD SPACE', subtitle: '광고 문의', type: 'placeholder', color: 'bg-gray-200 dark:bg-gray-700', active: true },
-      ],
+      ads: [],
       setAds: (ads) => set({ ads }),
       addAd: (ad) => set((state) => ({ ads: [...state.ads, { ...ad, id: Date.now() }] })),
       updateAd: (id, data) => set((state) => ({ ads: state.ads.map(a => a.id === id ? { ...a, ...data } : a) })),
       removeAd: (id) => set((state) => ({ ads: state.ads.filter(a => a.id !== id) })),
     }),
-    { name: 'ads-storage' }
+    { name: 'ads-storage-v2' }
   )
 );

@@ -17,7 +17,8 @@ export default function TrendsContent() {
   const [activeTab, setActiveTab] = useState<'keywords' | 'videos' | 'news'>('keywords');
   const [region, setRegion] = useState('KR');
   const [category, setCategory] = useState('0');
-  const [dateFilter, setDateFilter] = useState<'day' | 'week' | 'month'>('day');
+  const [videoDateFilter, setVideoDateFilter] = useState<'day' | 'week' | 'month'>('day');
+  const [newsDateFilter, setNewsDateFilter] = useState<'day' | 'week' | 'month'>('day');
   const [keywords, setKeywords] = useState<TrendKeyword[]>([]);
   const [videos, setVideos] = useState<TrendingVideo[]>([]);
   const [articles, setArticles] = useState<NewsArticle[]>([]);
@@ -43,6 +44,23 @@ export default function TrendsContent() {
     }
   }, [region, category]);
 
+  // 날짜 필터 헬퍼 — pub_date(RFC 2822) / published_at(ISO 8601) 모두 지원
+  const withinFilter = (dateStr: string, filter: 'day' | 'week' | 'month'): boolean => {
+    if (!dateStr) return true;
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return true; // 파싱 불가 → 항상 표시
+    const diffDays = (Date.now() - date.getTime()) / 86_400_000;
+    if (filter === 'day') return diffDays <= 1;
+    if (filter === 'week') return diffDays <= 7;
+    return diffDays <= 31;
+  };
+
+  const DATE_OPTS = [
+    { key: 'day' as const, label: '일일' },
+    { key: 'week' as const, label: '일주일' },
+    { key: 'month' as const, label: '한달' },
+  ];
+
   useEffect(() => { fetchData(); }, [fetchData]);
 
 
@@ -55,7 +73,7 @@ export default function TrendsContent() {
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">트렌드 분석</h2>
             <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-full font-bold">LIVE</span>
           </div>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">실시간 뉴스 키워드 · YouTube 급상승 · 콘텐츠 인사이트 — 마지막 업데이트: {lastUpdated}</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">실시간 뉴스 키워드 · YouTube 급상승 — 마지막 업데이트: {lastUpdated}</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -72,31 +90,6 @@ export default function TrendsContent() {
             )}
             새로고침
           </button>
-        </div>
-      </div>
-
-      {/* Persona Guide Banner */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-800 p-4 rounded-2xl">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg" aria-hidden="true">📋</span>
-            <span className="text-sm font-black text-blue-700 dark:text-blue-300">콘텐츠 기획자</span>
-          </div>
-          <p className="text-xs text-blue-600 dark:text-blue-400">급상승 키워드로 다음 영상 주제를 결정하세요</p>
-        </div>
-        <div className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-800 p-4 rounded-2xl">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg" aria-hidden="true">🔍</span>
-            <span className="text-sm font-black text-purple-700 dark:text-purple-300">리서처 · 작가</span>
-          </div>
-          <p className="text-xs text-purple-600 dark:text-purple-400">뉴스 원문 링크와 3줄 요약으로 자료조사를 빠르게</p>
-        </div>
-        <div className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-800 p-4 rounded-2xl">
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-lg" aria-hidden="true">📊</span>
-            <span className="text-sm font-black text-green-700 dark:text-green-300">채널 운영자</span>
-          </div>
-          <p className="text-xs text-green-600 dark:text-green-400">경쟁 채널 트렌딩 영상으로 콘텐츠 전략을 수립하세요</p>
         </div>
       </div>
 
@@ -129,9 +122,12 @@ export default function TrendsContent() {
           {/* Keywords Tab */}
           {activeTab === 'keywords' && (
             <div role="tabpanel" aria-label="뉴스 키워드" className="space-y-5">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
                 <h3 className="font-bold text-gray-900 dark:text-white">국내 뉴스 급상승 키워드 TOP 20</h3>
-                <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg">네이버·연합뉴스 기반</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg">30분 주기 자동 갱신</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg">네이버·연합뉴스 기반</span>
+                </div>
               </div>
 
               {loading ? (
@@ -226,16 +222,12 @@ export default function TrendsContent() {
                 <div className="flex flex-wrap gap-2 items-center">
                   {/* 날짜 필터 */}
                   <div className="flex rounded-xl overflow-hidden border border-gray-200 dark:border-[#343536]">
-                    {([
-                      { key: 'day', label: '일일' },
-                      { key: 'week', label: '일주일' },
-                      { key: 'month', label: '한달' },
-                    ] as const).map((opt) => (
+                    {DATE_OPTS.map((opt) => (
                       <button
                         key={opt.key}
-                        onClick={() => setDateFilter(opt.key)}
+                        onClick={() => setVideoDateFilter(opt.key)}
                         className={`px-3 py-1.5 text-xs font-bold transition-colors ${
-                          dateFilter === opt.key
+                          videoDateFilter === opt.key
                             ? 'bg-blue-600 text-white'
                             : 'bg-gray-100 dark:bg-[#272729] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#343536]'
                         }`}
@@ -275,14 +267,11 @@ export default function TrendsContent() {
               ) : (
                 <div className="space-y-3" data-testid="youtube-trending">
                   {(() => {
-                    const now = new Date();
-                    const cutoff = new Date(now);
-                    if (dateFilter === 'day') cutoff.setDate(now.getDate() - 1);
-                    else if (dateFilter === 'week') cutoff.setDate(now.getDate() - 7);
-                    else cutoff.setMonth(now.getMonth() - 1);
-                    const filtered = videos.filter((v) => new Date(v.published_at) >= cutoff);
-                    const display = filtered.length > 0 ? filtered : videos;
-                    return [...display].sort((a, b) => b.view_count - a.view_count).map((video, i) => (
+                    const filtered = videos.filter((v) => withinFilter(v.published_at, videoDateFilter));
+                    if (filtered.length === 0) return (
+                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">해당 기간 내 영상이 없습니다.</div>
+                    );
+                    return [...filtered].sort((a, b) => b.view_count - a.view_count).map((video, i) => (
                     <a
                       key={video.video_id}
                       data-testid="video-item"
@@ -321,9 +310,26 @@ export default function TrendsContent() {
           {/* News Tab */}
           {activeTab === 'news' && (
             <div role="tabpanel" aria-label="뉴스 원문" className="space-y-5">
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center">
                 <h3 className="font-bold text-gray-900 dark:text-white">최신 뉴스 기사</h3>
-                <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg">네이버 뉴스 · 30분 갱신</span>
+                <div className="flex items-center gap-2">
+                  <div className="flex rounded-xl overflow-hidden border border-gray-200 dark:border-[#343536]">
+                    {DATE_OPTS.map((opt) => (
+                      <button
+                        key={opt.key}
+                        onClick={() => setNewsDateFilter(opt.key)}
+                        className={`px-3 py-1.5 text-xs font-bold transition-colors ${
+                          newsDateFilter === opt.key
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 dark:bg-[#272729] text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-[#343536]'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                  <span className="text-xs text-gray-500 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg">네이버 뉴스 · 30분 갱신</span>
+                </div>
               </div>
 
               {loading ? (
@@ -332,7 +338,9 @@ export default function TrendsContent() {
                 <div className="text-center py-8 text-gray-500 dark:text-gray-400">데이터가 없습니다. (분석 서비스 연결 확인)</div>
               ) : (
                 <div className="space-y-3">
-                  {articles.map((article, i) => (
+                  {articles.filter((a) => withinFilter(a.pub_date, newsDateFilter)).length === 0 ? (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">해당 기간 내 기사가 없습니다.</div>
+                  ) : articles.filter((a) => withinFilter(a.pub_date, newsDateFilter)).map((article, i) => (
                     <a
                       key={i}
                       href={article.link}
@@ -377,39 +385,6 @@ export default function TrendsContent() {
         </div>
       </div>
 
-      {/* AI Insight Card */}
-      <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-blue-600 p-6 rounded-2xl text-white shadow-lg">
-        <div className="flex items-start gap-4">
-          <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-          </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-black mb-1">AI 콘텐츠 인사이트</h3>
-            <p className="text-white/80 text-sm leading-relaxed">
-              {keywords.length > 0 ? (
-                <>
-                  이번 주 급상승 키워드{' '}
-                  <strong className="text-white">&#34;{keywords[0]?.keyword}&#34;</strong>
-                  {keywords[1] && <>, <strong className="text-white">&#34;{keywords[1].keyword}&#34;</strong></>}
-                  가 결합된 콘텐츠가 높은 관심을 받고 있습니다. 관련 심층 분석 콘텐츠 제작을 추천합니다.
-                </>
-              ) : (
-                '분석 서비스에 연결하면 실시간 키워드 기반 콘텐츠 인사이트를 제공합니다.'
-              )}
-            </p>
-            <div className="flex gap-3 mt-4">
-              <button className="px-4 py-2 bg-white text-indigo-700 text-sm font-bold rounded-xl hover:bg-white/90 transition-colors">
-                영상 주제 제안 받기
-              </button>
-              <button className="px-4 py-2 bg-white/20 text-white text-sm font-bold rounded-xl hover:bg-white/30 transition-colors">
-                키워드 저장
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

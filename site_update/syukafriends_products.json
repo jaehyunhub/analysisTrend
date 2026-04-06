@@ -5,7 +5,8 @@
     "price": 14900,
     "price_display": "14,900원",
     "summary": "좋은 물건! 좋은 가격! 제주도가 키우고, 슈친 상사가 엄선했습니다!",
-    "image": "https://syukafriends.kr/web/product/big/202601/28f12659599f7a3bc88af082cfcfdde7.png",
+    "image": "https://syukafriends.kr/web/product/medium/202601/28f12659599f7a3bc88af082cfcfdde7.png",
+    "_note": "representative_images는 CDN에서 삭제됨(/big/ 및 /medium/ 모두 404). thumbnailImages에는 image만 사용할 것.",
     "extra_images": [],
     "detail_url": "https://syukafriends.kr/product/슈친상사-제주-흑돈백돈-모음/40/category/42/display/2/",
     "soldout": true,
@@ -32,17 +33,7 @@
       "https://syukafriends.kr/%EC%8A%88%EC%B9%9C%EC%83%81%EC%82%AC_%EB%8F%BC%EC%A7%80%EA%B3%A0%EA%B8%B0_%EC%B5%9C%EC%A2%85/K.png"
     ],
     "description": "준비된 수량이 모두 소진되어 판매를 마감합니다.\n\"고기가 정말 맛있다\"는 고객님들의 생생한 리뷰 덕분에 큰 힘을 얻었습니다.\n더 완벽하게 준비해서, 조만간 다시 맛있는 고기로 인사드리겠습니다.",
-    "representative_images": [
-      "https://syukafriends.kr/web/product/big/202601/faf3565b88ee79ea65339c56a350728a.png",
-      "https://syukafriends.kr/web/product/big/202601/eabc0bc712ffecb42b2981493ba26169.png",
-      "https://syukafriends.kr/web/product/big/202601/541aecc04e5d41f6b430187918b8369e.png",
-      "https://syukafriends.kr/web/product/big/202601/3f6db72948c6b7c3d7456c62d5eb9bc6.png",
-      "https://syukafriends.kr/web/product/big/202601/52402db682057bc0e20c86812a50144c.png",
-      "https://syukafriends.kr/web/product/big/202601/82d59c99566cd1310462bea4c8a32714.jpg",
-      "https://syukafriends.kr/web/product/big/202601/52a4d78dee76a8583067ede075ec8433.jpg",
-      "https://syukafriends.kr/web/product/big/202601/a656c4698a45da7925276db059f72858.jpg",
-      "https://syukafriends.kr/web/product/big/202601/a39693588a36129433c6137bd178930c.jpg"
-    ],
+    "representative_images": [],
     "original_price": "",
     "sale_price": ""
   },

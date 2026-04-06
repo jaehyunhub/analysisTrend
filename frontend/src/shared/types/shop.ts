@@ -12,6 +12,7 @@ export interface Product {
   category: string;
   image?: string;
   imageUrl?: string;
+  thumbnailImages?: string; // JSON array string of slider images
   badge?: string;
   isSoldOut: boolean;
   soldOut?: boolean;

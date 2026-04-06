@@ -275,7 +275,7 @@ export default function CommunityPage() {
                     <a href="#" className="hover:underline">운영 정책</a>
                   </div>
                   <div className="mt-3 text-[11px] text-gray-400">
-                    AnalysisTrend © 2026. All rights reserved.
+                    슈카유니버스 © 2026. All rights reserved.
                   </div>
                 </div>
               </div>

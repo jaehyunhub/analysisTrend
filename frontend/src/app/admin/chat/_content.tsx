@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { analysisPostForm } from '@/shared/api/client';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -176,6 +176,26 @@ export default function ChatContent() {
   const [selectedPeak, setSelectedPeak] = useState<number | null>(null);
   const [expandedKeyword, setExpandedKeyword] = useState<string | null>(null);
 
+  const analyzeFixedFile = async (keywords?: string) => {
+    setAnalyzing(true);
+    setError(null);
+    try {
+      const formData = new FormData();
+      formData.append('filename', '슈카월드라이브20260406.json');
+      if (keywords?.trim()) formData.append('search_keywords', keywords.trim());
+      const data = await analysisPostForm<ChatAnalysisResult>('/analyze/chat/preset', formData);
+      setResult(data);
+      setActiveTab('heatmap');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '기본 파일 분석에 실패했습니다.');
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  // 페이지 진입 시 고정 파일 자동 분석
+  useEffect(() => { analyzeFixedFile(); }, []);
+
   const handleFileLoaded = (file: File) => {
     setUploadedFile(file);
     setResult(null);
@@ -193,8 +213,10 @@ export default function ChatContent() {
         formData.append('search_keywords', searchKeywords.trim());
       }
       const data = await analysisPostForm<ChatAnalysisResult>('/analyze/chat', formData);
+      const isFirstAnalysis = !result;
       setResult(data);
-      setActiveTab('heatmap');
+      // 최초 분석 시에만 히트맵 탭으로 이동, 재분석 시 현재 탭 유지
+      if (isFirstAnalysis) setActiveTab('heatmap');
     } catch (e) {
       setError(e instanceof Error ? e.message : '분석에 실패했습니다.');
     } finally {
@@ -202,38 +224,36 @@ export default function ChatContent() {
     }
   };
 
-  const handleDownloadCSV = () => {
+  // 히트맵 탭용: 항상 피크 기반 CSV (시간 순서)
+  const handleDownloadPeakCSV = () => {
     if (!result) return;
-    if (searchTimelines.length > 0) {
-      // 키워드 기반 CSV
-      const header = 'keyword,timestamp,count\n';
-      const rows = searchTimelines.flatMap((tl) =>
-        tl.timestamps.map((ts) => {
-          const count = tl.timeline.find(b => b.timestamp === ts)?.count ?? 0;
-          return `"${tl.keyword}",${toHMS(ts)},${count}`;
-        })
-      ).join('\n');
-      const blob = new Blob([header + rows], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'keyword_markers.csv';
-      a.click();
-      URL.revokeObjectURL(url);
-    } else {
-      // 피크 기반 CSV
-      const header = 'start,end,peak_count,keywords\n';
-      const rows = [...result.peaks].sort((a, b) => b.peak_count - a.peak_count).map((p) =>
-        `${toHMS(p.start)},${toHMSEnd(p.end)},${p.peak_count},"${p.keywords.join(',')}"`
-      ).join('\n');
-      const blob = new Blob([header + rows], { type: 'text/csv' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'edit_markers.csv';
-      a.click();
-      URL.revokeObjectURL(url);
-    }
+    const header = 'start,end,peak_count\n';
+    const rows = result.peaks.map((p) =>
+      `${toHMS(p.start)},${toHMSEnd(p.end)},${p.peak_count}`
+    ).join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'peak_markers.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // 키워드 탭용: 개별 타임스탬프 기반 CSV
+  const handleDownloadKeywordCSV = () => {
+    if (!result || searchTimelines.length === 0) return;
+    const header = 'keyword,timestamp\n';
+    const rows = searchTimelines.flatMap((tl) =>
+      tl.timestamps.map((ts) => `"${tl.keyword}",${ts}`)
+    ).join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'keyword_markers.csv';
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const handleDownloadHeatmapCSV = () => {
@@ -285,17 +305,24 @@ export default function ChatContent() {
       <div className="flex items-start gap-3 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800/50 rounded-2xl mb-6">
         <div className="w-10 h-10 rounded-full bg-purple-200 dark:bg-purple-800 flex items-center justify-center shrink-0 text-lg" aria-hidden="true">🎬</div>
         <div>
-          <p className="text-sm font-semibold text-purple-800 dark:text-purple-300">페르소나 D · 영상 편집자</p>
-          <p className="text-sm text-purple-700 dark:text-purple-400 mt-0.5">
+          <p className="text-sm text-purple-700 dark:text-purple-400">
             라이브 채팅을 업로드하면 채팅 밀도 히트맵, 피크 구간, 반응 키워드를 자동으로 분석합니다.
             검색 키워드를 입력하면 해당 키워드가 폭발한 구간만 추려서 확인할 수 있습니다.
+          </p>
+          <p className="text-xs text-purple-600 dark:text-purple-500 mt-1.5">
+            현재 표시된 결과는 <span className="font-semibold">슈카월드 생방송 20260406 방영분</span> 라이브 채팅을 기준으로 분석한 내용입니다.
           </p>
         </div>
       </div>
 
       {/* Upload Section */}
       <div className="bg-white dark:bg-[#1a1a1b] rounded-2xl border border-gray-200 dark:border-[#343536] p-6 mb-6 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200 mb-4">채팅 파일 업로드</h2>
+        <div className="flex items-center gap-3 mb-4">
+          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">채팅 파일 업로드</h2>
+          <span className="px-2.5 py-1 text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-700/50">
+            슈카월드 생방송 20260405 방영분 분석
+          </span>
+        </div>
         <UploadZone onFileLoaded={handleFileLoaded} />
 
         {/* 키워드 검색 입력 */}
@@ -314,6 +341,28 @@ export default function ChatContent() {
             입력한 키워드가 등장하는 모든 시간대를 타임라인으로 표시합니다
           </p>
         </div>
+
+        {/* 고정 파일 재분석 버튼 (파일 업로드 없이) */}
+        {!uploadedFile && (
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => analyzeFixedFile(searchKeywords)}
+              disabled={analyzing}
+              className="px-4 py-2 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 rounded-lg transition-colors flex items-center gap-2"
+              aria-busy={analyzing}
+            >
+              {analyzing ? (
+                <>
+                  <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  분석 중...
+                </>
+              ) : '재분석'}
+            </button>
+          </div>
+        )}
 
         {uploadedFile && (
           <div className="mt-4 flex items-center justify-between p-3 bg-gray-50 dark:bg-[#272729] rounded-xl border border-gray-200 dark:border-[#343536]">
@@ -425,14 +474,65 @@ export default function ChatContent() {
                   <div className="mt-4 p-3 bg-gray-50 dark:bg-[#272729] rounded-xl text-xs text-gray-500 dark:text-gray-400">
                     <span className="font-medium text-gray-600 dark:text-gray-300">피크 감지 기준:</span>{' '}
                     분당 채팅 수가 <span className="font-mono">평균 + 1.5 × 표준편차</span>를 초과하는 구간을 피크로 탐지합니다.
-                    연속된 피크 버킷은 하나의 구간으로 병합됩니다.
+                    연속된 피크 버킷은 하나의 구간으로 병합됩니다.{' '}
+                    <span className="text-gray-400">표준편차(σ)는 분당 채팅 수들이 평균으로부터 얼마나 퍼져 있는지를 나타내며, σ가 클수록 피크 임계값이 높아집니다.</span>
+                  </div>
+
+                  {/* 편집 마커 내보내기 — 히트맵/피크 기준 */}
+                  <div className="mt-6 pt-4 border-t border-gray-100 dark:border-[#343536]">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">편집 마커 내보내기</h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">피크 구간 기준 CSV — DaVinci Resolve / Premiere Pro에 임포트하세요</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleDownloadHeatmapCSV}
+                          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          전체 타임라인
+                        </button>
+                        <button
+                          onClick={handleDownloadPeakCSV}
+                          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors shadow-sm"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          피크 구간 CSV
+                        </button>
+                      </div>
+                    </div>
+                    {result.peaks.length > 0 ? (
+                      <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-[#343536]">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50 dark:bg-[#272729]">
+                            <tr>
+                              {['시작', '종료', '최대 채팅 수/분'].map((h) => (
+                                <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide" scope="col">{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 dark:divide-[#343536]">
+                            {result.peaks.map((p, i) => (
+                              <tr key={i} className="hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
+                                <td className="px-4 py-3 font-mono text-gray-800 dark:text-gray-200">{toHMS(p.start)}</td>
+                                <td className="px-4 py-3 font-mono text-gray-800 dark:text-gray-200">{toHMSEnd(p.end)}</td>
+                                <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{p.peak_count.toLocaleString()}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-400 text-center py-4">감지된 피크 구간이 없습니다.</p>
+                    )}
                   </div>
                 </div>
               )}
 
               {/* ── 피크 구간 탭 ──────────────────────────────────────────── */}
               {activeTab === 'peaks' && (
-                <div role="tabpanel" aria-label="피크 구간" className="space-y-4">
+                <div role="tabpanel" aria-label="피크 구간" className="max-h-[640px] overflow-y-auto space-y-4 pr-1">
                   {result.peaks.length === 0 && (
                     <p className="text-center text-gray-400 py-8">감지된 피크 구간이 없습니다.</p>
                   )}
@@ -515,13 +615,13 @@ export default function ChatContent() {
                                 <div className="flex items-center gap-2">
                                   <span className="font-bold text-purple-800 dark:text-purple-300">"{tl.keyword}"</span>
                                   <span className="px-2 py-0.5 text-xs bg-purple-600 text-white rounded-full font-medium">{totalCount}회</span>
-                                  <span className="text-xs text-purple-600 dark:text-purple-400">{tl.timestamps.length}개 구간</span>
+                                  <span className="text-xs text-purple-600 dark:text-purple-400">{tl.timestamps.length}회 등장</span>
                                 </div>
                                 <button
                                   onClick={() => setExpandedKeyword(isExpanded ? null : tl.keyword)}
                                   className="text-xs text-purple-600 dark:text-purple-400 hover:underline"
                                 >
-                                  {isExpanded ? '타임스탬프 접기' : `타임스탬프 ${tl.timestamps.length}개 보기`}
+                                  {isExpanded ? '타임스탬프 접기' : `전체 ${tl.timestamps.length}건 보기`}
                                 </button>
                               </div>
                               <div className="p-4">
@@ -532,7 +632,7 @@ export default function ChatContent() {
                                 {isExpanded && (
                                   <div className="mt-3 pt-3 border-t border-gray-100 dark:border-[#343536]">
                                     <div className="flex items-center justify-between mb-2">
-                                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">"{tl.keyword}" 등장 구간 (분 단위)</p>
+                                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400">"{tl.keyword}" 개별 등장 타임스탬프</p>
                                       <button
                                         onClick={() => navigator.clipboard.writeText(tl.timestamps.join(', '))}
                                         className="text-xs text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
@@ -542,18 +642,14 @@ export default function ChatContent() {
                                       </button>
                                     </div>
                                     <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
-                                      {tl.timestamps.map((ts) => {
-                                        const count = tl.timeline.find(b => b.timestamp === ts)?.count ?? 0;
-                                        return (
-                                          <span
-                                            key={ts}
-                                            className="px-2 py-0.5 font-mono text-xs bg-white dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 cursor-default"
-                                            title={`${count}회 등장`}
-                                          >
-                                            {toHMS(ts)} <span className="text-gray-400">×{count}</span>
-                                          </span>
-                                        );
-                                      })}
+                                      {tl.timestamps.map((ts, i) => (
+                                        <span
+                                          key={i}
+                                          className="px-2 py-0.5 font-mono text-xs bg-white dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded text-gray-700 dark:text-gray-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 cursor-default"
+                                        >
+                                          {ts}
+                                        </span>
+                                      ))}
                                     </div>
                                   </div>
                                 )}
@@ -561,6 +657,46 @@ export default function ChatContent() {
                             </div>
                           );
                         })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 편집 마커 내보내기 — 키워드 개별 타임스탬프 기준 */}
+                  {searchTimelines.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-[#343536]">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">편집 마커 내보내기</h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">키워드 개별 등장 타임스탬프 기준 CSV</p>
+                        </div>
+                        <button
+                          onClick={handleDownloadKeywordCSV}
+                          className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-lg transition-colors shadow-sm"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                          키워드 마커 CSV
+                        </button>
+                      </div>
+                      <div className="max-h-80 overflow-y-auto rounded-xl border border-gray-200 dark:border-[#343536]">
+                        <table className="w-full text-sm">
+                          <thead className="bg-gray-50 dark:bg-[#272729] sticky top-0">
+                            <tr>
+                              {['키워드', '타임스탬프'].map((h) => (
+                                <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide" scope="col">{h}</th>
+                              ))}
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100 dark:divide-[#343536]">
+                            {searchTimelines.flatMap((tl) =>
+                              tl.timestamps.map((ts, i) => ({ keyword: tl.keyword, ts, key: `${tl.keyword}-${i}` }))
+                            ).map((row) => (
+                              <tr key={row.key} className="hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
+                                <td className="px-4 py-2.5 font-medium text-purple-700 dark:text-purple-300">"{row.keyword}"</td>
+                                <td className="px-4 py-2.5 font-mono text-gray-800 dark:text-gray-200">{row.ts}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
                     </div>
                   )}
@@ -576,94 +712,17 @@ export default function ChatContent() {
             </div>
           </div>
 
-          {/* Export Section */}
-          <div className="bg-white dark:bg-[#1a1a1b] rounded-2xl border border-gray-200 dark:border-[#343536] p-6 shadow-sm">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">편집 마커 내보내기</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                  피크 구간 또는 전체 타임라인을 CSV로 저장해 DaVinci Resolve / Premiere Pro에 임포트하세요
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleDownloadHeatmapCSV}
-                  aria-label="전체 타임라인 CSV 다운로드"
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                  전체 타임라인
-                </button>
-                <button
-                  onClick={handleDownloadCSV}
-                  aria-label="편집 마커 CSV 파일 다운로드"
-                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 rounded-xl transition-colors shadow-sm"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                  편집 마커
-                </button>
-              </div>
-            </div>
-            {/* 편집 마커 내보내기 테이블 */}
-            {searchTimelines.length > 0 ? (
-              <div className="mt-4 max-h-80 overflow-y-auto rounded-xl border border-gray-200 dark:border-[#343536]">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 dark:bg-[#272729] sticky top-0">
-                    <tr>
-                      {['키워드', '타임스탬프', '등장 횟수'].map((h) => (
-                        <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide" scope="col">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-[#343536]">
-                    {searchTimelines.flatMap((tl) =>
-                      tl.timestamps.map((ts) => ({
-                        keyword: tl.keyword,
-                        ts,
-                        count: tl.timeline.find(b => b.timestamp === ts)?.count ?? 0,
-                      }))
-                    ).map((row, i) => (
-                      <tr key={i} className="hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
-                        <td className="px-4 py-2.5 font-medium text-purple-700 dark:text-purple-300">"{row.keyword}"</td>
-                        <td className="px-4 py-2.5 font-mono text-gray-800 dark:text-gray-200">{toHMS(row.ts)}</td>
-                        <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400">{row.count}회</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="mt-4 overflow-hidden rounded-xl border border-gray-200 dark:border-[#343536]">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 dark:bg-[#272729]">
-                    <tr>
-                      {['시작', '종료', '최대 채팅 수/분', '키워드'].map((h) => (
-                        <th key={h} className="px-4 py-2.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide" scope="col">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-[#343536]">
-                    {[...result.peaks].sort((a, b) => b.peak_count - a.peak_count).map((p, i) => (
-                      <tr key={i} className="hover:bg-gray-50 dark:hover:bg-[#272729] transition-colors">
-                        <td className="px-4 py-3 font-mono text-gray-800 dark:text-gray-200">{toHMS(p.start)}</td>
-                        <td className="px-4 py-3 font-mono text-gray-800 dark:text-gray-200">{toHMSEnd(p.end)}</td>
-                        <td className="px-4 py-3 text-gray-600 dark:text-gray-400">{p.peak_count.toLocaleString()}</td>
-                        <td className="px-4 py-3 text-gray-700 dark:text-gray-300">{p.keywords.slice(0, 5).join(', ')}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
         </>
       )}
 
-      {/* Empty state */}
-      {!uploadedFile && (
+      {/* 초기 로딩 스피너 */}
+      {analyzing && !result && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-          <svg className="w-12 h-12 mx-auto mb-3 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-          <p className="text-sm">채팅 파일을 업로드하면 분석 결과가 표시됩니다</p>
+          <svg className="w-8 h-8 mx-auto mb-3 animate-spin text-purple-500" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+          </svg>
+          <p className="text-sm">채팅 데이터 분석 중...</p>
         </div>
       )}
     </div>

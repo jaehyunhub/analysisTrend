@@ -1,6 +1,8 @@
 import logging
 import re
 from collections import Counter
+from datetime import datetime, timedelta, timezone
+from email.utils import format_datetime
 from typing import Any
 from urllib.parse import urlparse
 import httpx
@@ -74,18 +76,22 @@ class NewsCollector:
         return result
 
     def _mock_articles(self, limit: int) -> list[NewsArticle]:
+        def rfc2822(days_ago: float) -> str:
+            dt = datetime.now(timezone.utc) - timedelta(days=days_ago)
+            return format_datetime(dt)
+
         mock_data = [
-            ("AI 반도체 수출 규제, 글로벌 공급망에 미치는 영향", "미국이 첨단 AI 반도체에 대한 수출 규제를 강화하면서 글로벌 공급망에 상당한 변화가 예상됩니다.", "https://www.hani.co.kr", "hani.co.kr"),
-            ("삼성전자 HBM3E 양산 돌입...엔비디아 공급 확대", "삼성전자가 차세대 고대역폭 메모리 HBM3E 양산을 본격화하며 엔비디아와의 협력을 강화한다고 발표했습니다.", "https://www.mk.co.kr", "mk.co.kr"),
-            ("국내 스타트업 투자 한파...작년 대비 40% 감소", "국내 벤처캐피탈 투자 규모가 지속적으로 줄어드는 가운데, 스타트업들의 운영난이 심화되고 있습니다.", "https://www.chosun.com", "chosun.com"),
-            ("유튜브, 쇼츠 수익화 정책 전면 개편...크리에이터 반응은?", "유튜브가 쇼츠 광고 수익 분배 방식을 전면 개편하면서 크리에이터 커뮤니티에서 갑론을박이 이어지고 있습니다.", "https://www.jtbc.co.kr", "jtbc.co.kr"),
-            ("전기차 시장 성장세 둔화...배터리 원자재 가격 영향", "글로벌 전기차 판매 증가세가 예상보다 낮은 수준에 머물고 있으며, 리튬 등 원자재 가격 변동이 주요 원인으로 지목됩니다.", "https://www.hankyung.com", "hankyung.com"),
+            ("AI 반도체 수출 규제, 글로벌 공급망에 미치는 영향", "미국이 첨단 AI 반도체에 대한 수출 규제를 강화하면서 글로벌 공급망에 상당한 변화가 예상됩니다.", "https://www.hani.co.kr", "hani.co.kr", 0.3),
+            ("삼성전자 HBM3E 양산 돌입...엔비디아 공급 확대", "삼성전자가 차세대 고대역폭 메모리 HBM3E 양산을 본격화하며 엔비디아와의 협력을 강화한다고 발표했습니다.", "https://www.mk.co.kr", "mk.co.kr", 0.8),
+            ("국내 스타트업 투자 한파...작년 대비 40% 감소", "국내 벤처캐피탈 투자 규모가 지속적으로 줄어드는 가운데, 스타트업들의 운영난이 심화되고 있습니다.", "https://www.chosun.com", "chosun.com", 3),
+            ("유튜브, 쇼츠 수익화 정책 전면 개편...크리에이터 반응은?", "유튜브가 쇼츠 광고 수익 분배 방식을 전면 개편하면서 크리에이터 커뮤니티에서 갑론을박이 이어지고 있습니다.", "https://www.jtbc.co.kr", "jtbc.co.kr", 5),
+            ("전기차 시장 성장세 둔화...배터리 원자재 가격 영향", "글로벌 전기차 판매 증가세가 예상보다 낮은 수준에 머물고 있으며, 리튬 등 원자재 가격 변동이 주요 원인으로 지목됩니다.", "https://www.hankyung.com", "hankyung.com", 15),
         ]
         result = []
-        for i, (title, desc, link, source) in enumerate(mock_data[:limit]):
+        for title, desc, link, source, days_ago in mock_data[:limit]:
             result.append(NewsArticle(
                 title=title, description=desc, link=link,
-                pub_date="Mon, 01 Apr 2026 10:00:00 +0900", source=source,
+                pub_date=rfc2822(days_ago), source=source,
             ))
         return result
 

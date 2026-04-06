@@ -6,6 +6,7 @@ import type { Community } from '@/shared/types/community';
 import { apiGet } from '@/shared/api/client';
 import { COMMUNITIES } from '@/shared/api/endpoints';
 import { useAuthStore } from '@/shared/model/authStore';
+import { getCommunityTheme } from '@/shared/lib/communityThemes';
 
 const FIXED_CATEGORIES = ['경제', '방송', '쇼핑', '자유게시판'];
 
@@ -16,10 +17,6 @@ const TOPIC_ICONS = {
   자유게시판: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.013 8.013 0 01-5.5-2.2L3 19l1.2-4.5A8.012 8.012 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z',
 };
 
-const COMMUNITY_COLORS = [
-  'bg-blue-500', 'bg-red-500', 'bg-orange-500', 'bg-green-500',
-  'bg-indigo-500', 'bg-purple-500', 'bg-cyan-500', 'bg-pink-500',
-];
 
 export default function Sidebar() {
   const [isMyCommunitiesExpanded, setIsMyCommunitiesExpanded] = useState(false);
@@ -42,10 +39,10 @@ export default function Sidebar() {
 
   const communitiesWithColor = communities
     .filter(c => !FIXED_CATEGORIES.includes(c.name))
-    .map((c, i) => ({
+    .map((c) => ({
       name: c.name,
       slug: c.name,
-      icon: c.color ?? COMMUNITY_COLORS[i % COMMUNITY_COLORS.length],
+      icon: getCommunityTheme(c.name).btnBg,
     }));
 
   const visibleCommunities = isMyCommunitiesExpanded
@@ -60,10 +57,10 @@ export default function Sidebar() {
         <div className="pl-5 mb-5">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">최근 방문</p>
           <ul className="space-y-0.5">
-            {recentVisits.map((name, i) => (
+            {recentVisits.map((name) => (
               <li key={name}>
                 <Link href={`/community/board/${encodeURIComponent(name)}`} className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1E2028] rounded-lg cursor-pointer transition-colors">
-                  <div className={`h-5 w-5 ${COMMUNITY_COLORS[i % COMMUNITY_COLORS.length]} rounded-full flex items-center justify-center text-[9px] text-white font-bold shrink-0`}>
+                  <div className={`h-5 w-5 ${getCommunityTheme(name).btnBg} rounded-full flex items-center justify-center text-[9px] text-white font-bold shrink-0`}>
                     {name[0]}
                   </div>
                   {name}

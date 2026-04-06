@@ -183,18 +183,22 @@ class ChatAnalyzer:
     def _build_keyword_timelines(
         self, records: list[dict], keywords: list[str]
     ) -> list[KeywordTimeline]:
-        """키워드별 분당 언급 횟수 시계열 + 등장 타임스탬프 목록 생성."""
+        """키워드별 분당 언급 횟수 시계열 + 개별 타임스탬프 목록 생성."""
         if not keywords:
             return []
 
         timeline_data: dict[str, dict[str, int]] = {kw: defaultdict(int) for kw in keywords}
+        raw_timestamps: dict[str, list[str]] = {kw: [] for kw in keywords}
 
         for r in records:
-            minute_key = _parse_minute_key(r.get("timestamp", ""))
+            ts = r.get("timestamp", "")
+            minute_key = _parse_minute_key(ts)
             msg = r.get("message", "").lower()
             for kw in keywords:
                 if kw.lower() in msg:
                     timeline_data[kw][minute_key] += 1
+                    if ts:
+                        raw_timestamps[kw].append(ts)
 
         all_keys = sorted({
             _parse_minute_key(r.get("timestamp", ""))
@@ -207,8 +211,8 @@ class ChatAnalyzer:
                 HeatmapBucket(timestamp=k, count=timeline_data[kw].get(k, 0), normalized=0.0)
                 for k in all_keys
             ]
-            # 키워드가 실제로 등장한 분 단위 타임스탬프만 수집
-            timestamps = [k for k in all_keys if timeline_data[kw].get(k, 0) > 0]
+            # 개별 타임스탬프 (정렬, 중복 포함 — 같은 시각 여러 번 등장 가능)
+            timestamps = sorted(raw_timestamps[kw])
             result.append(KeywordTimeline(keyword=kw, timeline=buckets, timestamps=timestamps))
 
         return result

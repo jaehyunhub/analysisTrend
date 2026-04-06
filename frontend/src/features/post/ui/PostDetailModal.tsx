@@ -116,7 +116,7 @@ export default function PostDetailModal() {
                     </div>
                     <div className="flex-1">
                         <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
-                           <span className="font-bold text-black dark:text-white">r/AnalysisTrend</span>
+                           <span className="font-bold text-black dark:text-white">r/SyukaUniverse</span>
                            <span>• Posted by u/trend_master</span>
                            <span>• 2 hours ago</span>
                         </div>

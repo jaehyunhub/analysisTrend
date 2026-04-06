@@ -43,8 +43,18 @@ public class PostController {
     @PostMapping("/{id}/vote")
     public ResponseEntity<ApiResponse<PostResponse>> vote(
             @PathVariable Long id,
-            @RequestParam String type,
+            @RequestBody(required = false) backend.post.dto.VoteRequest body,
+            @RequestParam(required = false) String type,
             @AuthenticationPrincipal UserDetails userDetails) {
-        return ResponseEntity.ok(ApiResponse.success(postService.vote(id, type, userDetails.getUsername())));
+        String voteType = (body != null && body.getVoteType() != null) ? body.getVoteType() : type;
+        return ResponseEntity.ok(ApiResponse.success(postService.vote(id, voteType, userDetails.getUsername())));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> delete(
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        postService.delete(id);
+        return ResponseEntity.ok(ApiResponse.success(null, "게시글이 삭제되었습니다."));
     }
 }

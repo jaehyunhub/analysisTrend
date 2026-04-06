@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import { useCommunityStore } from "@/shared/model/communityStore";
+import { getCommunityTheme } from '@/shared/lib/communityThemes';
 
 interface PostProps {
   id: number;
@@ -15,15 +16,6 @@ interface PostProps {
   comments: number | string;
 }
 
-const BOARD_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
-  '경제':     { bg: 'bg-blue-50 dark:bg-blue-950/40',   text: 'text-blue-600 dark:text-blue-400',   dot: 'bg-blue-500' },
-  '방송':     { bg: 'bg-red-50 dark:bg-red-950/40',     text: 'text-red-600 dark:text-red-400',     dot: 'bg-red-500' },
-  '쇼핑':     { bg: 'bg-orange-50 dark:bg-orange-950/40', text: 'text-orange-600 dark:text-orange-400', dot: 'bg-orange-500' },
-  '자유게시판': { bg: 'bg-green-50 dark:bg-green-950/40', text: 'text-green-600 dark:text-green-400', dot: 'bg-green-500' },
-};
-
-const DEFAULT_COLOR = { bg: 'bg-purple-50 dark:bg-purple-950/40', text: 'text-purple-600 dark:text-purple-400', dot: 'bg-purple-500' };
-
 function formatCount(value: number | string): string {
   const num = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.]/g, '')) : value;
   if (typeof value === 'string' && value.includes('k')) return value;
@@ -35,7 +27,8 @@ export default function PostCard({ id, subreddit, author, timeAgo, title, conten
   const router = useRouter();
   const votePostWithApi = useCommunityStore((state) => state.votePostWithApi);
   const getVoteState = useCommunityStore((state) => state.getVoteState);
-  const color = BOARD_COLORS[subreddit] ?? DEFAULT_COLOR;
+  const t = getCommunityTheme(subreddit);
+  const color = { bg: t.lightBg, text: t.lightText, dot: t.btnBg };
   const voteState = getVoteState(id);
 
   const handleUpvote = (e: React.MouseEvent) => {
@@ -75,7 +68,7 @@ export default function PostCard({ id, subreddit, author, timeAgo, title, conten
         </div>
 
         {/* Title */}
-        <h3 className="text-[15px] font-semibold leading-snug text-gray-900 dark:text-gray-100 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
+        <h3 className="text-[15px] font-semibold leading-snug text-gray-900 dark:text-gray-100 mb-2 group-hover:opacity-70 transition-opacity line-clamp-2">
           {title}
         </h3>
 

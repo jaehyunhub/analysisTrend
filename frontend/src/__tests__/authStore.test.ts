@@ -1,7 +1,7 @@
 import { useAuthStore } from '@/shared/model/authStore';
 
-// localStorage mock
-const localStorageMock = (() => {
+// sessionStorage mock (authStore는 sessionStorage 사용)
+const sessionStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
     getItem: (key: string) => store[key] ?? null,
@@ -10,10 +10,10 @@ const localStorageMock = (() => {
     clear: () => { store = {}; },
   };
 })();
-Object.defineProperty(window, 'localStorage', { value: localStorageMock });
+Object.defineProperty(window, 'sessionStorage', { value: sessionStorageMock });
 
 beforeEach(() => {
-  localStorageMock.clear();
+  sessionStorageMock.clear();
   useAuthStore.setState({
     user: null,
     accessToken: null,
@@ -31,14 +31,14 @@ describe('authStore', () => {
     expect(state.user).toEqual(mockUser);
     expect(state.accessToken).toBe('access-123');
     expect(state.isAuthenticated).toBe(true);
-    expect(localStorage.getItem('accessToken')).toBe('access-123');
-    expect(localStorage.getItem('refreshToken')).toBe('refresh-456');
+    expect(sessionStorage.getItem('accessToken')).toBe('access-123');
+    expect(sessionStorage.getItem('refreshToken')).toBe('refresh-456');
   });
 
   test('login: refreshToken 없이 호출해도 동작', () => {
     useAuthStore.getState().login(mockUser, 'access-only');
     expect(useAuthStore.getState().isAuthenticated).toBe(true);
-    expect(localStorage.getItem('refreshToken')).toBeNull();
+    expect(sessionStorage.getItem('refreshToken')).toBeNull();
   });
 
   test('logout: 상태 초기화 + localStorage 삭제', () => {
@@ -48,8 +48,8 @@ describe('authStore', () => {
     expect(state.user).toBeNull();
     expect(state.accessToken).toBeNull();
     expect(state.isAuthenticated).toBe(false);
-    expect(localStorage.getItem('accessToken')).toBeNull();
-    expect(localStorage.getItem('refreshToken')).toBeNull();
+    expect(sessionStorage.getItem('accessToken')).toBeNull();
+    expect(sessionStorage.getItem('refreshToken')).toBeNull();
   });
 
   test('checkAuth: 토큰 있으면 true', () => {

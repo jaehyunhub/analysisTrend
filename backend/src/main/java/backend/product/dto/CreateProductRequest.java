@@ -13,6 +13,7 @@ public record CreateProductRequest(
     @NotNull ProductCategory category,
     boolean isSoldOut,
     String imageUrl,
+    String thumbnailImages,
     String description,
     String detailContent
 ) {}

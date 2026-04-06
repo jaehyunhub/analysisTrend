@@ -138,6 +138,11 @@ export default function ShopPage() {
                                         src={product.imageUrl ?? product.image}
                                         alt={product.name}
                                         className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          const el = e.currentTarget;
+                                          el.onerror = null;
+                                          el.style.display = 'none';
+                                        }}
                                       />
                                     ) : (
                                       <svg className="w-12 h-12 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">

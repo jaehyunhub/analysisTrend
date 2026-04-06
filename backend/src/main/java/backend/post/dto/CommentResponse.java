@@ -12,16 +12,18 @@ public class CommentResponse {
 
     private Long id;
     private String content;
-    private String authorNickname;
-    private Long parentCommentId;
+    private String author;
+    private Long authorId;
+    private Long parentId;
     private LocalDateTime createdAt;
 
     public static CommentResponse from(Comment comment) {
         return CommentResponse.builder()
                 .id(comment.getId())
                 .content(comment.getContent())
-                .authorNickname(comment.getAuthor().getNickname())
-                .parentCommentId(comment.getParentComment() != null ? comment.getParentComment().getId() : null)
+                .author(comment.getAuthor().getNickname())
+                .authorId(comment.getAuthor().getId())
+                .parentId(comment.getParentComment() != null ? comment.getParentComment().getId() : null)
                 .createdAt(comment.getCreatedAt())
                 .build();
     }

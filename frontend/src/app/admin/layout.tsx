@@ -85,7 +85,7 @@ function SidebarContent({ pathname, onClose }: { pathname: string; onClose?: () 
             </button>
           )}
         </div>
-        <p className="text-[11px] text-gray-400 mt-1 ml-9">AnalysisTrend 관리</p>
+        <p className="text-[11px] text-gray-400 mt-1 ml-9">SyukaUniverse 관리</p>
       </div>
 
       <nav className="flex-1 p-3 overflow-y-auto">

@@ -17,6 +17,7 @@ public class ProductResponse {
     private ProductCategory category;
     private boolean isSoldOut;
     private String imageUrl;
+    private String thumbnailImages;
     private String description;
     private String detailContent;
 
@@ -30,6 +31,7 @@ public class ProductResponse {
                 .category(product.getCategory())
                 .isSoldOut(product.isSoldOut())
                 .imageUrl(product.getImageUrl())
+                .thumbnailImages(product.getThumbnailImages())
                 .description(product.getDescription())
                 .detailContent(product.getDetailContent())
                 .build();

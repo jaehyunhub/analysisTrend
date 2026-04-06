@@ -13,6 +13,7 @@ const NAV_LINKS = [
   { href: '/shop', label: '쇼핑' },
   { href: '/magazine', label: '매거진' },
   { href: '/about', label: '소개' },
+  { href: '/resume', label: '이력서' },
 ];
 
 export default function Header() {
@@ -40,11 +41,12 @@ export default function Header() {
         {/* Left: Logo */}
         <div className="flex items-center gap-2 lg:w-[220px]">
           <Link href="/" className="flex items-center gap-2 group">
-            <div className="h-8 w-8 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-black text-lg shadow-sm group-hover:shadow-md transition-shadow">
-              A
+            <div className="h-8 w-8 rounded-full overflow-hidden shadow-sm group-hover:shadow-md transition-shadow shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/syuka-logo.jpg" alt="SyukaUniverse" className="w-full h-full object-cover" />
             </div>
             <span className="hidden text-lg font-black lg:block tracking-tight text-gray-900 dark:text-white">
-              AnalysisTrend
+              SyukaUniverse
             </span>
           </Link>
         </div>
@@ -161,10 +163,11 @@ export default function Header() {
         {/* Drawer Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-[#343536]">
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-black text-sm">
-              A
+            <div className="h-7 w-7 rounded-full overflow-hidden shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/syuka-logo.jpg" alt="SyukaUniverse" className="w-full h-full object-cover" />
             </div>
-            <span className="font-black text-gray-900 dark:text-white">AnalysisTrend</span>
+            <span className="font-black text-gray-900 dark:text-white">SyukaUniverse</span>
           </div>
           <button
             onClick={() => setMobileMenuOpen(false)}

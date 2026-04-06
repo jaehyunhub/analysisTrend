@@ -57,6 +57,7 @@ interface PostItem {
   communityName: string;
   upvotes: number;
   downvotes: number;
+  commentCount: number;
   createdAt: string;
 }
 
@@ -154,8 +155,8 @@ export default function Home() {
       .then(res => setProducts(res.content))
       .catch(() => {});
 
-    // 인기 게시글
-    apiGet<PageResponse<PostItem>>(`${POSTS.LIST}?page=0&size=20&sort=popular`)
+    // 인기 게시글 — size=40으로 4개 카테고리 전체 커버, sort=hot(upvotes순)
+    apiGet<PageResponse<PostItem>>(`${POSTS.LIST}?page=0&size=40&sort=hot`)
       .then(res => setPosts(res.content))
       .catch(() => {});
   }, []);
@@ -171,7 +172,7 @@ export default function Home() {
 
   // 고정 4개 카테고리로 게시글 그룹핑
   const FIXED_CATEGORIES = ['경제', '방송', '쇼핑', '자유게시판'];
-  const postsByCategory: Record<string, { rank: number; title: string; comments: number }[]> = Object.fromEntries(
+  const postsByCategory: Record<string, { rank: number; id: number; title: string; comments: number }[]> = Object.fromEntries(
     FIXED_CATEGORIES.map(cat => [cat, []])
   );
   posts.forEach(post => {
@@ -179,8 +180,9 @@ export default function Home() {
     if (cat in postsByCategory && postsByCategory[cat].length < 5) {
       postsByCategory[cat].push({
         rank: postsByCategory[cat].length + 1,
+        id: post.id,
         title: post.title,
-        comments: post.upvotes + post.downvotes,
+        comments: post.commentCount ?? 0,
       });
     }
   });
@@ -468,7 +470,7 @@ export default function Home() {
                              <ul className="flex flex-col gap-3">
                                  {categoryPosts.map((post, i) => (
                                      <li key={i}>
-                                       <Link href={`/community/board/${encodeURIComponent(category)}`} className="flex gap-2.5 items-start group cursor-pointer">
+                                       <Link href={`/community/board/${encodeURIComponent(category)}/comments/${post.id}`} className="flex gap-2.5 items-start group cursor-pointer">
                                          <span className={`text-xs font-black w-4 text-center mt-0.5 shrink-0 ${post.rank <= 3 ? 'text-red-500' : 'text-gray-300 dark:text-gray-600'}`}>{post.rank}</span>
                                          <div className="flex-1 min-w-0">
                                              <div className="text-xs text-gray-700 dark:text-gray-300 leading-snug group-hover:text-blue-500 transition-colors line-clamp-2">
@@ -499,7 +501,16 @@ export default function Home() {
                         <Link href={`/shop/${product.id}`} key={product.id} className="group cursor-pointer block">
                             <div className="aspect-square rounded-2xl mb-3 overflow-hidden relative shadow-sm bg-gray-200 dark:bg-gray-800">
                                {product.imageUrl ? (
-                                 <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                                 <img
+                                   src={product.imageUrl}
+                                   alt={product.name}
+                                   className="w-full h-full object-cover"
+                                   onError={(e) => {
+                                     const el = e.currentTarget;
+                                     el.onerror = null;
+                                     el.style.display = 'none';
+                                   }}
+                                 />
                                ) : (
                                  <div className="w-full h-full bg-gray-200 dark:bg-gray-700" />
                                )}
@@ -530,40 +541,67 @@ export default function Home() {
 
       {/* 방송 공지 상세 모달 */}
       {selectedNews && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setSelectedNews(null)}>
-          <div className="bg-white dark:bg-[#1A1A1B] rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 border border-gray-200 dark:border-[#343536]" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                {selectedNews.category}
-              </span>
-              <button onClick={() => setSelectedNews(null)} className="text-gray-400 hover:text-gray-700 dark:hover:text-white text-xl leading-none">×</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setSelectedNews(null)}>
+          <div className="relative bg-white dark:bg-[#1A1A1B] rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 border border-gray-200 dark:border-[#343536]" onClick={e => e.stopPropagation()}>
+            {/* 닫기 버튼 — 우상단 absolute */}
+            <button
+              onClick={() => setSelectedNews(null)}
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 dark:bg-[#2D2F3A] flex items-center justify-center text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            {/* 카테고리 pill — 타이틀 위 단독 배치 */}
+            <span className="inline-block text-xs font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 mb-3">
+              {selectedNews.category}
+            </span>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 pr-8">{selectedNews.title}</h3>
+            <p className="text-sm text-gray-400 mb-4">{selectedNews.date}</p>
+            <hr className="border-gray-100 dark:border-[#343536] mb-4" />
+            <div className="max-h-[40vh] overflow-y-auto">
+              <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed whitespace-pre-wrap">{selectedNews.content}</p>
             </div>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{selectedNews.title}</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-mono">{selectedNews.date}</p>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{selectedNews.content}</p>
           </div>
         </div>
       )}
 
       {/* 방송 일정 날짜 클릭 상세 모달 */}
       {selectedDate !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" onClick={() => setSelectedDate(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm transition-opacity" onClick={() => setSelectedDate(null)}>
           <div className="bg-white dark:bg-[#1A1A1B] rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4 border border-gray-200 dark:border-[#343536]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white">{selectedDate}일 방송 일정</h3>
-              <button onClick={() => setSelectedDate(null)} className="text-gray-400 hover:text-gray-700 dark:hover:text-white text-xl leading-none">×</button>
+              <h3 className="text-base font-bold text-gray-900 dark:text-white">
+                {viewYear}년 {viewMonth}월 {selectedDate}일 방송 일정
+              </h3>
+              <button
+                onClick={() => setSelectedDate(null)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-[#2D2F3A] text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors flex-shrink-0"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-[50vh] overflow-y-auto pr-1">
               {selectedDateSchedules.length > 0 ? selectedDateSchedules.map(s => (
-                <div key={s.id} className="flex items-center gap-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20">
-                  <span className="text-xs font-bold px-2 py-1 rounded-lg bg-blue-600 text-white">{s.type}</span>
+                <div key={s.id} className="flex items-start gap-3 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20">
+                  <span className="text-xs font-bold px-2 py-1 rounded-lg bg-blue-600 text-white flex-shrink-0">{s.type}</span>
                   <div>
                     <p className="text-sm font-semibold text-gray-900 dark:text-white">{s.title}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">{s.scheduleDate}</p>
+                    {s.description && (
+                      <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{s.description}</p>
+                    )}
                   </div>
                 </div>
               )) : (
-                <p className="text-sm text-gray-500">해당 날짜에 예정된 일정이 없습니다.</p>
+                <div className="text-center py-8">
+                  <svg className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-sm text-gray-400">예정된 방송 일정이 없습니다</p>
+                </div>
               )}
             </div>
           </div>

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { User } from '../types';
 
 interface AuthState {
@@ -33,8 +33,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       // 직접 상태 세팅 (OAuth 콜백용)
       login: (user, accessToken, refreshToken) => {
         if (typeof window !== 'undefined') {
-          localStorage.setItem('accessToken', accessToken);
-          if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+          sessionStorage.setItem('accessToken', accessToken);
+          if (refreshToken) sessionStorage.setItem('refreshToken', refreshToken);
         }
         set({ user, accessToken, isAuthenticated: true, isLoading: false });
       },
@@ -97,8 +97,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
       logout: () => {
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
+          sessionStorage.removeItem('accessToken');
+          sessionStorage.removeItem('refreshToken');
         }
         set({ user: null, accessToken: null, isAuthenticated: false });
       },
@@ -145,6 +145,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
     }),
     {
       name: 'auth-storage',
+      // sessionStorage: 탭/브라우저 닫으면 세션 종료 → 자동 로그아웃
+      storage: createJSONStorage(() =>
+        typeof window !== 'undefined' ? sessionStorage : localStorage
+      ),
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

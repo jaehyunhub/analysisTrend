@@ -129,11 +129,11 @@ export default function ScheduleManagement() {
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-400 mb-1">설명</label>
-              <input
-                type="text"
+              <textarea
+                rows={4}
                 value={form.description}
                 onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full bg-gray-50 dark:bg-[#272729] border border-gray-200 dark:border-[#343536] rounded-lg p-2.5 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
               />
             </div>
           </div>
