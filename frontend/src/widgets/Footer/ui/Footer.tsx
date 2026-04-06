@@ -7,10 +7,11 @@ export default function Footer() {
           {/* Column 1: Brand */}
           <div className="col-span-1 md:col-span-2">
               <div className="flex items-center gap-2 mb-4">
-                  <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-black text-lg">
-                      A
+                  <div className="h-9 w-9 rounded-full overflow-hidden shrink-0">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src="/syuka-logo.jpg" alt="SyukaUniverse" className="w-full h-full object-cover" />
                   </div>
-                  <span className="text-xl font-black text-gray-900 dark:text-white">AnalysisTrend</span>
+                  <span className="text-xl font-black text-gray-900 dark:text-white">슈카유니버스</span>
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-5 max-w-sm">
                   경제·시사 뉴스를 조사하여 PPT로 정리하고 시청자에게 소개하는 유튜브 채널의 공식 통합 플랫폼입니다.
@@ -32,11 +33,11 @@ export default function Footer() {
           <div>
               <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-4">회사 정보</h3>
               <ul className="text-sm text-gray-500 dark:text-gray-400 space-y-2">
-                  <li>대표: 김재현</li>
+                  <li>대표: 슈카</li>
                   <li>사업자등록번호: 123-45-67890</li>
                   <li>주소: 서울 강남구 테헤란로 123</li>
                   <li>전화: 02-1234-5678</li>
-                  <li>이메일: contact@analysistrend.com</li>
+                  <li>이메일: syuka@syukafriends.com</li>
               </ul>
           </div>
 
@@ -57,7 +58,7 @@ export default function Footer() {
       {/* Bottom Bar */}
       <div className="max-w-[1200px] mx-auto px-6 pt-6 border-t border-gray-200 dark:border-[#343536] flex flex-col md:flex-row justify-between items-center gap-3">
           <p className="text-xs text-gray-400">
-              © 2026 AnalysisTrend. All rights reserved.
+              © 2026 슈카유니버스. All rights reserved.
           </p>
           <div className="flex gap-5 text-xs text-gray-400">
               <Link href="#" className="hover:text-gray-700 dark:hover:text-white transition-colors">개인정보처리방침</Link>

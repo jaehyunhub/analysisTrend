@@ -19,6 +19,7 @@ beforeEach(() => {
     posts: [],
     selectedFilter: 'new',
     isLoading: false,
+    votedPosts: {},
   });
 });
 

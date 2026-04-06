@@ -60,9 +60,23 @@ async function globalSetup(config: FullConfig) {
     const resolvedRole = data.role || role;
     const resolvedNickname = data.nickname || nickname;
 
+    // /auth/me 호출로 실제 DB user ID 취득 (id: 0 하드코딩 방지)
+    let userId = 0;
+    try {
+      const meRes = await fetch(`${baseURL}/api/v1/auth/me`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (meRes.ok) {
+        const meJson = await meRes.json() as { data: { id: number } };
+        userId = meJson.data.id;
+      }
+    } catch {
+      // fallback: id=0 유지
+    }
+
     // Zustand auth-storage에 저장될 user 객체 구성
     const user = {
-      id: 0,
+      id: userId,
       email: data.email || email,
       nickname: resolvedNickname,
       role: resolvedRole,
@@ -92,6 +106,10 @@ async function globalSetup(config: FullConfig) {
         localStorage.setItem('accessToken', at);
         if (rt) localStorage.setItem('refreshToken', rt);
         localStorage.setItem('auth-storage', authStorage);
+        // authStore는 sessionStorage persist를 사용하므로 sessionStorage에도 저장
+        sessionStorage.setItem('accessToken', at);
+        if (rt) sessionStorage.setItem('refreshToken', rt);
+        sessionStorage.setItem('auth-storage', authStorage);
       },
       { at: accessToken, rt: refreshToken, authStorage: authStorageValue },
     );
@@ -99,6 +117,10 @@ async function globalSetup(config: FullConfig) {
     await context.storageState({ path: filePath });
     await context.close();
     await browser.close();
+
+    // authStore는 sessionStorage persist를 사용하므로, addInitScript 주입용 세션 데이터 별도 저장
+    const sessionFilePath = filePath.replace('.json', '-session.json');
+    fs.writeFileSync(sessionFilePath, authStorageValue);
   }
 
   // --- 일반 사용자 storageState 저장 ---

@@ -1,179 +1,96 @@
 # CLAUDE.md
 
 이 파일은 Claude Code(claude.ai/code)가 이 저장소의 코드를 다룰 때 참고하는 가이드입니다.
+**서비스별 상세 가이드**: [`frontend/CLAUDE.md`](./frontend/CLAUDE.md) · [`backend/CLAUDE.md`](./backend/CLAUDE.md) · [`analysis/CLAUDE.md`](./analysis/CLAUDE.md) · [`e2e/CLAUDE.md`](./e2e/CLAUDE.md)
 
 ## 언어
 
-항상 한국어로 응답할 것 (RULES.md 참고).
+항상 한국어로 응답할 것.
 
 ## 프로젝트 개요
 
-analysisTrend는 Docker Compose로 구성된 3개의 서비스로 이루어진 트렌드 분석 플랫폼입니다:
-- **frontend** — Next.js 16 (React 19, TypeScript, Tailwind CSS v4, Zustand)
-- **backend** — Spring Boot 3.5 (Java 17, JPA, QueryDSL, Redis, JWT + OAuth2)
-- **analysis** — FastAPI (Python) 분석 마이크로서비스
+analysisTrend — Docker Compose로 구성된 트렌드 분석 플랫폼:
+- **frontend** — Next.js 16 (React 19, TypeScript, Tailwind CSS v4, Zustand) → `frontend/CLAUDE.md`
+- **backend** — Spring Boot 3.5 (Java 17, JPA, QueryDSL, Redis, JWT + OAuth2) → `backend/CLAUDE.md`
+- **analysis** — FastAPI (Python) 분석 마이크로서비스 → `analysis/CLAUDE.md`
 
-## 명령어
+## 명령어 (빠른 참조)
 
-### 프론트엔드 (`frontend/`)
 ```bash
-npm run dev      # 개발 서버 :3000
-npm run build    # 프로덕션 빌드
-npm run lint     # ESLint 실행
-npm test         # Jest 단위 테스트 (src/__tests__/)
-npx tsc --noEmit # TypeScript 타입 검사 (build 대신 사용 — Turbopack 한글 경로 버그)
+# 프론트엔드 (frontend/)
+npm run dev && npx tsc --noEmit    # 개발 + 타입 검사 (npm run build 금지 — 아래 주의 참고)
+
+# 백엔드 (backend/)
+./gradlew bootRun && ./gradlew test
+
+# 분석 서비스 (analysis/)
+uvicorn main:app --reload --port 8000 && pytest tests/
+
+# 인프라
+docker-compose up -d                  # 전체 서비스 시작 (Nginx :80, MySQL, Redis, :8080, :3000, :8000)
+docker-compose up -d mysql redis      # DB만 실행 (로컬 백엔드 개발 시)
+docker-compose build --no-cache       # 전체 이미지 재빌드
+docker-compose build analysis         # analysis만 재빌드 (환경변수 변경 시 필수)
+
+# E2E (docker-compose up -d 선행 필요)
+cd e2e && npm test                    # 전체 실행 (tests/workflows/ 6개 그룹)
+cd e2e && npm run test:ui             # Playwright UI 모드 (권장)
+cd e2e && npm test -- --grep "WF-F"  # 특정 그룹만 실행
 ```
 
-### 백엔드 (`backend/`)
-```bash
-./gradlew bootRun                    # 서버 실행 :8080
-./gradlew test                       # 전체 테스트 (JUnit 5, H2 인메모리)
-./gradlew test --tests "backend.SomeTest.methodName"  # 단일 테스트
-./gradlew build                      # JAR 빌드
+## 빌드 주의
+
+`npm run build`는 **로컬에서 사용 금지** — Turbopack이 한글 경로(`포트폴리오`)에서 패닉.
+타입 검사는 `npx tsc --noEmit` 사용. Docker 내부(경로 ASCII)에서는 정상 빌드 가능.
+
+## 인프라 구성
+
+- Nginx 리버스 프록시 (포트 80 단일 진입점) + MySQL healthcheck
+- API 표준 응답: `ApiResponse<T>` — `{ success, data, message, timestamp }`
+- API 접두사: `/api/v1/`
+- 테스트 3계층: Unit(Jest) · Integration(JUnit) · FastAPI(pytest) · E2E(Playwright)
+
+## 커뮤니티 UI 리디자인 (2026-04-04)
+
+Old Reddit 스타일 → 모던 카드 스타일로 전환. 변경 파일:
+- `entities/post/ui/PostCard.tsx` — 투표 컬럼 제거, 하단 액션바, 카테고리 pill 태그
+- `app/community/board/[slug]/page.tsx` — 카테고리별 그라디언트 배너, 이모지 정렬 탭, 빈 상태 UI
+- `app/community/board/[slug]/comments/[postId]/page.tsx` — rounded-2xl, 다크모드 색상 통일
+- `widgets/Sidebar/ui/Sidebar.tsx` — 다크모드 배경 `#0F1117`
+
+배경: `#DAE0E6` → `gray-50` | 카드: `rounded-[4px]` → `rounded-2xl` | 다크 카드: `#1A1A1B` → `#1E2028`
+
+## E2E 테스트 구조
+
+**77개 테스트 / 74 passed / 3 skipped / 0 failed** (2026-04-04 기준)
+
+```
+e2e/tests/workflows/               ← 최종 테스트 파일 (6개)
+  group-a.home-admin-content.spec.ts   홈화면 + 관리자 콘텐츠 CRUD (배너/일정/유튜브/광고/매거진)
+  group-b.community.spec.ts            커뮤니티 워크플로우 (글/투표/댓글/검색/가입)
+  group-c.shopping.spec.ts             쇼핑몰 워크플로우 (상품/장바구니/QnA/리뷰/이미지)
+  group-d.analysis-tools.spec.ts       분석 도구 (채팅분석/트렌드/채널분석/회원관리)
+  group-e.ux-and-missing-pages.spec.ts UX (다크모드/모바일/매거진/404/마이페이지/Toast)
+  group-f.community-comprehensive.spec.ts 커뮤니티 종합 (유저·관리자, wepoll 실데이터)
 ```
 
-### 분석 서비스 (`analysis/`)
-```bash
-uvicorn main:app --reload --port 8000  # 개발 서버
-pytest tests/                          # 단위 테스트
-```
+테스트 계획 상세: `e2e/TEST_PLAN.md` · 가이드: `e2e/CLAUDE.md`
 
-### 인프라
-```bash
-docker-compose up -d          # 전체 서비스 시작 (Nginx :80, MySQL :3306, Redis, backend :8080, frontend :3000, analysis :8000)
-docker-compose up -d mysql redis  # DB만 실행 (로컬 백엔드 개발 시)
-docker-compose build --no-cache   # 전체 이미지 재빌드 (환경변수 변경 시)
-docker-compose build analysis     # analysis만 재빌드 (analysis/.env 키 변경 시 필수)
-```
+## 외부 CDN 주의사항
 
-### E2E 테스트 (`e2e/`)
-```bash
-cd e2e
-npm test                          # 전체 실행 (docker-compose up -d 선행 필요)
-npm test -- tests/auth/           # 특정 디렉토리만
-npm test -- --grep "로그인"        # 테스트명 필터
-npm run test:ui                   # Playwright UI 모드 (권장)
-npm run test:headed               # 브라우저 보이며 실행
-npm run test:report               # HTML 리포트 열기
-npm run codegen                   # 셀렉터 자동 생성 도구
-```
+### syukafriends.kr (Cafe24)
+- 이미지 CDN 경로: `/web/product/big/` → `/web/product/medium/` 으로 이전 완료 (**`/big/` URL은 404**)
+- `representative_images` 일부 파일은 CDN에서 완전 삭제 — `/medium/` 에도 존재하지 않음
+- 상품 복원 시 `site_update/syukafriends_products.json` 참고; `image` 필드는 `/medium/` 경로, `representative_images`는 빈 배열
+- `detail_images` (URL-encoded `/슈친상사_돼지고기_최종/A.png` 형식)는 정상 200
 
-## 아키텍처
+### Next.js remotePatterns
+외부 이미지 추가 시 `frontend/next.config.ts`의 `images.remotePatterns` 업데이트 필수.
+현재 허용: `syukafriends.kr`, `img.youtube.com`, `ecimg.cafe24img.com`, `i.ytimg.com`
 
-### 프론트엔드 — FSD (Feature-Sliced Design)
-프론트엔드는 Feature-Sliced Design 패턴을 따릅니다:
-- `shared/api/` — fetch wrapper(`client.ts`), 엔드포인트 상수(`endpoints.ts`), mock API(`mock/`)
-  - `client.ts`의 주요 함수: `apiGet`, `apiPost`, `apiPut`, `apiPatch`, `apiDelete` (백엔드), `analysisGet`, `analysisPostForm` (분석 서비스 multipart)
-  - 환경변수: `NEXT_PUBLIC_API_URL`(백엔드), `NEXT_PUBLIC_ANALYSIS_URL`(분석 서비스)
-  - 에러 처리: 네트워크 에러·5xx 응답 시 `toastStore`를 통해 전역 Toast 알림 자동 표시. 401은 기존 토큰 재발급 로직 유지(Toast 없음)
-- `shared/types/` — 도메인 타입 (Post, Comment, User, Community, Product, Schedule, Video, Magazine)
-- `shared/mocks/` — mock 데이터 (posts, communities, products, videos, schedules, users, magazines, mypage)
-- `shared/model/` — Zustand 스토어
-  - `modalStore` — 전역 모달 제어
-  - `authStore` — 인증 (login/logout/checkAuth, fetchMe, updateNickname, localStorage persist)
-  - `communityStore` — 게시글/투표/댓글/멤버십 (addPost, votePost, addComment, getSortedPosts, joinCommunity, leaveCommunity, isMember)
-  - `cartStore` — 장바구니 (addItem, removeItem, updateQuantity)
-  - `toastStore` — 알림 (addToast, 자동 dismiss)
-  - `themeStore` — 다크모드 (toggle, `classList.toggle('dark')` 연동. className 직접 할당 금지)
-- `shared/ui/` — 재사용 가능한 UI 컴포넌트 (`Button`, `Skeleton`, `Spinner`, `Toast`, `ErrorMessage`)
-- `entities/` — 도메인 모델과 UI (예: `post/ui/PostCard`, `post/api/postApi.ts`)
-- `features/` — 사용자 기능 (`auth/ui/LoginModal`, `post/ui/CreatePostModal`, `post/ui/PostDetailModal`, `search/`, `community/`)
-- `widgets/` — 조합형 레이아웃 블록 (`Header`, `Footer`, `Sidebar`)
-- `app/` — Next.js App Router 페이지 및 레이아웃
-- `src/__tests__/` — Jest 단위 테스트 (authStore, communityStore, cartStore, toastStore, themeStore)
-
-전역 모달은 루트 레이아웃의 `ModalProvider`를 통해 렌더링되며, Zustand 스토어(`useModalStore`)로 제어됩니다.
-
-관리자 페이지는 `app/admin/` 하위에 별도 레이아웃과 서브 라우트로 구성됩니다. `admin/layout.tsx`에서 `useAuthStore`로 비인증/비관리자 접근 시 `/` 리다이렉트합니다. 섹션별 메뉴 구조:
-- **콘텐츠**: `banner/` (CRUD + 활성 토글), `schedule/` (CRUD), `youtube/` (CRUD)
-- **분석 도구**: `analysis/` (채널분석·Persona C), `trends/` (실시간 뉴스·YouTube 트렌딩 API 연동), `chat/` (채팅 파일 업로드 → 실제 분석 API 연동)
-- **운영**: `ads/`, `community/members`, `community/posts`
-
-Header(`widgets/Header/ui/Header.tsx`)는 데스크탑 네비게이션, 모바일 오른쪽 슬라이드 드로어 메뉴, 다크모드 토글 버튼, 인증 상태 UI(로그인 시 avatar 이니셜·닉네임·로그아웃 버튼)를 지원합니다.
-
-Sidebar(`widgets/Sidebar/ui/Sidebar.tsx`)는 마운트 시 `USE_MOCK_API` 플래그에 따라 커뮤니티 목록을 실제 API(`GET /api/v1/communities`) 또는 mock 데이터에서 로드합니다. API 실패 시 mock으로 fallback합니다.
-
-SEO: `community/`, `shop/`, `mypage/` 라우트에 각각 `layout.tsx`를 통해 페이지별 `Metadata`를 설정합니다(`"use client"` 페이지는 metadata export 불가이므로 layout으로 분리).
-
-### 백엔드 — 레이어드 아키텍처
-`backend/` 패키지 구조:
-- `global/config/` — SecurityConfig (무상태 JWT + OAuth2, `@EnableMethodSecurity`), RedisConfig, WebMvcConfig, JpaAuditingConfig
-- `global/auth/` — JwtTokenProvider, JwtAuthenticationFilter, OAuth2SuccessHandler
-- `global/controller/` — HealthController
-- `global/baseEntity/` — BaseTimeEntity (JPA 감사: createdAt, updatedAt)
-- `global/exception/` — GlobalExceptionHandler, ErrorCode, ErrorResponse, BusinessException
-- `global/common/` — ApiResponse (success, data, message, timestamp)
-- `user/` — domain (User, Role, AuthProvider), repository, service, controller, DTO
-  - `AuthController`: `POST /auth/signup`, `POST /auth/login`, `GET /auth/me`, `POST /auth/refresh`, `POST /auth/reissue`
-- `community/` — Community 도메인 (CRUD, `/api/v1/communities`)
-- `post/` — Post·Comment·Vote 도메인 (투표, 댓글 중첩, `/api/v1/posts`)
-- `product/` — Product 도메인 (카테고리 필터, `/api/v1/products`)
-- `banner/` — Banner 도메인 (공개 `GET /api/v1/banners`, 관리자 CRUD `POST/PUT/DELETE/PATCH /api/v1/admin/banners/**`)
-- `schedule/` — Schedule 도메인 (공개 `GET /api/v1/schedules`, 관리자 CRUD `/api/v1/admin/schedules/**`)
-- `youtube/` — YoutubeVideo 도메인 (공개 `GET /api/v1/youtube`, 관리자 CRUD `/api/v1/admin/youtube/**`)
-
-관리자 API 보호: SecurityConfig에서 `/api/v1/admin/**`는 `hasRole("ADMIN")` 필요. 컨트롤러에는 추가로 `@PreAuthorize("hasRole('ADMIN')")` 적용.
-
-인증 흐름: OAuth2 로그인 (Google, Kakao, Naver) → `CustomOAuth2UserService` → `OAuth2SuccessHandler`가 JWT 발급 → 프론트엔드가 토큰 저장 후 `JwtAuthenticationFilter`를 통해 전송. 401 시 `client.ts`가 자동으로 refresh token 재발급 시도.
-
-API 접두사: `/api/v1/`
-
-### 분석 서비스
-`analysis/main.py`의 FastAPI 앱. 포트 8000에서 실행됩니다. FastAPI lifespan으로 APScheduler를 앱 시작/종료에 연동합니다.
-- `config.py` — pydantic-settings 환경 변수 (NAVER_CLIENT_ID, YOUTUBE_API_KEY 등)
-- `routers/` — `health.py`, `chat.py`(prefix `/analyze`), `trends.py`(prefix `/trends`)
-- `services/` — `chat_analyzer.py` (버킷 집계·피크 감지·TF-IDF), `news_collector.py` (Naver News API), `youtube_collector.py` (YouTube Data API v3), `cache.py` (Redis 비동기 캐시)
-- `parsers/` — Strategy 패턴 (`base.py` BOM/인코딩 감지, `csv_parser`, `json_parser`, `txt_parser`)
-- `models/` — `chat.py` (HeatmapBucket, PeakSegment, ChatAnalysisResult), `trend.py` (TrendKeyword, TrendingVideo)
-- `tasks/scheduler.py` — APScheduler `AsyncIOScheduler`, 30분 주기 뉴스 키워드 수집
-- `tests/` — `test_parsers.py`, `test_chat_analyzer.py`, `test_cache.py`, `test_trends.py` (pytest-asyncio + AsyncMock)
-
-주요 엔드포인트:
-- `POST /analyze/chat` — 채팅 파일 업로드 분석 (CSV/JSON/TXT)
-- `GET /analyze/chat/session/{session_id}` — 캐시된 분석 결과 조회
-- `GET /trends/news` — 뉴스 키워드 (Redis 캐시 30분, Naver News API 연동 완료)
-- `GET /trends/youtube?region=KR&category=0` — YouTube 트렌딩 (Redis 캐시 30분, YouTube Data API v3 연동 완료)
-- `GET /trends/keywords` — 뉴스+YouTube 통합 키워드
-
-## 주요 기술 사항
-- 백엔드는 무상태 세션 사용 (`SessionCreationPolicy.STATELESS`) — 서버 측 세션 없음
-- QueryDSL 생성 소스 경로: `$buildDir/generated/querydsl`
-- 테스트 DB: H2 인메모리 (운영: MySQL 8.0)
-- 프론트엔드 상태 관리: Zustand (Redux 아님)
-- UI 컴포넌트 라이브러리: Radix UI + CVA (class-variance-authority) + tailwind-merge
-- mock/실제 API 전환: `frontend/.env.local`의 `NEXT_PUBLIC_USE_MOCK` 플래그
-- API 표준 응답: `ApiResponse<T>` (`{ success, data, message, timestamp }`)
-- 인프라: Nginx 리버스 프록시 (포트 80 단일 진입점) + MySQL healthcheck
-- **빌드 주의**: `npm run build`는 Turbopack이 한글 경로(`포트폴리오`)에서 패닉 — `npx tsc --noEmit`으로 타입 검사 대체. Docker 내부(경로 ASCII)에서는 정상 빌드 가능.
-- `tsconfig.json`에서 `src/__tests__/`와 `jest.config.ts` 제외 처리됨 (Jest 타입과 충돌 방지)
-- **테스트 3계층**:
-  - **Unit** (`frontend/src/__tests__/`): Jest — Zustand 스토어 5개 (authStore, communityStore, cartStore, toastStore, themeStore)
-  - **Integration** (`backend/src/test/`): JUnit 19개 — H2 인메모리, 테스트용 JWT_SECRET 별도 설정
-  - **FastAPI** (`analysis/tests/`): pytest-asyncio — 4개 파일 49개 (parsers 15 + analyzer 12 + cache 6 + trends 16)
-  - **E2E** (`e2e/`): Playwright — 73개 테스트 케이스, 17개 스펙 파일. **최종 결과: 64 passed / 9 skipped / 0 failed** (2026-03-19). 진행 현황은 `e2e/TEST_PLAN.md` 참고
-- **E2E 구조**: Page Object Model (POM) + fixtures(auth/community) + helpers(ApiHelper/DbHelper). `storageState`로 로그인 반복 제거
-- **E2E admin 시드**: `global-setup.ts`에서 admin@e2e.com 회원가입 후 `helpers/db.ts`의 `setAdminRole()`로 DB에서 직접 ADMIN role 업데이트 (mysql2 기반)
-- **E2E 전제**: `docker-compose up -d` 후 `http://localhost` 응답 확인 → `cd e2e && npm test`
-- **Spring Security 6.x 주의**: `permitAll()` 경로에 `/api/v1/communities/**` 외에 `/api/v1/communities` (루트 경로)도 명시 필요 — `/**`가 루트 자체를 매칭하지 않음
-- **CORS**: `allowedOrigins`는 `CORS_ALLOWED_ORIGINS` 환경변수로 관리 (기본값: `http://localhost:3000,http://localhost`). `SecurityConfig`와 `WebMvcConfig` 모두 적용
-- **Next.js Image**: 외부 이미지 허용 도메인은 `next.config.ts`의 `images.remotePatterns`에 추가. 현재 `images.unsplash.com` 허용 설정됨
-- **SEO**: `"use client"` 페이지는 `metadata` export 불가 — 해당 라우트에 `layout.tsx`를 별도 생성해 `Metadata` 적용
-- **OAuth2 소셜 로그인 URL**: `window.location.origin + /oauth2/authorization/{provider}` 형식. `NEXT_PUBLIC_API_URL` 기반이면 포트 불일치로 callback redirect_uri 오류 발생
-- **커뮤니티 멤버십**: `communityStore`의 `joinedCommunities`, `isMember(slug)` 으로 관리. 글 작성·삭제 권한 체크 시 참조
-- **Post 작성자 권한**: `Post.authorId`와 `authStore.user.id` 비교로 수정/삭제 버튼 조건부 표시
-- **다크모드**: Tailwind v4 기준 `globals.css`에 `@variant dark (&:is(.dark *))` 선언 필요. themeStore는 `classList.toggle('dark')` 방식 사용 (className 직접 할당 금지)
-- **Header 장바구니**: `usePathname().startsWith('/shop') && isAuthenticated` 조건부 렌더링
-- **authStore.fetchMe()**: 마이페이지 마운트 시 서버 최신 유저 정보 동기화
-- **Google GSI Script 제거 이유**: `Header.tsx`에서 `<Script src="https://accounts.google.com/gsi/client">` 태그를 제거함. 이 스크립트가 브라우저에 Google 계정이 로그인된 경우 헤더 영역에 "E" 버튼을 자동 주입하는 원인이었음. OAuth2 로그인은 `LoginModal.tsx`의 `<a href>` 링크 방식으로 처리하므로 GSI 스크립트 불필요.
-- **Mypage `_hasHydrated` fallback**: `mypage/page.tsx`에 2초 타임아웃 fallback 추가 — Zustand persist hydration이 지연되는 경우 무한 스피너 방지. `useAuthStore.getState()._hasHydrated`가 false이면 `setState({ _hasHydrated: true })`로 강제 완료.
-- **로그아웃 확인 모달**: `Header.tsx`의 로그아웃 버튼은 `logoutConfirmOpen` state로 확인 모달을 거쳐 실행됨. 데스크탑 + 모바일 드로어 모두 동일 패턴.
-- **adsStore**: `shared/model/adsStore.ts` — Zustand + persist 광고 전역 스토어. `admin/ads/page.tsx`와 공유. localStorage `ads-storage` 키로 persist.
-- **커뮤니티 게시물 필터**: `community/board/[slug]/page.tsx`에서 `communityStore.posts`를 `post.community === decodeURIComponent(slug)` 로 필터링. 매칭 없을 시 로컬 mock fallback.
-- **마이페이지 내 커뮤니티**: `communityStore.joinedCommunities` 배열을 "내 커뮤니티" 서브탭에서 카드로 표시. 클릭 시 `/community/board/${name}` 이동.
+---
 
 ## MCP 서버 (`.mcp.json`)
-
-프로젝트 루트 `.mcp.json`에 Claude Code용 MCP 서버가 구성되어 있습니다:
 
 | 서버 | 패키지 | 연결 |
 |---|---|---|

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: '마이페이지 | AnalysisTrend',
+  title: '마이페이지 | SyukaUniverse',
 };
 
 export default function MyPageLayout({ children }: { children: React.ReactNode }) {

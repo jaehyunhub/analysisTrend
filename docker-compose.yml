@@ -25,9 +25,9 @@ services:
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:-password}
     expose:
       - "3306"
-    # E2E 테스트 및 로컬 개발 편의용: DB 직접 접근 (admin role 부여 등)
-    ports:
-      - "3306:3306"
+    # 로컬 개발 시: DB 직접 접근 필요하면 아래 주석 해제 (프로덕션에서는 닫아둘 것)
+    # ports:
+    #   - "3306:3306"
     volumes:
       - mysql-data:/var/lib/mysql
     healthcheck:
@@ -78,9 +78,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - NEXT_PUBLIC_API_URL=http://localhost
-        - NEXT_PUBLIC_ANALYSIS_URL=http://localhost
-        - NEXT_PUBLIC_USE_MOCK=false
+        - NEXT_PUBLIC_API_URL=${DOMAIN:-http://localhost}
+        - NEXT_PUBLIC_ANALYSIS_URL=${DOMAIN:-http://localhost}
     container_name: analysis_trend_frontend
     expose:
       - "3000"
@@ -98,6 +97,8 @@ services:
       - REDIS_URL=redis://redis:6379
     env_file:
       - ./analysis/.env
+    volumes:
+      - ./site_update/chat_samples:/app/data:ro
     depends_on:
       redis:
         condition: service_started

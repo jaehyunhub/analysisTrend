@@ -35,5 +35,24 @@ public class Product extends BaseTimeEntity {
 
     private String imageUrl;
 
+    @Column(columnDefinition = "TEXT")
+    private String thumbnailImages;
+
     private String description;
+
+    @Column(columnDefinition = "TEXT")
+    private String detailContent;
+
+    public void update(String name, int price, Integer originalPrice, Integer discount, ProductCategory category, boolean isSoldOut, String imageUrl, String thumbnailImages, String description, String detailContent) {
+        this.name = name;
+        this.price = price;
+        this.originalPrice = originalPrice;
+        this.discount = discount;
+        this.category = category;
+        this.isSoldOut = isSoldOut;
+        this.imageUrl = imageUrl;
+        this.thumbnailImages = thumbnailImages;
+        this.description = description;
+        this.detailContent = detailContent;
+    }
 }

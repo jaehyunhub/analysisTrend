@@ -1,7 +1,6 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { User } from '../types';
-import { USE_MOCK_API } from '../api/mock/config';
 
 interface AuthState {
   user: User | null;
@@ -31,33 +30,18 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       isLoading: false,
       _hasHydrated: false,
 
-      // 직접 상태 세팅 (OAuth 콜백 / mock 로그인용)
+      // 직접 상태 세팅 (OAuth 콜백용)
       login: (user, accessToken, refreshToken) => {
         if (typeof window !== 'undefined') {
-          localStorage.setItem('accessToken', accessToken);
-          if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
+          sessionStorage.setItem('accessToken', accessToken);
+          if (refreshToken) sessionStorage.setItem('refreshToken', refreshToken);
         }
         set({ user, accessToken, isAuthenticated: true, isLoading: false });
       },
 
-      // 이메일/비밀번호 API 로그인
       loginWithApi: async (email, password) => {
         set({ isLoading: true });
         try {
-          if (USE_MOCK_API) {
-            // mock 모드: 더미 사용자로 로그인
-            const mockUser: User = {
-              id: 1,
-              email,
-              nickname: email.split('@')[0],
-              role: 'USER',
-              provider: 'LOCAL',
-              createdAt: new Date().toISOString(),
-            };
-            get().login(mockUser, 'mock-access-token', 'mock-refresh-token');
-            return;
-          }
-
           const res = await fetch(
             `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1/auth/login`,
             {
@@ -90,14 +74,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
-      // 회원가입
       signupWithApi: async (email, password, nickname) => {
         set({ isLoading: true });
         try {
-          if (USE_MOCK_API) {
-            return; // mock 모드에서는 바로 성공
-          }
-
           const res = await fetch(
             `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/api/v1/auth/signup`,
             {
@@ -118,8 +97,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
       logout: () => {
         if (typeof window !== 'undefined') {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
+          sessionStorage.removeItem('accessToken');
+          sessionStorage.removeItem('refreshToken');
         }
         set({ user: null, accessToken: null, isAuthenticated: false });
       },
@@ -166,6 +145,10 @@ export const useAuthStore = create<AuthState & AuthActions>()(
     }),
     {
       name: 'auth-storage',
+      // sessionStorage: 탭/브라우저 닫으면 세션 종료 → 자동 로그아웃
+      storage: createJSONStorage(() =>
+        typeof window !== 'undefined' ? sessionStorage : localStorage
+      ),
       partialize: (state) => ({
         user: state.user,
         accessToken: state.accessToken,

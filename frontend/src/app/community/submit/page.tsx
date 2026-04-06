@@ -9,7 +9,7 @@ export default function CreatePostPage() {
   const [selectedTab, setSelectedTab] = useState('post'); // post, image, link, poll
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [selectedCommunity, setSelectedCommunity] = useState('r/AnalysisTrend');
+  const [selectedCommunity, setSelectedCommunity] = useState('r/SyukaUniverse');
 
   return (
     <div className="bg-[#DAE0E6] dark:bg-[#030303] min-h-screen">
@@ -39,7 +39,7 @@ export default function CreatePostPage() {
                         onChange={(e) => setSelectedCommunity(e.target.value)}
                         className="flex-1 appearance-none bg-transparent text-sm font-bold text-[#1C1C1C] dark:text-[#D7DADC] outline-none"
                      >
-                         <option>r/AnalysisTrend</option>
+                         <option>r/SyukaUniverse</option>
                          <option>r/KoreaIT</option>
                          <option>r/GameDev</option>
                          <option>r/WebDesign</option>

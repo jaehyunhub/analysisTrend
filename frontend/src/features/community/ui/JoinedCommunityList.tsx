@@ -5,7 +5,7 @@ import Link from 'next/link';
 
 export default function JoinedCommunityList() {
   const [joinedCommunities, setJoinedCommunities] = useState([
-    { id: 1, name: 'r/AnalysisTrend', members: '1.2m', icon: 'bg-blue-500' },
+    { id: 1, name: 'r/SyukaUniverse', members: '1.2m', icon: 'bg-blue-500' },
     { id: 2, name: 'r/KoreaIT', members: '850k', icon: 'bg-green-500' },
     { id: 3, name: 'r/K-Pop', members: '450k', icon: 'bg-pink-500' }
   ]);

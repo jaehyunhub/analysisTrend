@@ -16,6 +16,7 @@ test-*.png
 .DS_Store
 Thumbs.db
 
+
 # Secrets
 .env
 *.env

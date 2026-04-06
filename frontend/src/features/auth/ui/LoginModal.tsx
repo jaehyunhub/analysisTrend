@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { apiPost } from '@/shared/api/client';
 import { AUTH } from '@/shared/api/endpoints';
 import { useAuthStore } from '@/shared/model/authStore';
+import { useToastStore } from '@/shared/model/toastStore';
 import type { User } from '@/shared/types';
 
 interface LoginModalProps {
@@ -13,6 +14,8 @@ interface LoginModalProps {
 
 export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [authView, setAuthView] = useState<'login' | 'signup'>('login');
+  const [loginSuccess, setLoginSuccess] = useState(false);
+  const toastSuccess = useToastStore((state) => state.success);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -70,6 +73,23 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
   };
 
   if (!isOpen) return null;
+
+  // 로그인 성공 화면
+  if (loginSuccess) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm">
+        <div className="relative w-full max-w-[400px] rounded-2xl bg-white shadow-2xl dark:bg-[#1A1A1B] mx-4 p-10 flex flex-col items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+            <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <p className="text-xl font-black text-gray-900 dark:text-white">로그인 되었습니다!</p>
+          <p className="text-sm text-gray-400">잠시 후 자동으로 닫힙니다.</p>
+        </div>
+      </div>
+    );
+  }
 
   const validateSignup = () => {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -140,7 +160,12 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
             };
             useAuthStore.getState().login(user, result.accessToken, result.refreshToken);
           }
-          onClose();
+          toastSuccess('로그인 되었습니다.');
+          setLoginSuccess(true);
+          setTimeout(() => {
+            setLoginSuccess(false);
+            onClose();
+          }, 1500);
       } catch (err) {
           setError(err instanceof Error ? err.message : "로그인에 실패했습니다. 다시 시도해주세요.");
       }
@@ -173,7 +198,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 <div className="flex items-center justify-between p-6 border-b border-gray-100 dark:border-[#343536]">
                   <div className="flex items-center gap-2">
                     <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-black text-sm" aria-hidden="true">A</div>
-                    <span className="font-black text-gray-900 dark:text-white">AnalysisTrend</span>
+                    <span className="font-black text-gray-900 dark:text-white">SyukaUniverse</span>
                   </div>
                   <button onClick={onClose} aria-label="모달 닫기" className="p-1.5 text-gray-400 hover:bg-gray-100 dark:hover:bg-[#272729] rounded-lg transition-colors">
                     <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
@@ -209,14 +234,14 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                                    placeholder="이메일"
                                    value={email}
                                    onChange={(e) => setEmail(e.target.value)}
-                                   className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-all"
+                                   className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                />
                                <input
                                    type="password"
                                    placeholder="비밀번호"
                                    value={password}
                                    onChange={(e) => setPassword(e.target.value)}
-                                   className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-all"
+                                   className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                />
                                <button
                                    type="submit"
@@ -267,7 +292,7 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                             </a>
 
                             <div className="text-center text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                AnalysisTrend가 처음이신가요?{' '}
+                                SyukaUniverse가 처음이신가요?{' '}
                                 <button
                                     onClick={() => switchView('signup')}
                                     className="text-blue-600 font-bold hover:underline"
@@ -285,21 +310,21 @@ export function LoginModal({ isOpen, onClose }: LoginModalProps) {
                                     placeholder="이메일"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-all"
+                                    className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                 />
                                 <input
                                     type="text"
                                     placeholder="닉네임 (2~10자)"
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
-                                    className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-all"
+                                    className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                 />
                                 <input
                                     type="password"
                                     placeholder="비밀번호 (최소 8자)"
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:text-white transition-all"
+                                    className="w-full h-11 px-4 rounded-xl border border-gray-200 dark:border-[#343536] bg-gray-50 dark:bg-[#272729] text-sm text-gray-900 dark:text-white focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                                 />
                                 <button
                                     type="submit"

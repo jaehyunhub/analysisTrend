@@ -4,81 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Header from "@/widgets/Header/ui/Header";
 import Footer from "@/widgets/Footer/ui/Footer";
-
-const ALL_PRODUCTS = [
-    {
-        id: 1,
-        name: 'AnalysisTrend 공식 후드티',
-        price: '55,000',
-        image: 'bg-gray-300',
-        badge: 'NEW',
-        isSoldOut: false,
-        category: 'GOODS'
-    },
-    {
-        id: 2,
-        name: '제주 흑돼지 특선 세트 (500g)',
-        price: '45,000',
-        image: 'bg-red-200',
-        badge: 'BEST',
-        isSoldOut: false,
-        category: 'FOOD'
-    },
-    {
-        id: 3,
-        name: 'AnalysisTrend 한정판 후드티',
-        price: '65,000',
-        image: 'bg-blue-200',
-        badge: 'HOT',
-        isSoldOut: true,
-        category: 'FASHION'
-    },
-    {
-        id: 4,
-        name: 'AnalysisTrend 로고 캡',
-        price: '25,000',
-        image: 'bg-green-200',
-        badge: '',
-        isSoldOut: false,
-        category: 'FASHION'
-    },
-    {
-        id: 5,
-        name: '커스텀 키캡 세트',
-        price: '39,000',
-        image: 'bg-purple-200',
-        badge: '',
-        isSoldOut: false,
-        category: 'DIGITAL'
-    },
-    {
-        id: 6,
-        name: '채널 공식 머그컵',
-        price: '18,000',
-        image: 'bg-yellow-200',
-        badge: 'NEW',
-        isSoldOut: false,
-        category: 'GOODS'
-    },
-    {
-        id: 7,
-        name: '프리미엄 마우스패드',
-        price: '29,000',
-        image: 'bg-indigo-200',
-        badge: '',
-        isSoldOut: false,
-        category: 'DIGITAL'
-    },
-    {
-        id: 8,
-        name: '유기농 꿀 선물세트',
-        price: '35,000',
-        image: 'bg-orange-200',
-        badge: 'BEST',
-        isSoldOut: false,
-        category: 'FOOD'
-    },
-];
+import { getProducts } from '@/entities/product/api/productApi';
+import type { Product } from '@/shared/types/shop';
 
 const CATEGORIES = [
   { key: 'ALL', label: '전체' },
@@ -101,6 +28,9 @@ export default function ShopPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -114,14 +44,23 @@ export default function ShopPage() {
     };
   }, [searchInput]);
 
-  const filteredProducts = ALL_PRODUCTS.filter((p) => {
-    const matchesCategory = activeCategory === 'ALL' || p.category === activeCategory;
-    const matchesSearch = searchQuery === '' || p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
-  });
+  useEffect(() => {
+    setIsLoading(true);
+    const category = activeCategory === 'ALL' ? undefined : activeCategory;
+    getProducts(category, currentPage - 1, PAGE_SIZE)
+      .then((res) => {
+        setProducts(res.content);
+        setTotalPages(Math.max(1, res.totalPages));
+      })
+      .catch(() => {
+        setProducts([]);
+      })
+      .finally(() => setIsLoading(false));
+  }, [activeCategory, currentPage]);
 
-  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / PAGE_SIZE));
-  const pagedProducts = filteredProducts.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pagedProducts = searchQuery
+    ? products.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
+    : products;
 
   const handleCategoryChange = (category: string) => {
     setActiveCategory(category);
@@ -184,14 +123,32 @@ export default function ShopPage() {
                 </div>
 
                 {/* Product Grid */}
+                {isLoading ? (
+                  <div className="flex justify-center py-20">
+                    <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-x-5 gap-y-10">
                     {pagedProducts.map(product => (
                         <Link href={`/shop/${product.id}`} key={product.id} className="group block cursor-pointer">
                             <div className="relative aspect-[3/4] bg-gray-100 dark:bg-[#1A1A1B] mb-4 overflow-hidden rounded-xl">
-                                <div className={`w-full h-full ${product.image} flex items-center justify-center text-gray-400 group-hover:scale-105 transition-transform duration-500`}>
-                                    <svg className="w-12 h-12 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
+                                <div className="w-full h-full flex items-center justify-center text-gray-400 group-hover:scale-105 transition-transform duration-500">
+                                    {(product.imageUrl || product.image) ? (
+                                      <img
+                                        src={product.imageUrl ?? product.image}
+                                        alt={product.name}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          const el = e.currentTarget;
+                                          el.onerror = null;
+                                          el.style.display = 'none';
+                                        }}
+                                      />
+                                    ) : (
+                                      <svg className="w-12 h-12 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                      </svg>
+                                    )}
                                 </div>
 
                                 {/* Badge */}
@@ -222,11 +179,12 @@ export default function ShopPage() {
                                 <h3 className="text-sm text-gray-800 dark:text-gray-200 mb-1.5 leading-snug line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors font-medium">
                                     {product.name}
                                 </h3>
-                                <p className="font-black text-base text-gray-900 dark:text-white">{product.price}원</p>
+                                <p className="font-black text-base text-gray-900 dark:text-white">{product.price.toLocaleString()}원</p>
                             </div>
                         </Link>
                     ))}
                 </div>
+                )}
 
                 {/* Pagination */}
                 {totalPages > 1 && (

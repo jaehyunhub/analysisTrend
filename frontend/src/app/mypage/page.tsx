@@ -13,7 +13,6 @@ import {
   MOCK_COMMUNITY_ACTIVITIES,
   MOCK_ORDERS,
 } from '@/shared/mocks/mypage';
-import { USE_MOCK_API } from '@/shared/api/mock/config';
 import { apiPatch } from '@/shared/api/client';
 
 export default function MyPage() {
@@ -37,9 +36,9 @@ export default function MyPage() {
     router.replace('/');
   }, [_hasHydrated, isAuthenticated, router]);
 
-  // 마운트 시 최신 사용자 정보 가져오기 (mock 모드가 아닐 때)
+  // 마운트 시 최신 사용자 정보 가져오기
   useEffect(() => {
-    if (!USE_MOCK_API && isAuthenticated) {
+    if (isAuthenticated) {
       fetchMe();
     }
   }, [isAuthenticated]);
@@ -405,18 +404,14 @@ function ProfileSection() {
 
         setIsSaving(true);
         try {
-            if (!USE_MOCK_API) {
-                await apiPatch('/api/v1/users/me', { nickname: trimmed });
-            }
+            await apiPatch('/api/v1/users/me', { nickname: trimmed });
             updateNickname(trimmed);
             toastSuccess('프로필이 저장되었습니다.');
             setSaved(true);
             setTimeout(() => setSaved(false), 2000);
 
             // 서버에서 최신 정보 동기화
-            if (!USE_MOCK_API) {
-                await fetchMe();
-            }
+            await fetchMe();
         } catch (err) {
             const message = err instanceof Error ? err.message : '저장에 실패했습니다.';
             toastError(message);

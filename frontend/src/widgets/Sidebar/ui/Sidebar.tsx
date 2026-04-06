@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import type { Community } from '@/shared/types/community';
-import { MOCK_COMMUNITIES } from '@/shared/mocks/communities';
-import { USE_MOCK_API } from '@/shared/api/mock/config';
 import { apiGet } from '@/shared/api/client';
 import { COMMUNITIES } from '@/shared/api/endpoints';
 import { useAuthStore } from '@/shared/model/authStore';
+import { getCommunityTheme } from '@/shared/lib/communityThemes';
+
+const FIXED_CATEGORIES = ['경제', '방송', '쇼핑', '자유게시판'];
 
 const TOPIC_ICONS = {
   경제: 'M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
@@ -16,61 +17,59 @@ const TOPIC_ICONS = {
   자유게시판: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.013 8.013 0 01-5.5-2.2L3 19l1.2-4.5A8.012 8.012 0 013 12c0-4.418 3.582-8 8-8s8 3.582 8 8z',
 };
 
-const COMMUNITY_COLORS = [
-  'bg-blue-500', 'bg-red-500', 'bg-orange-500', 'bg-green-500',
-  'bg-indigo-500', 'bg-purple-500', 'bg-cyan-500', 'bg-pink-500',
-];
 
 export default function Sidebar() {
   const [isMyCommunitiesExpanded, setIsMyCommunitiesExpanded] = useState(false);
-  const [communities, setCommunities] = useState<Community[]>(MOCK_COMMUNITIES);
+  const [communities, setCommunities] = useState<Community[]>([]);
+  const [recentVisits, setRecentVisits] = useState<string[]>([]);
   const { isAuthenticated, user } = useAuthStore();
 
   useEffect(() => {
-    if (USE_MOCK_API) {
-      setCommunities(MOCK_COMMUNITIES);
-      return;
-    }
     apiGet<Community[]>(COMMUNITIES.LIST)
       .then((data) => {
         if (Array.isArray(data) && data.length > 0) setCommunities(data);
       })
       .catch(() => {
-        setCommunities(MOCK_COMMUNITIES);
+        setCommunities([]);
       });
+
+    const stored: string[] = JSON.parse(localStorage.getItem('recentCommunities') || '[]');
+    setRecentVisits(stored);
   }, []);
 
-  const communitiesWithColor = communities.map((c, i) => ({
-    name: c.name,
-    slug: c.name,
-    icon: c.color ?? COMMUNITY_COLORS[i % COMMUNITY_COLORS.length],
-  }));
+  const communitiesWithColor = communities
+    .filter(c => !FIXED_CATEGORIES.includes(c.name))
+    .map((c) => ({
+      name: c.name,
+      slug: c.name,
+      icon: getCommunityTheme(c.name).btnBg,
+    }));
 
   const visibleCommunities = isMyCommunitiesExpanded
     ? communitiesWithColor
     : communitiesWithColor.slice(0, 4);
 
   return (
-    <div className="hidden lg:block w-[240px] shrink-0 h-[calc(100vh-52px)] overflow-y-auto sticky top-[52px] py-4 pr-3 bg-white dark:bg-[#1A1A1B] border-r border-[#EDEFF1] dark:border-[#343536]">
+    <div className="hidden lg:block w-[240px] shrink-0 h-[calc(100vh-52px)] overflow-y-auto sticky top-[52px] py-4 pr-3 bg-white dark:bg-[#0F1117] border-r border-gray-100 dark:border-[#1E2028]">
 
       {/* 1. Recent */}
-      <div className="pl-5 mb-5">
-         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">최근 방문</p>
-         <ul className="space-y-0.5">
-           <li>
-             <Link href="/community/board/경제" className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-lg cursor-pointer transition-colors">
-                <div className="h-5 w-5 bg-blue-500 rounded-full flex items-center justify-center text-[9px] text-white font-bold shrink-0">경</div>
-                경제
-             </Link>
-           </li>
-           <li>
-             <Link href="/community/board/방송" className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-lg cursor-pointer transition-colors">
-                <div className="h-5 w-5 bg-red-500 rounded-full flex items-center justify-center text-[9px] text-white font-bold shrink-0">방</div>
-                방송
-             </Link>
-           </li>
-         </ul>
-      </div>
+      {recentVisits.length > 0 && (
+        <div className="pl-5 mb-5">
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">최근 방문</p>
+          <ul className="space-y-0.5">
+            {recentVisits.map((name) => (
+              <li key={name}>
+                <Link href={`/community/board/${encodeURIComponent(name)}`} className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1E2028] rounded-lg cursor-pointer transition-colors">
+                  <div className={`h-5 w-5 ${getCommunityTheme(name).btnBg} rounded-full flex items-center justify-center text-[9px] text-white font-bold shrink-0`}>
+                    {name[0]}
+                  </div>
+                  {name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* 2. My Communities */}
       <div className="pl-5 mb-5">
@@ -80,7 +79,7 @@ export default function Sidebar() {
              <li key={comm.slug}>
                <Link
                  href={`/community/board/${comm.slug}`}
-                 className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-lg cursor-pointer transition-colors"
+                 className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1E2028] rounded-lg cursor-pointer transition-colors"
                >
                   <div className={`h-5 w-5 ${comm.icon} rounded-full flex items-center justify-center text-[9px] text-white font-bold shrink-0`}>
                     {comm.name[0]}
@@ -93,7 +92,7 @@ export default function Sidebar() {
              <li>
                <button
                  onClick={() => setIsMyCommunitiesExpanded(!isMyCommunitiesExpanded)}
-                 className="flex items-center gap-2.5 p-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-lg cursor-pointer w-full text-left transition-colors"
+                 className="flex items-center gap-2.5 p-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-[#1E2028] rounded-lg cursor-pointer w-full text-left transition-colors"
                >
                  <svg className="h-5 w-5 text-gray-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={isMyCommunitiesExpanded ? "M5 15l7-7 7 7" : "M19 9l-7 7-7-7"} />
@@ -113,7 +112,7 @@ export default function Sidebar() {
              <li key={topic}>
                <Link
                  href={`/community/board/${topic}`}
-                 className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#272729] rounded-lg cursor-pointer group transition-colors"
+                 className="flex items-center gap-2.5 p-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#1E2028] rounded-lg cursor-pointer group transition-colors"
                >
                   <svg className="h-4 w-4 text-gray-400 group-hover:text-blue-500 shrink-0 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={TOPIC_ICONS[topic]}/>
@@ -126,7 +125,7 @@ export default function Sidebar() {
       </div>
 
       {/* CTA */}
-      <div className="pl-5 mx-2 mt-4 pt-4 border-t border-gray-100 dark:border-[#343536]">
+      <div className="pl-5 mx-2 mt-4 pt-4 border-t border-gray-100 dark:border-[#1E2028]">
         {isAuthenticated && user ? (
           <div className="flex items-center gap-2 py-1">
             <div className="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">

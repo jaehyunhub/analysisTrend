@@ -1,11 +1,15 @@
 import logging
-from fastapi import APIRouter, UploadFile, File, HTTPException
+import os
+from typing import Optional
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from models.chat import ChatAnalysisResult
 from parsers.csv_parser import CSVParser
 from parsers.json_parser import JSONParser
 from parsers.txt_parser import TXTParser
 from services.chat_analyzer import ChatAnalyzer
 from services.cache import cache_get, cache_set
+
+CHAT_DATA_DIR = os.environ.get("CHAT_DATA_DIR", "/app/data")
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["chat"])
@@ -29,11 +33,15 @@ def _get_parser(filename: str):
 
 
 @router.post("/chat", response_model=ChatAnalysisResult)
-async def analyze_chat(file: UploadFile = File(...)) -> ChatAnalysisResult:
+async def analyze_chat(
+    file: UploadFile = File(...),
+    search_keywords: Optional[str] = Form(None),
+) -> ChatAnalysisResult:
     """
     채팅 파일을 업로드하여 분석 결과를 반환합니다.
 
     지원 형식: CSV, JSON, TXT
+    search_keywords: 쉼표로 구분된 검색 키워드 (선택사항, 예: "ㅋㅋㅋ,경제,주식")
     """
     parser = _get_parser(file.filename or "upload.txt")
 
@@ -47,8 +55,14 @@ async def analyze_chat(file: UploadFile = File(...)) -> ChatAnalysisResult:
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e)) from e
 
+    kw_list = (
+        [k.strip() for k in search_keywords.split(",") if k.strip()]
+        if search_keywords
+        else []
+    )
+
     analyzer = ChatAnalyzer()
-    result = await analyzer.analyze(records)
+    result = await analyzer.analyze(records, search_keywords=kw_list)
 
     # Redis 캐시 저장 (session_id 키, TTL 1시간)
     try:
@@ -66,6 +80,62 @@ async def get_session(session_id: str) -> ChatAnalysisResult:
     if cached is None:
         raise HTTPException(status_code=404, detail="세션을 찾을 수 없습니다.")
     return ChatAnalysisResult(**cached)
+
+
+@router.get("/chat/files")
+async def list_preset_files() -> dict:
+    """채팅 데이터 디렉터리에서 사용 가능한 프리셋 파일 목록을 반환합니다."""
+    if not os.path.isdir(CHAT_DATA_DIR):
+        return {"files": []}
+    files = sorted(
+        f for f in os.listdir(CHAT_DATA_DIR)
+        if f.endswith((".json", ".csv", ".txt")) and not f.startswith("sample_")
+    )
+    return {"files": files}
+
+
+@router.post("/chat/preset", response_model=ChatAnalysisResult)
+async def analyze_preset(
+    filename: str = Form(...),
+    search_keywords: Optional[str] = Form(None),
+) -> ChatAnalysisResult:
+    """
+    서버에 저장된 프리셋 채팅 파일을 분석합니다.
+    filename: /app/data 디렉터리 내 파일명 (경로 구분자 불가)
+    """
+    if "/" in filename or "\\" in filename or ".." in filename:
+        raise HTTPException(status_code=400, detail="잘못된 파일명입니다.")
+    filepath = os.path.join(CHAT_DATA_DIR, filename)
+    if not os.path.isfile(filepath):
+        raise HTTPException(status_code=404, detail=f"파일을 찾을 수 없습니다: {filename}")
+
+    parser = _get_parser(filename)
+    try:
+        with open(filepath, "rb") as f:
+            content = f.read()
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"파일 읽기 실패: {e}") from e
+
+    try:
+        records = await parser.parse(content)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+
+    kw_list = (
+        [k.strip() for k in search_keywords.split(",") if k.strip()]
+        if search_keywords
+        else []
+    )
+
+    analyzer = ChatAnalyzer()
+    result = await analyzer.analyze(records, search_keywords=kw_list)
+
+    try:
+        await cache_set(f"chat:{result.session_id}", result.model_dump(), ttl=3600)
+    except Exception as e:
+        logger.warning("채팅 분석 캐시 저장 실패: %s", e)
+
+    return result
 
 
 @router.get("/chat/heatmap")
