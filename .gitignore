@@ -5,6 +5,7 @@ RULES.md
 claude.local.md
 claudedocs/
 .playwright-mcp/
+.mcp.json
 
 # Test screenshots
 test-*.png
