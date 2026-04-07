@@ -7,6 +7,8 @@ import backend.banner.repository.BannerRepository;
 import backend.global.exception.BusinessException;
 import backend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,17 +21,20 @@ public class BannerService {
 
     private final BannerRepository bannerRepository;
 
+    @Cacheable(value = "banners", key = "'all'")
     public List<BannerResponse> findAll() {
         return bannerRepository.findAllByOrderByDisplayOrderAsc()
                 .stream().map(BannerResponse::from).toList();
     }
 
+    @Cacheable(value = "banners", key = "'active'")
     public List<BannerResponse> findActive() {
         return bannerRepository.findByActiveTrueOrderByDisplayOrderAsc()
                 .stream().map(BannerResponse::from).toList();
     }
 
     @Transactional
+    @CacheEvict(value = "banners", allEntries = true)
     public BannerResponse create(BannerRequest request) {
         Banner banner = Banner.builder()
                 .title(request.getTitle())
@@ -42,6 +47,7 @@ public class BannerService {
     }
 
     @Transactional
+    @CacheEvict(value = "banners", allEntries = true)
     public BannerResponse update(Long id, BannerRequest request) {
         Banner banner = bannerRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND));
@@ -51,6 +57,7 @@ public class BannerService {
     }
 
     @Transactional
+    @CacheEvict(value = "banners", allEntries = true)
     public void delete(Long id) {
         if (!bannerRepository.existsById(id)) {
             throw new BusinessException(ErrorCode.ENTITY_NOT_FOUND);
@@ -59,6 +66,7 @@ public class BannerService {
     }
 
     @Transactional
+    @CacheEvict(value = "banners", allEntries = true)
     public BannerResponse toggleActive(Long id) {
         Banner banner = bannerRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND));

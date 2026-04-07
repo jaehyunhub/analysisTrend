@@ -7,6 +7,8 @@ import backend.schedule.dto.ScheduleRequest;
 import backend.schedule.dto.ScheduleResponse;
 import backend.schedule.repository.ScheduleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ public class ScheduleService {
                 .stream().map(ScheduleResponse::from).toList();
     }
 
+    @Cacheable(value = "schedules", key = "#year + '-' + #month")
     public List<ScheduleResponse> findByMonth(int year, int month) {
         LocalDate start = LocalDate.of(year, month, 1);
         LocalDate end = start.withDayOfMonth(start.lengthOfMonth());
@@ -33,6 +36,7 @@ public class ScheduleService {
     }
 
     @Transactional
+    @CacheEvict(value = "schedules", allEntries = true)
     public ScheduleResponse create(ScheduleRequest request) {
         Schedule schedule = Schedule.builder()
                 .title(request.getTitle())
@@ -44,6 +48,7 @@ public class ScheduleService {
     }
 
     @Transactional
+    @CacheEvict(value = "schedules", allEntries = true)
     public ScheduleResponse update(Long id, ScheduleRequest request) {
         Schedule schedule = scheduleRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ENTITY_NOT_FOUND));
@@ -52,6 +57,7 @@ public class ScheduleService {
     }
 
     @Transactional
+    @CacheEvict(value = "schedules", allEntries = true)
     public void delete(Long id) {
         if (!scheduleRepository.existsById(id)) {
             throw new BusinessException(ErrorCode.ENTITY_NOT_FOUND);

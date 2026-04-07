@@ -7,6 +7,8 @@ import backend.community.repository.CommunityRepository;
 import backend.global.exception.BusinessException;
 import backend.global.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,7 @@ public class CommunityService {
 
     private final CommunityRepository communityRepository;
 
+    @Cacheable(value = "communities", key = "'all'")
     public List<CommunityResponse> findAll() {
         return communityRepository.findAll().stream()
                 .map(CommunityResponse::from)
@@ -33,6 +36,7 @@ public class CommunityService {
     }
 
     @Transactional
+    @CacheEvict(value = "communities", allEntries = true)
     public CommunityResponse create(CreateCommunityRequest request) {
         if (communityRepository.existsByName(request.getName())) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
