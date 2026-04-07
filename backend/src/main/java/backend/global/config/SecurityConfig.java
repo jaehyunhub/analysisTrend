@@ -45,6 +45,9 @@ public class SecurityConfig {
                 http
                                 .csrf(AbstractHttpConfigurer::disable)
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                // Spring Security 기본 Cache-Control: no-store 헤더 제거
+                                // — 공개 API에 CDN 캐시(CdnCacheFilter)를 적용하기 위해 필요
+                                .headers(headers -> headers.cacheControl(cc -> cc.disable()))
                                 // 기본 로그인 창(Form Login) 끄기 JWT를 쓸 거라 아이디/비번 입력 창이 필요없어서 설정 끔
                                 .formLogin(AbstractHttpConfigurer::disable)
 
