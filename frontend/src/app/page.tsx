@@ -12,7 +12,9 @@ async function fetchJSON<T>(path: string, fallback: T): Promise<T> {
       next: { revalidate: 60 },
     });
     if (!res.ok) return fallback;
-    return res.json() as Promise<T>;
+    const json = await res.json();
+    // ApiResponse<T> 래퍼 { success, data, ... } 자동 언래핑 (client.ts apiGet 동일 로직)
+    return (json?.data ?? json) as T;
   } catch {
     return fallback;
   }
