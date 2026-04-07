@@ -2,13 +2,17 @@ package backend.schedule.dto;
 
 import backend.schedule.domain.Schedule;
 import backend.schedule.domain.ScheduleType;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
 
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ScheduleResponse {
 
     private Long id;
