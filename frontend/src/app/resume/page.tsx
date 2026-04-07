@@ -121,6 +121,10 @@ export default function ResumePage() {
                     <span className="text-gray-700 dark:text-gray-300">github.com/jaehyunhub</span>
                   </div>
                   <div className="flex gap-2">
+                    <span className="text-gray-400 w-14 shrink-0">생년월일</span>
+                    <span className="text-gray-700 dark:text-gray-300">1994. 01. 06</span>
+                  </div>
+                  <div className="flex gap-2">
                     <span className="text-gray-400 w-14 shrink-0">학력</span>
                     <span className="text-gray-700 dark:text-gray-300">순천향대 영어영문학과 졸업</span>
                   </div>
