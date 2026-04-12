@@ -175,13 +175,14 @@ export default function ChatContent() {
   const [activeTab, setActiveTab] = useState<'heatmap' | 'peaks' | 'keywords'>('heatmap');
   const [selectedPeak, setSelectedPeak] = useState<number | null>(null);
   const [expandedKeyword, setExpandedKeyword] = useState<string | null>(null);
+  const [presetFile, setPresetFile] = useState('슈카월드라이브20260413.json');
 
-  const analyzeFixedFile = async (keywords?: string) => {
+  const analyzeFixedFile = async (filename: string, keywords?: string) => {
     setAnalyzing(true);
     setError(null);
     try {
       const formData = new FormData();
-      formData.append('filename', '슈카월드라이브20260406.json');
+      formData.append('filename', filename);
       if (keywords?.trim()) formData.append('search_keywords', keywords.trim());
       const data = await analysisPostForm<ChatAnalysisResult>('/analyze/chat/preset', formData);
       setResult(data);
@@ -193,8 +194,9 @@ export default function ChatContent() {
     }
   };
 
-  // 페이지 진입 시 고정 파일 자동 분석
-  useEffect(() => { analyzeFixedFile(); }, []);
+  // 프리셋 변경 또는 페이지 진입 시 자동 분석
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!uploadedFile) analyzeFixedFile(presetFile); }, [presetFile]);
 
   const handleFileLoaded = (file: File) => {
     setUploadedFile(file);
@@ -310,7 +312,7 @@ export default function ChatContent() {
             검색 키워드를 입력하면 해당 키워드가 폭발한 구간만 추려서 확인할 수 있습니다.
           </p>
           <p className="text-xs text-purple-600 dark:text-purple-500 mt-1.5">
-            현재 표시된 결과는 <span className="font-semibold">슈카월드 생방송 20260406 방영분</span> 라이브 채팅을 기준으로 분석한 내용입니다.
+            현재 표시된 결과는 <span className="font-semibold">{uploadedFile ? uploadedFile.name : presetFile.replace('.json', '').replace('슈카월드라이브', '슈카월드 생방송 ') + ' 방영분'}</span> 라이브 채팅을 기준으로 분석한 내용입니다.
           </p>
         </div>
       </div>
@@ -319,9 +321,17 @@ export default function ChatContent() {
       <div className="bg-white dark:bg-[#1a1a1b] rounded-2xl border border-gray-200 dark:border-[#343536] p-6 mb-6 shadow-sm">
         <div className="flex items-center gap-3 mb-4">
           <h2 className="text-base font-semibold text-gray-800 dark:text-gray-200">채팅 파일 업로드</h2>
-          <span className="px-2.5 py-1 text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-700/50">
-            슈카월드 생방송 20260405 방영분 분석
-          </span>
+          <select
+            value={presetFile}
+            onChange={(e) => {
+              setPresetFile(e.target.value);
+              setUploadedFile(null);
+            }}
+            className="px-2.5 py-1 text-xs font-medium bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200 dark:border-purple-700/50 outline-none cursor-pointer"
+          >
+            <option value="슈카월드라이브20260406.json">20260406 방영분</option>
+            <option value="슈카월드라이브20260413.json">20260413 방영분</option>
+          </select>
         </div>
         <UploadZone onFileLoaded={handleFileLoaded} />
 
@@ -346,7 +356,7 @@ export default function ChatContent() {
         {!uploadedFile && (
           <div className="mt-4 flex justify-end">
             <button
-              onClick={() => analyzeFixedFile(searchKeywords)}
+              onClick={() => analyzeFixedFile(presetFile, searchKeywords)}
               disabled={analyzing}
               className="px-4 py-2 text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 rounded-lg transition-colors flex items-center gap-2"
               aria-busy={analyzing}
