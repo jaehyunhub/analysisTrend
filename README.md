@@ -12,18 +12,6 @@
 
 ---
 
-## 화면
-
-| 홈 — 방송일정·유튜브·커뮤니티 | 홈 — 배너·쇼핑 섹션 |
-|---|---|
-| ![홈 메인](docs/screenshots/home.png) | ![홈 배너](docs/screenshots/home-banner.png) |
-
-| 커뮤니티 — 카드형 게시판 | 공식 쇼핑몰 |
-|---|---|
-| ![커뮤니티](site_update/community-logged-in.png) | ![쇼핑몰](site_update/shop-page.png) |
-
----
-
 ## 주요 기능
 
 **시청자**
